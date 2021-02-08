@@ -8,6 +8,11 @@ html {
 body {
     padding-top: 50px;
 }
+body.fullscreen {
+    padding: 0 !important;
+    margin: 0 !important;
+    overflow: hidden;
+}
 .nopadding {
     padding: 0 !important;
     margin: 0 !important;
@@ -31,10 +36,6 @@ time.duration{
     position: absolute;
     color: rgba(255, 255, 255, 0.3)!important;
     font-size: 50px;
-}
-.videoLink div {
-    transition: all 0.3s ease-in-out;
-    font-size: 1em;
 }
 .videoLink div.details,
 .videoLink div.details div {
@@ -115,7 +116,7 @@ footer ul.list-inline li {
     background-color: #000;
     margin-bottom: 10px;    
 }
-.rightBar, .main-video{
+.main-video{
     -webkit-transition: ease 1s; /* Safari */
     transition: ease 1s;    
 }
@@ -157,6 +158,13 @@ footer ul.list-inline li {
     #modeYoutubeBottomContent, .principalContainer{
         padding: 0;
     }
+    .panel-body, .tabbable-panel {
+        padding: 5px;
+    }
+    .nopaddingOnSmall{
+        padding: 0;
+    }
+
 }
 @media (max-width: 450px) {
     #captchaText, .captcha .input-group{
@@ -180,7 +188,6 @@ footer ul.list-inline li {
 }
 .commentDetails {
     margin: 0 0 0 60px;
-    min-height: 50px;
 }
 /* End Comments */
 
@@ -358,23 +365,19 @@ footer ul.list-inline li {
 
 /* fancy checkbox  end */
 
-.label.fix-width {
-    min-width: 130px !important;
-    display: inline-block !important;
-    text-align: left;
-    border-top-left-radius: 0;
-    border-bottom-left-radius: 0;
+.videosDetails .label{
+    border-radius: 0;
 }
-.label.fix-width.label-primary {
-    min-width: 70px !important;
-    text-align: right;
-    border-top-right-radius: 0;
-    border-bottom-right-radius: 0;
+
+.videosDetails  .label:first-child{
     border-top-left-radius: 0.25em;
-    ;
     border-bottom-left-radius: 0.25em;
-    ;
 }
+.videosDetails  .label:last-child{
+    border-top-right-radius: 0.25em;
+    border-bottom-right-radius: 0.25em;
+}
+
 .popover-content,
 .popover-title,
 .popover {
@@ -661,10 +664,7 @@ nav ul.items-container li ul.right-menus li li {
 .navbar-collapse.in {
     overflow-y: visible; /* Bootstrap default is "auto" */
 }
-#videosList{    
-    -webkit-transition: ease 1s; /* Safari */
-    transition: ease 1s;    
-}
+
 .transparent{
     opacity: 0.3;
     filter: alpha(opacity=30); /* For IE8 and earlier */
@@ -709,15 +709,17 @@ img.blur{
 }
 
 .btn-circle {
-    width: 30px;
-    height: 30px;
+    width: 32px;
+    height: 32px;
     text-align: center;
     padding: 6px 0;
     font-size: 12px;
     line-height: 1.42;
     border-radius: 15px;
 }
-
+.btn-circle:hover, .btn-group.open .btn-circle {
+    box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.05) inset, 0px 0px 8px rgba(82, 168, 236, 0.6);
+}
 
 ::-webkit-scrollbar-track
 {
@@ -782,9 +784,163 @@ img.blur{
 }
 
 .btn-group.justified {
-  display: flex;
+    display: flex;
 }
 
 .justified .btn {
-  flex: 1
+    flex: 1
+}
+
+
+.addWidthOnMenuOpen {
+    transition: width 0.3s;
+}
+
+
+@media (min-width: 1200px){
+    body.youtube .lessMarginLeftOnMenuOpen{
+        margin-left: -200px;
+    }
+    body.youtube .col-lg-4.addWidthOnMenuOpen {
+        margin-left: -150px;
+        width: calc(33.3333333333% + 300px);
+    }
+    body.youtube .col-lg-10.addWidthOnMenuOpen {
+        width: 100%;
+    }
+    body.youtube .col-lg-offset-1.addWidthOnMenuOpen {
+        margin-left: 0;
+    }
+}
+
+.liveVideo .thumbsImage img{
+    width: 100%;
+}
+
+#mainVideo_ima-ad-container, 
+#mainVideo_ima-ad-container:after, 
+#mainVideo_ima-ad-container:before {
+    font-size: 14px !important;
+    line-height: 1 !important;
+}
+
+#mainVideo_ima-ad-container .ima-play-pause-div, 
+#mainVideo_ima-ad-container .ima-mute-div, 
+#mainVideo_ima-ad-container .ima-slider-div, 
+#mainVideo_ima-ad-container .ima-fullscreen-div {
+    font-size: 1.5em !important;
+    line-height: 2 !important;
+}
+#mainVideo_ima-controls-div{
+    max-height: 3.7em;
+}
+
+.vjs-menu-item, .vjs-menu-title{
+    margin: 0 !important;
+    padding: 0 !important;
+    border-radius: 0 !important;
+}
+
+.vjs-menu li {
+    text-transform: none;
+}
+
+#navBarFlag li{
+    cursor: pointer;
+}
+
+.videoListItem{
+    overflow: hidden;
+}
+.extraVideos:empty{
+    display: none;
+}
+
+.list-group-horizontal .list-group-item{
+    display: inline-block;
+}
+.list-group-horizontal .list-group-item{
+    margin-bottom: 0;
+    margin-left:-4px;
+    margin-right: 0;
+    border-right-width: 0;
+}
+.list-group-horizontal .list-group-item:first-child{
+    border-top-right-radius:0;
+    border-bottom-left-radius:4px;
+}
+.list-group-horizontal .list-group-item:last-child{
+    border-top-right-radius:4px;
+    border-bottom-left-radius:0;
+    border-right-width: 1px;
+}
+
+#modeYoutubeTop, #mvideo, #videoContainer{
+    position: relative;
+}
+
+#closeBtnFull{
+    opacity: 0.25; filter: alpha(opacity=25);
+    -webkit-transition: opacity 0.25s ease-in-out;
+    -moz-transition: opacity 0.25s ease-in-out;
+    -ms-transition: opacity 0.25s ease-in-out;
+    -o-transition: opacity 0.25s ease-in-out;
+    transition: opacity 0.25s ease-in-out;
+    padding: 12px;
+    margin: 5px;
+    cursor: pointer;
+}
+#divTopBar:hover #closeBtnFull{
+    opacity: 1; filter: alpha(opacity=100);
+}
+#closeBtnFull i{
+    text-shadow: 1px 1px rgba(255,255,255,0.7);
+}
+li.dropdown-submenu > ul > li > a{
+    width: 100%;
+}
+
+
+.socket_disconnected{
+    display: none;
+}
+.disconnected .socket_connected{
+    display: none;
+}
+.disconnected .socket_disconnected{
+    display: block;
+}
+.socket_connected, .socket_disconnected{
+    font-weight: bold;
+}
+.socket_connected{
+    color: #FFF;
+    animation: socketGlow 1s infinite alternate;
+}
+@keyframes socketGlow {
+    from {
+        color: #DFD;
+        text-shadow: 
+            0 0 1px #050, 
+            0 0 2px #070, 
+            0 0 3px #670, 
+            0 0 4px #670;
+    }
+    to {
+        color: #FFF;
+        text-shadow: 
+            0 0 2px #020,
+            0 0 5px #090, 
+            0 0 10px #0F0, 
+            0 0 15px #BF0, 
+            0 0 20px #B6FF00;
+    }
+}
+
+#extraVideos .liveVideo{
+    min-height: 170px;
+}
+
+#extraVideos .liveVideo .thumbsImage img{
+    min-height: 90px;
 }

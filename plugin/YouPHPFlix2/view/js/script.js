@@ -34,10 +34,22 @@ $(function () {
     }, 2000);
 
     isFlickityEnabled('.carousel');
+    if($("body.userChannel").length===0){
+        if ($(window).scrollTop() < 60) {
+            $("#mainNavBar").addClass("bgTransparent");
+        }
+        $(window).scroll(function () {
+            if ($(window).scrollTop() < 60) {
+                $("#mainNavBar").addClass("bgTransparent");
+            } else {
+                $("#mainNavBar").removeClass("bgTransparent");
+            }
+        });
+    }
 });
 
 function startModeFlix(container) {
-
+    
     if ($(container + ".thumbsImage").attr('startModeFlix') == 1) {
         return false;
     }
@@ -89,4 +101,7 @@ function startModeFlix(container) {
     });
 
     $(container + ".thumbsImage").attr('startModeFlix', 1);
+    if(typeof transformLinksToEmbed == 'function'){
+        transformLinksToEmbed(container + ' a.canWatchPlayButton');
+    }
 }

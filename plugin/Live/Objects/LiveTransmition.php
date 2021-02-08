@@ -6,7 +6,7 @@ require_once dirname(__FILE__) . '/../../../objects/user.php';
 
 class LiveTransmition extends ObjectYPT {
 
-    protected $id, $title, $public, $saveTransmition, $users_id, $categories_id, $key, $description;
+    protected $id, $title, $public, $saveTransmition, $users_id, $categories_id, $key, $description, $showOnTV;
 
     static function getSearchFieldsNames() {
         return array('title');
@@ -159,6 +159,9 @@ class LiveTransmition extends ObjectYPT {
         sqlDAL::close($res);
         if ($res != false) {
             $user = $data;
+            if(empty($user)){
+                return false;
+            }
             return static::getFromDbByUser($user['id']);
         } else {
             return false;
@@ -170,6 +173,14 @@ class LiveTransmition extends ObjectYPT {
         if (!is_string($key)) {
             return false;
         }
+        $parts = explode("_", $key);
+        if(!empty($parts[1])){
+            $adaptive = array('hi', 'low', 'mid');
+            if(in_array($parts[1], $adaptive)){
+                return false;
+            }
+        }
+        $key = $parts[0];
         $key = preg_replace("/[^A-Za-z0-9]/", '', $key);
         $sql = "SELECT u.*, lt.* FROM " . static::getTableName() . " lt "
                 . " LEFT JOIN users u ON u.id = users_id AND u.status='a' WHERE  `key` = '$key' LIMIT 1";
@@ -178,6 +189,7 @@ class LiveTransmition extends ObjectYPT {
         sqlDAL::close($res);
         if ($res) {
             $row = $data;
+            $row = cleanUpRowFromDatabase($row);
         } else {
             $row = false;
         }
@@ -187,7 +199,9 @@ class LiveTransmition extends ObjectYPT {
     function save() {
         $this->public = intval($this->public);
         $this->saveTransmition = intval($this->saveTransmition);
+        $this->showOnTV = intval($this->showOnTV);
         $id = parent::save();
+        Category::clearCacheCount();
         return $id;
     }
 
@@ -205,7 +219,11 @@ class LiveTransmition extends ObjectYPT {
         $sql = "INSERT INTO live_transmitions_has_users_groups (live_transmitions_id, users_groups_id) VALUES (?,?)";
         return sqlDAL::writeSql($sql, "ii", array($this->id, $users_groups_id));
     }
-
+    
+    function isAPrivateLive(){
+        return !empty($this->getGroups());
+    }
+    
     function getGroups() {
         $rows = array();
         if (empty($this->id)) {
@@ -272,5 +290,22 @@ class LiveTransmition extends ObjectYPT {
         }
         return $user;
     }
+    
+    static function keyNameFix($key){
+        if(!empty($_REQUEST['playlists_id_live']) && !preg_match("/.*_([0-9]+)/", $key)){
+            $key .= "_{$_REQUEST['playlists_id_live']}";
+        }
+        return $key;
+    }
+    
+    function getShowOnTV() {
+        return $this->showOnTV;
+    }
+
+    function setShowOnTV($showOnTV) {
+        $this->showOnTV = $showOnTV;
+    }
+
+
 
 }

@@ -123,7 +123,7 @@ class Subscribe {
         }
         return $subscribe;
     }
-    
+
     static function isSubscribed($subscribed_to_user_id, $user_id=0) {
         if(empty($user_id)){
             if(User::isLogged()){
@@ -174,6 +174,7 @@ class Subscribe {
             if ($res != false) {
                 $emails = array();
                 foreach ($fullData as $row) {
+                    $row = cleanUpRowFromDatabase($row);
                     if (in_array($row['email'], $emails)) {
                         //continue;
                     }
@@ -284,11 +285,11 @@ class Subscribe {
 
     static function getButton($user_id) {
         global $global, $advancedCustom;
-        
+
         if(!empty($advancedCustom->removeSubscribeButton)){
             return "";
         }
-        
+
         $total = static::getTotalSubscribes($user_id);
 
         $subscribe = "<div class=\"btn-group\" >"
@@ -325,10 +326,10 @@ class Subscribe {
                 $notify = 'hidden';
                 $notNotify = '';
             }
-            $subscribe .= '<span class=" notify' . $user_id . ' ' . $notify . '"><button onclick="toogleNotify' . $user_id . '();" class="btn btn-default btn-xs " data-toggle="tooltip" 
+            $subscribe .= '<span class=" notify' . $user_id . ' ' . $notify . '"><button onclick="toogleNotify' . $user_id . '();" class="btn btn-default btn-xs " data-toggle="tooltip"
                                    title="' . __("Stop getting notified for every new video") . '">
                                 <i class="fa fa-bell" ></i>
-                            </button></span><span class=" notNotify' . $user_id . ' ' . $notNotify . '"><button onclick="toogleNotify' . $user_id . '();" class="btn btn-default btn-xs "  data-toggle="tooltip" 
+                            </button></span><span class=" notNotify' . $user_id . ' ' . $notNotify . '"><button onclick="toogleNotify' . $user_id . '();" class="btn btn-default btn-xs "  data-toggle="tooltip"
                                    title="' . __("Get notified for every new video") . '">
                                 <i class="fa fa-bell-slash"></i>
                             </button></span>';
@@ -343,11 +344,10 @@ class Subscribe {
                             email = $('#subscribeEmail{$user_id}').val();
                             subscribe(email, '{$user_id}');
                         });
-                        $('[data-toggle=\"tooltip\"]').tooltip(); 
                     });
                 </script>";
         }
-        
+
         return $subscribe . $popover . $script;
     }
 

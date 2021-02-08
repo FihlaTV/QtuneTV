@@ -21,6 +21,8 @@ if (empty($meet_schedule_id)) {
 ?>
 <script src="<?php echo $global['webSiteRootURL']; ?>plugin/Meet/external_api.js" type="text/javascript"></script>
 <script>
+    var webSiteRootURL = "<?php echo $global['webSiteRootURL']; ?>";
+    var webSiteTitle = "<?php echo $config->getWebSiteTitle(); ?>";
     var lastLiveStatus;
     var eventMethod = window.addEventListener
             ? "addEventListener"
@@ -79,30 +81,41 @@ if (empty($meet_schedule_id)) {
             },
             ConfigOverwrite: {
                 disableDeepLinking: true,
+                disableInviteFunctions: true
             },
             interfaceConfigOverwrite: {
                 TOOLBAR_BUTTONS: TOOLBAR_BUTTONS,
                 DISABLE_JOIN_LEAVE_NOTIFICATIONS: true,
                 MOBILE_APP_PROMO: false,
-                disableAudioLevels: true,
+                HIDE_INVITE_MORE_HEADER: true,
+                //disableAudioLevels: true,
                 requireDisplayName: true,
                 enableLayerSuspension: true,
                 channelLastN: 4,
                 startVideoMuted: 10,
                 startAudioMuted: 10,
-                disableInviteFunctions: true
+                disableInviteFunctions: true,
+                DEFAULT_LOGO_URL: webSiteRootURL+"videos/userPhoto/logo.png",
+                DEFAULT_REMOTE_DISPLAY_NAME:webSiteTitle,
+                JITSI_WATERMARK_LINK:webSiteRootURL,
+                LIVE_STREAMING_HELP_LINK:webSiteRootURL,
+                PROVIDER_NAME:webSiteTitle,
+                SUPPORT_URL:webSiteRootURL,
+                BRAND_WATERMARK_LINK:webSiteRootURL,
+                NATIVE_APP_NAME: webSiteTitle,
+                APP_NAME: webSiteTitle
+
             }
 
         };
         api = new JitsiMeetExternalAPI(domain, options);
-        
+
         const iframe = api.getIFrame();
-        
-        
+
         var src = $(iframe).attr('src');
         var srcParts = src.split("#");
         var newSRC = srcParts[0]+"&getRTMPLink=<?php echo urlencode($rtmpLink); ?>#"+srcParts[1];
-        
+
         $(iframe).attr('src',newSRC);
 
         api.addEventListeners({

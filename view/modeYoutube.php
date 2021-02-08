@@ -55,7 +55,7 @@ if (!empty($evideo)) {
     $modeYouTubeTimeLog['Code part 1'] = microtime(true) - $modeYouTubeTime;
     $modeYouTubeTime = microtime(true);
     if (!empty($_GET['playlist_id'])) {
-
+        $isSerie = 1;
         if (preg_match("/^[0-9]+$/", $_GET['playlist_id'])) {
             $playlist_id = $_GET['playlist_id'];
         } else if (User::isLogged()) {
@@ -73,6 +73,9 @@ if (!empty($evideo)) {
         }
 
         $videosArrayId = PlayList::getVideosIdFromPlaylist($playlist_id);
+        if(empty($videosArrayId)){
+            videoNotFound(__('Playlist is empty or does not exist'));
+        }
         $videosPlayList = Video::getAllVideos("viewable", false, false, $videosArrayId, false, true);
         $videosPlayList = PlayList::sortVideos($videosPlayList, $videosArrayId);
 
@@ -80,9 +83,12 @@ if (!empty($evideo)) {
 
         unset($_GET['playlist_id']);
         $isPlayListTrailer = false;
+        
+        $playListObject = AVideoPlugin::getObjectData("PlayLists");
+        
         if (!empty($videoSerie)) {
             $videoSerie = Video::getVideo($videoSerie["id"], "", true);
-            if (!empty($videoSerie["trailer1"]) && filter_var($videoSerie["trailer1"], FILTER_VALIDATE_URL) !== FALSE) {
+            if (!empty($playListObject->showTrailerInThePlayList) && !empty($videoSerie["trailer1"]) && filter_var($videoSerie["trailer1"], FILTER_VALIDATE_URL) !== FALSE) {
                 $videoSerie["type"] = "embed";
                 $videoSerie["videoLink"] = $videoSerie["trailer1"];
                 array_unshift($videosPlayList, $videoSerie);
@@ -129,19 +135,19 @@ if (!empty($evideo)) {
             $video = AVideoPlugin::getVideo();
         }
 
-        if (!empty($_GET['v']) && $video['id'] != $_GET['v']) {
+        if (!empty($_GET['v']) && (empty($video) || $video['id'] != $_GET['v'])) {
             $video = false;
         }
+        if(!empty($video['id'])){
+            // allow users to count a view again in case it is refreshed
+            Video::unsetAddView($video['id']);
 
-// allow users to count a view again in case it is refreshed
-        Video::unsetAddView($video['id']);
+            // add this because if you change the video category the video was not loading anymore
+            $_GET['catName'] = $catName;
 
-// add this because if you change the video category the video was not loading anymore
-        $_GET['catName'] = $catName;
-
-        $_GET['isMediaPlaySite'] = $video['id'];
-        $obj = new Video("", "", $video['id']);
-
+            $_GET['isMediaPlaySite'] = $video['id'];
+            $obj = new Video("", "", $video['id']);
+        }
         /*
           if (empty($_SESSION['type'])) {
           $_SESSION['type'] = $video['type'];
@@ -191,7 +197,9 @@ if (!empty($evideo)) {
              */
             $modeYouTubeTimeLog['Code part 1.5'] = microtime(true) - $modeYouTubeTime;
             $modeYouTubeTime = microtime(true);
-            $autoPlayVideo = Video::getRandom($video['id']);
+            if(!empty($video['id'])){
+                $autoPlayVideo = Video::getRandom($video['id']);
+            }
             //}
         }
 
@@ -219,7 +227,7 @@ if (!empty($evideo)) {
 // $resp = $obj->addView();
     }
 
-    if ($video['type'] == "video") {
+    if (!empty($video) && $video['type'] == "video") {
         $poster = "{$global['webSiteRootURL']}videos/{$video['filename']}.jpg";
     } else {
         $poster = "{$global['webSiteRootURL']}view/img/audio_wave.jpg";
@@ -259,7 +267,7 @@ if (!empty($evideo)) {
     $objSecure = AVideoPlugin::getObjectDataIfEnabled('SecureVideosDirectory');
     $modeYouTubeTimeLog['Code part 3'] = microtime(true) - $modeYouTubeTime;
     $modeYouTubeTime = microtime(true);
-    if (!empty($autoPlayVideo)) {
+    if (!empty($autoPlayVideo) && !empty($autoPlayVideo['filename'])) {
         $autoPlaySources = getSources($autoPlayVideo['filename'], true);
         $autoPlayURL = $autoPlayVideo['url'];
         $autoPlayPoster = "{$global['webSiteRootURL']}videos/{$autoPlayVideo['filename']}.jpg";
@@ -318,17 +326,12 @@ if (empty($video)) {
 $metaDescription = " {$video['id']}";
 
 // make sure the title tag does not have more then 70 chars
-$titleTag = "{$video['title']}";
-if (strlen($titleTag) > 50) {
-    $titleTag = substr($titleTag, 0, 50);
-} else {
-    $titleTag .= " - " . $config->getWebSiteTitle();
-}
-$titleTag = substr($titleTag, 0, 60);
-$titleTag .= " - " . getSEOComplement();
-$titleTag = substr($titleTag, 0, 70);
+$titleTag = $video['title'];
+$titleTag = (strlen($titleTag) > 50) ? (substr($titleTag, 0, 48) . " &hellip;") : $titleTag;
+$titleTag .= getSEOComplement(array("allowedTypes" => array("audio", "video", "pdf"))) . $config->getPageTitleSeparator() . $config->getWebSiteTitle();
+$titleTag = (strlen($titleTag) > 70) ? (substr($titleTag, 0, 68) . " &hellip;") : $titleTag;
 
-if (User::hasBlockedUser($video['users_id'])) {
+if (!empty($video['users_id']) && User::hasBlockedUser($video['users_id'])) {
     $video['type'] = "blockedUser";
 }
 ?>
@@ -341,12 +344,49 @@ if (User::hasBlockedUser($video['users_id'])) {
         <link href="<?php echo $global['webSiteRootURL']; ?>plugin/Gallery/style.css" rel="stylesheet" type="text/css"/>
         <?php
         include $global['systemRootPath'] . 'view/include/head.php';
-        getOpenGraph(0);
-        getLdJson(0);
+        
+        if(!empty($_GET['v'])){
+            getOpenGraph($_GET['v']);
+            getLdJson($_GET['v']);
+        }else{
+            getOpenGraph(0);
+            getLdJson(0);
+        }
         $modeYouTubeTimeLog['After head'] = microtime(true) - $modeYouTubeTime;
         $modeYouTubeTime = microtime(true);
         ?>
-
+        <style>
+            #descriptionArea #descriptionAreaPreContent{
+                max-height: 200px;
+                overflow: hidden;
+                transition: max-height 0.25s ease-out;
+                overflow: hidden;
+            }
+            #descriptionAreaPreContent{
+                margin-bottom: 30px;
+            }
+            #descriptionArea.expanded #descriptionAreaPreContent{
+                max-height: 1500px;
+                overflow: auto;
+                transition: max-height 0.25s ease-in;
+            }
+            #descriptionAreaShowMoreBtn{
+                 position: absolute;
+                 bottom: 0;
+            }
+            #descriptionArea .showMore{
+                 display: block;
+            }
+            #descriptionArea .showLess{
+                 display: none;
+            }
+            #descriptionArea.expanded .showMore{
+                 display: none;
+            }
+            #descriptionArea.expanded .showLess{
+                 display: block;
+            }
+        </style>
     </head>
 
     <body class="<?php echo $global['bodyClass']; ?>">
@@ -383,7 +423,9 @@ if (User::hasBlockedUser($video['users_id'])) {
         $modeYouTubeTimeLog['before add js '] = microtime(true) - $modeYouTubeTime;
         $modeYouTubeTime = microtime(true);
         ?>
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/video.js/video.min.js" type="text/javascript"></script>
+        <?php
+        include $global['systemRootPath'] . 'view/include/video.min.js.php';
+        ?>
         <?php
         echo AVideoPlugin::afterVideoJS();
         if ($advancedCustom != false) {
@@ -405,7 +447,6 @@ if (User::hasBlockedUser($video['users_id'])) {
         }
         include $global['systemRootPath'] . 'view/include/footer.php';
         $videoJSArray = array(
-            "view/js/videojs-persistvolume/videojs.persistvolume.js",
             "view/js/BootstrapMenu.min.js");
         $jsURL = combineFiles($videoJSArray, "js");
 
@@ -423,14 +464,11 @@ if (User::hasBlockedUser($video['users_id'])) {
         <script src="<?php echo $jsURL; ?>" type="text/javascript"></script>
         <script>
             var fading = false;
-            var autoPlaySources = <?php echo json_encode($autoPlaySources); ?>;
-            var autoPlayURL = '<?php echo $autoPlayURL; ?>';
-            var autoPlayPoster = '<?php echo $autoPlayPoster; ?>';
-            var autoPlayThumbsSprit = '<?php echo $autoPlayThumbsSprit; ?>';
-
-            $(document).ready(function () {
-            });
         </script>
+        
+        <?php
+            showCloseButton();
+        ?>
     </body>
 </html>
 <?php include $global['systemRootPath'] . 'objects/include_end.php'; ?>

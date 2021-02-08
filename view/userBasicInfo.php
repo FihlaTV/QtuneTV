@@ -1,3 +1,6 @@
+<?php
+$bgURL = User::getBackgroundURLFromUserID(User::getId());
+?>
 <style>
     .file-caption{
         padding: 6px 12px !important;
@@ -196,6 +199,18 @@ AVideoPlugin::getMyAccount(User::getId());
     </div>
 </div>
 
+
+<!-- Button -->
+<div class="form-group">
+    <hr>
+    <div class="col-md-12">
+        <center>
+            <button type="submit" class="btn btn-primary btn-block btn-lg">
+                <span class="fa fa-save"></span> <?php echo __("Save"); ?>
+            </button>
+        </center>
+    </div>
+</div>
 <script>
     var uploadCrop;
     function isAnalytics() {
@@ -282,7 +297,7 @@ AVideoPlugin::getMyAccount(User::getId());
             showPreview: true,
             maxFileCount: 1,
             initialPreview: [
-                "<img class='img img-responsive' src='<?php echo $global['webSiteRootURL'], User::getBackgroundURLFromUserID(User::getId()); ?>'>",
+                "<img class='img img-responsive' src='<?php echo $global['webSiteRootURL'], $bgURL; ?>?<?php echo filectime($global['systemRootPath'] . $bgURL); ?>'>",
             ],
             initialCaption: 'channelArt.jpg',
             initialPreviewShowDelete: false,

@@ -173,7 +173,9 @@ switch ($_GET['page']) {
 <!DOCTYPE html>
 <html lang="<?php echo $config->getLanguage(); ?>">
     <head>
-        <title><?php echo $config->getWebSiteTitle(); ?></title>
+        <?php 
+        echo getHTMLTitle(__("Administration"));
+        ?>
         <?php
         include $global['systemRootPath'] . 'view/include/head.php';
         if (!empty($includeHead) && file_exists($includeHead)) {

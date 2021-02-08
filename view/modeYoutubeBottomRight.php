@@ -1,5 +1,5 @@
 <?php
-if (User::hasBlockedUser($video['users_id'])) {
+if (!empty($video['users_id']) && User::hasBlockedUser($video['users_id'])) {
     return false;
 }
 ?>
@@ -12,49 +12,46 @@ if (!empty($playlist_id)) {
     ?>
     <script>
         $(document).ready(function () {
-            Cookies.set('autoplay', true, {
-                path: '/',
-                expires: 365
-            });
+            setAutoplay(true);
         });
     </script>
 <?php } else if (empty($autoPlayVideo)) {
     ?>
-    <div class="col-lg-12 col-sm-12 col-xs-12 autoplay text-muted" >
+    <div class="col-lg-12 col-sm-12 col-xs-12 autoplay text-muted" style="margin: 10px 0;" >
         <strong><?php echo __("Autoplay ended"); ?></strong>
         <span class="pull-right">
             <span><?php echo __("Autoplay"); ?></span>
             <span>
                 <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom"  title="<?php echo __("When autoplay is enabled, a suggested video will automatically play next."); ?>"></i>
             </span>
-            <div class="material-switch pull-right">
-                <input type="checkbox" class="saveCookie" name="autoplay" id="autoplay">
+            <div class="material-switch pull-right" style="margin-left: 10px;">
+                <input type="checkbox" class="saveCookie" name="autoplay" id="autoplay" <?php echo PlayerSkins::isAutoplayEnabled() ? "checked" : ""; ?>>
                 <label for="autoplay" class="label-primary"></label>
             </div>
         </span>
     </div>
 <?php } else if (!empty($autoPlayVideo)) { ?>
     <div class="row">
-        <div class="col-lg-12 col-sm-12 col-xs-12 autoplay text-muted">
+        <div class="col-lg-12 col-sm-12 col-xs-12 autoplay text-muted" style="margin: 10px 0;" >
             <strong><?php echo __("Up Next"); ?></strong>
             <span class="pull-right">
                 <span><?php echo __("Autoplay"); ?></span>
                 <span>
-                    <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="bottom"  title="<?php echo __("When autoplay is enabled, a suggested video will automatically play next."); ?>"></i>
+                    <i class="fa fa-info-circle" data-toggle="tooltip" data-placement="top"  title="<?php echo __("When autoplay is enabled, a suggested video will automatically play next."); ?>"></i>
                 </span>
-                <div class="material-switch pull-right">
-                    <input type="checkbox" class="saveCookie" name="autoplay" id="autoplay">
+                <div class="material-switch pull-right" style="margin-left: 10px;">
+                    <input type="checkbox" class="saveCookie" name="autoplay" id="autoplay" <?php echo PlayerSkins::isAutoplayEnabled() ? "checked" : ""; ?>>
                     <label for="autoplay" class="label-primary"></label>
                 </div>
             </span>
         </div>
     </div>
-    <div class="col-lg-12 col-sm-12 col-xs-12 bottom-border autoPlayVideo" id="autoPlayVideoDiv" itemscope itemtype="http://schema.org/VideoObject" >
+    <div class="col-lg-12 col-sm-12 col-xs-12 bottom-border autoPlayVideo" id="autoPlayVideoDiv"  style="margin: 10px 0; padding: 15px 5px; <?php echo PlayerSkins::isAutoplayEnabled() ? "" : "display: none;"; ?>" >
         <a href="<?php echo Video::getLink($autoPlayVideo['id'], $autoPlayVideo['clean_title'], "", $get); ?>" title="<?php echo str_replace('"', '', $autoPlayVideo['title']); ?>" class="videoLink h6">
             <div class="col-lg-5 col-sm-5 col-xs-5 nopadding thumbsImage">
                 <?php
                 $imgGif = "";
-                if (file_exists("{$global['systemRootPath']}videos/{$autoPlayVideo['filename']}.gif")) {
+                if (file_exists(Video::getStoragePath()."{$autoPlayVideo['filename']}.gif")) {
                     $imgGif = "{$global['webSiteRootURL']}videos/{$autoPlayVideo['filename']}.gif";
                 }
                 if ($autoPlayVideo['type'] === "pdf") {
@@ -68,19 +65,15 @@ if (!empty($playlist_id)) {
                     $img_portrait = "";
                 }
                 ?>
-                <img src="<?php echo $img; ?>" alt="<?php echo str_replace('"', '', $autoPlayVideo['title']); ?>" class="img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $autoPlayVideo['rotation']; ?>" height="130" itemprop="thumbnail" />
+                <img src="<?php echo $img; ?>" alt="<?php echo str_replace('"', '', $autoPlayVideo['title']); ?>" class="img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $autoPlayVideo['rotation']; ?>" height="130" />
                 <?php if (!empty($imgGif)) { ?>
                     <img src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo str_replace('"', '', $autoPlayVideo['title']); ?>" id="thumbsGIF<?php echo $autoPlayVideo['id']; ?>" class="thumbsGIF img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $autoPlayVideo['rotation']; ?>" height="130" />
                 <?php } ?>
-                <span itemprop="thumbnailUrl" content="<?php echo $img; ?>" />
-                <span itemprop="contentURL" content="<?php echo Video::getLink($autoPlayVideo['id'], $autoPlayVideo['clean_title']); ?>" />
-                <span itemprop="embedURL" content="<?php echo Video::getLink($autoPlayVideo['id'], $autoPlayVideo['clean_title'], true); ?>" />
-                <span itemprop="uploadDate" content="<?php echo $autoPlayVideo['created']; ?>" />
-                <time class="duration" itemprop="duration" datetime="<?php echo Video::getItemPropDuration($autoPlayVideo['duration']); ?>"><?php echo Video::getCleanDuration($autoPlayVideo['duration']); ?></time>
+                <time class="duration" datetime="<?php echo Video::getItemPropDuration($autoPlayVideo['duration']); ?>"><?php echo Video::getCleanDuration($autoPlayVideo['duration']); ?></time>
             </div>
             <div class="col-lg-7 col-sm-7 col-xs-7 videosDetails">
-                <div class="text-uppercase row"><strong itemprop="name" class="title"><?php echo $autoPlayVideo['title']; ?></strong></div>
-                <div class="details row text-muted" itemprop="description">
+                <div class="text-uppercase row"><strong class="title"><?php echo $autoPlayVideo['title']; ?></strong></div>
+                <div class="details row text-muted" ">
                     <div>
                         <strong><?php echo __("Category"); ?>: </strong>
                         <span class="<?php echo $autoPlayVideo['iconClass']; ?>"></span>
@@ -125,7 +118,9 @@ if (!empty($playlist_id)) {
 $modeYouTubeTimeLog['After autoplay and playlist '] = microtime(true) - $modeYouTubeTime;
 $modeYouTubeTime = microtime(true);
 ?>
-<div class="col-lg-12 col-sm-12 col-xs-12 extraVideos nopadding"></div>
+<div class="clearfix"></div>
+    <div class="extraVideos nopadding"  style="margin: 15px 0;"></div>
+<div class="clearfix"></div>
 <!-- videos List -->
 <!--googleoff: all-->
 <div id="videosList">
@@ -140,10 +135,10 @@ $modeYouTubeTime = microtime(true);
 
 <script>
     var fading = false;
-    var autoPlaySources = <?php echo json_encode($autoPlaySources); ?>;
-    var autoPlayURL = '<?php echo $autoPlayURL; ?>';
-    var autoPlayPoster = '<?php echo $autoPlayPoster; ?>';
-    var autoPlayThumbsSprit = '<?php echo $autoPlayThumbsSprit; ?>';
+    var autoPlaySources = <?php echo json_encode(@$autoPlaySources); ?>;
+    var autoPlayURL = '<?php echo @$autoPlayURL; ?>';
+    var autoPlayPoster = '<?php echo @$autoPlayPoster; ?>';
+    var autoPlayThumbsSprit = '<?php echo @$autoPlayThumbsSprit; ?>';
 
     function showAutoPlayVideoDiv() {
         var auto = $("#autoplay").prop('checked');
@@ -169,15 +164,7 @@ $modeYouTubeTime = microtime(true);
         });
 
         if (isAutoplayEnabled()) {
-<?php if ($config->getAutoplay()) { ?>
-                $("#autoplay").prop('checked', true);
-                Cookies.set('autoplay', true, {
-                    path: '/',
-                    expires: 365
-                });
-    <?php
-}
-?>
+            $("#autoplay").prop('checked', true);
         }
 
         $("#autoplay").change(function () {

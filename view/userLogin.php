@@ -46,7 +46,7 @@ if (empty($_COOKIE) && get_browser_name()!=='Other (Unknown)') {
 ?>
 <div class="row">
     <div class="hidden-xs col-sm-2 col-md-3 col-lg-4"></div>
-    <div class="col-xs-12 col-sm-8  col-md-6 col-lg-4 list-group-item ">
+    <div class="col-xs-12 col-sm-8  col-md-6 col-lg-4 list-group-item addWidthOnMenuOpen">
         <fieldset>
             <legend class=" hidden-xs">
                 <?php
@@ -155,7 +155,7 @@ if (empty($_COOKIE) && get_browser_name()!=='Other (Unknown)') {
                         $(document).ready(function () {
                             $('#login<?php echo $uid; ?>').click(function () {
                                 modal.showPleaseWait();
-                                if (inIframe()) {
+                                if (typeof inIframe !== 'undefined' && inIframe()) {
                                     var popup = window.open('<?php echo $oauthURL; ?>', 'loginYPT');
                                     var popupTick = setInterval(function() {
                                       if (popup.closed) {
@@ -252,7 +252,7 @@ if (!empty($advancedCustomUser->forceLoginToBeTheEmail)) {
                 buttons: true,
                 dangerMode: true,
             })
-                    .then((willDelete) => {
+                    .then(function(willDelete) {
                         if (willDelete) {
 
                             modal.showPleaseWait();

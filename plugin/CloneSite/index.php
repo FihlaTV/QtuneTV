@@ -14,7 +14,9 @@ if (!User::isAdmin()) {
 <!DOCTYPE html>
 <html lang="<?php echo $_SESSION['language']; ?>">
     <head>
-        <title><?php echo $config->getWebSiteTitle(); ?>  :: VAST</title>
+        <?php 
+        echo getHTMLTitle( __("Clone Site"));
+        ?>
         <?php
         include $global['systemRootPath'] . 'view/include/head.php';
         ?>
@@ -138,7 +140,7 @@ if (!User::isAdmin()) {
                 buttons: true,
                 dangerMode: true,
             })
-            .then((willDelete) => {
+            .then(function(willDelete) {
               if (willDelete) {
 modal.showPleaseWait();
                                 $.ajax({

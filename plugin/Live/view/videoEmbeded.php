@@ -14,7 +14,8 @@ if (!empty($_GET['c'])) {
 $customizedAdvanced = AVideoPlugin::getObjectDataIfEnabled('CustomizeAdvanced');
 
 $livet = LiveTransmition::getFromDbByUserName($_GET['u']);
-$uuid = $livet['key'];
+$getLiveKey = array('key'=>$livet['key'], 'live_servers_id'=> Live::getLiveServersIdRequest());
+$uuid = LiveTransmition::keyNameFix($livet['key']);
 $p = AVideoPlugin::loadPlugin("Live");
 $objSecure = AVideoPlugin::loadPluginIfEnabled('SecureVideosDirectory');
 if (!empty($objSecure)) {
@@ -37,10 +38,12 @@ $poster = Live::getPosterImage($livet['users_id'], $_REQUEST['live_servers_id'])
         <title><?php echo $config->getWebSiteTitle(); ?></title>
         <link href="<?php echo $global['webSiteRootURL']; ?>view/bootstrap/css/bootstrap.css" rel="stylesheet" type="text/css"/>
         <link href="<?php echo $global['webSiteRootURL']; ?>view/css/fontawesome-free-5.5.0-web/css/all.min.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>view/js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>view/js/videojs-contrib-ads/videojs.ads.css" rel="stylesheet" type="text/css"/>
         <link href="<?php echo $global['webSiteRootURL']; ?>view/css/player.css" rel="stylesheet" type="text/css"/>
         <script src="<?php echo $global['webSiteRootURL']; ?>view/js/jquery-3.5.1.min.js" type="text/javascript"></script>
+        <link href="<?php echo $global['webSiteRootURL']; ?>view/js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
+        <?php
+        echo AVideoPlugin::afterVideoJS();
+        ?>
         <style>
             body {
                 padding: 0 !important;
@@ -57,6 +60,9 @@ $poster = Live::getPosterImage($livet['users_id'], $_REQUEST['live_servers_id'])
             var webSiteRootURL = '<?php echo $global['webSiteRootURL']; ?>';
             var player;
         </script>
+        <?php
+        echo AVideoPlugin::getHeadCode();
+        ?>
     </head>
 
     <body>
@@ -82,20 +88,20 @@ $poster = Live::getPosterImage($livet['users_id'], $_REQUEST['live_servers_id'])
             <?php
             $streamName = $uuid;
             include $global['systemRootPath'] . 'plugin/Live/view/onlineLabel.php';
-            include $global['systemRootPath'] . 'plugin/Live/view/onlineUsers.php';
+            echo getLiveUsersLabel();
             ?>
         </div>
 
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/video.js/video.min.js" type="text/javascript"></script>
+        <?php
+        include $global['systemRootPath'] . 'view/include/video.min.js.php';
+        ?>
         <?php
         echo AVideoPlugin::afterVideoJS();
         ?>
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/videojs-contrib-ads/videojs.ads.min.js" type="text/javascript"></script>
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/videojs-persistvolume/videojs.persistvolume.js" type="text/javascript"></script>
         <script src="<?php echo $global['webSiteRootURL']; ?>view/js/script.js" type="text/javascript"></script>
-        <?php
-        echo AVideoPlugin::getHeadCode();
-        ?>
+        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/js-cookie/js.cookie.js" type="text/javascript"></script>
+        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/jquery-toast/jquery.toast.min.js" type="text/javascript"></script>
+        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/seetalert/sweetalert.min.js" type="text/javascript"></script>
         <script>
 <?php
 echo PlayerSkins::getStartPlayerJS();
@@ -103,8 +109,13 @@ echo PlayerSkins::getStartPlayerJS();
         </script>
         <?php
         require_once $global['systemRootPath'] . 'plugin/AVideoPlugin.php';
+        ?>
+        <!-- getFooterCode start -->
+        <?php
         echo AVideoPlugin::getFooterCode();
+        showCloseButton();
         ?>  
+        <!-- getFooterCode end -->
     </body>
 </html>
 

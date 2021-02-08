@@ -1,10 +1,7 @@
 @media all and (max-width: 767px) {
     .vjs-picture-in-picture-control ,
-    .loop-button,
-    .ypt-compress,
-    .ypt-expand{
-        display: none !important;
-    }
+    .player-logo,
+    .vjs-playback-rate,
     .vjs-seek-button{
         display: none !important;
     }

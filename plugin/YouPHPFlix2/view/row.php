@@ -17,7 +17,11 @@ TimeLogStart($timeLog3);
 <div class="carousel <?php echo $landscape; ?>" data-flickity='<?php echo json_encode($dataFlickirty) ?>' style="<?php echo $css; ?>">
     <?php
     TimeLogEnd($timeLog3, __LINE__);
+    if(!isset($videosCounter)){
+        $videosCounter = 0;
+    }
     foreach ($videos as $value) {
+        $videosCounter++;
         TimeLogStart($timeLog3 . " Video {$value['clean_title']}");
         $images = Video::getImageFromFilename($value['filename'], $value['type']);
         TimeLogEnd($timeLog3 . " Video {$value['clean_title']}", __LINE__);
@@ -48,7 +52,7 @@ TimeLogStart($timeLog3);
                             }
                         }
                         if (!empty($obj->titleLabel)) {
-                            ?>  
+                            ?>
                             <h4 style="<?php if (!empty($obj->titleLabelOverPoster)) { ?>margin-top: -27px;<?php } echo $obj->titleLabelCSS; ?> "><?php echo $value['title']; ?></h4>
                             <?php
                         }
@@ -64,10 +68,10 @@ TimeLogStart($timeLog3);
                                 }
                             }
                         }
-                        ?>  
+                        ?>
                     </div>
                 </div>
-                <div class="arrow-down" style="display: none;"></div>
+                <div class="arrow-down" style="display:none;"></div>
             </div>
             <?php
             TimeLogEnd($timeLog3 . " Video {$value['clean_title']}", __LINE__);
@@ -76,7 +80,7 @@ TimeLogStart($timeLog3);
             getItemprop($value['id']);
             TimeLogEnd($timeLog3 . " Video {$value['clean_title']}", __LINE__);
             ?>
-        </div>        
+        </div>
         <?php
         TimeLogEnd($timeLog3 . " Video {$value['clean_title']}", __LINE__);
     }
@@ -92,11 +96,19 @@ foreach ($videos as $value) {
     $img = $images->thumbsJpg;
     $poster = $images->poster;
     $canWatchPlayButton = "";
-    if (User::canWatchVideoWithAds($value['id'])) {
+    if (User::canWatchVideoWithAds($value['id']) && !Video::isSerie($value['id'])) {
         $canWatchPlayButton = "canWatchPlayButton";
     }
     ?>
-    <div class="poster" id="poster<?php echo $value['id'] . $uid; ?>" poster="<?php echo $poster; ?>" style="display: none; background-image: url(<?php echo $global['webSiteRootURL']; ?>plugin/YouPHPFlix2/view/img/loading.gif);">
+    <div class="poster" id="poster<?php echo $value['id'] . $uid; ?>" poster="<?php echo $poster; ?>"
+         style="
+         display: none;
+         background-image: url(<?php echo $global['webSiteRootURL']; ?>plugin/YouPHPFlix2/view/img/loading.gif);
+        -webkit-background-size: cover;
+        -moz-background-size: cover;
+        -o-background-size: cover;
+        background-size: cover;
+         ">
         <div class="posterDetails " style="
              background: -webkit-linear-gradient(left, rgba(<?php echo $obj->backgroundRGB; ?>,1) 40%, rgba(<?php echo $obj->backgroundRGB; ?>,0) 100%);
              background: -o-linear-gradient(right, rgba(<?php echo $obj->backgroundRGB; ?>,1) 40%, rgba(<?php echo $obj->backgroundRGB; ?>,0) 100%);
@@ -114,7 +126,7 @@ foreach ($videos as $value) {
 
                 <?php
                 if (!empty($advancedCustom) && empty($advancedCustom->doNotDisplayViews)) {
-                    ?> 
+                    ?>
                     <span class="label label-default"><i class="fa fa-eye"></i> <?php echo $value['views_count']; ?></span>
                 <?php } ?>
                 <?php
@@ -125,7 +137,7 @@ foreach ($videos as $value) {
                 <?php
                 if (!empty($advancedCustom) && empty($advancedCustom->doNotDisplayCategory)) {
                     ?>
-                    <span class="label label-success"><a style="color: inherit;" class="tile__cat" cat="<?php echo $value['clean_category']; ?>" href="<?php echo $global['webSiteRootURL'] . "cat/" . $value['clean_category']; ?>"><i class="<?php echo $value['iconClass']; ?>"></i> <?php echo $value['category']; ?></a></span>                       
+                    <span class="label label-success"><a style="color: inherit;" class="tile__cat" cat="<?php echo $value['clean_category']; ?>" href="<?php echo $global['webSiteRootURL'] . "cat/" . $value['clean_category']; ?>"><i class="<?php echo $value['iconClass']; ?>"></i> <?php echo $value['category']; ?></a></span>
                 <?php } ?>
                 <?php
                 foreach ($value['tags'] as $value2) {
@@ -149,7 +161,7 @@ foreach ($videos as $value) {
                         }
                     }
                 }
-                ?>   
+                ?>
                 <?php
                 if (!empty($value['rrating'])) {
                     include $global['systemRootPath'] . 'view/rrating/rating-' . $value['rrating'] . '.php';
@@ -162,7 +174,7 @@ foreach ($videos as $value) {
                 <?php
                 if (!empty($images->posterPortrait) && basename($images->posterPortrait) !== 'notfound_portrait.jpg' && basename($images->posterPortrait) !== 'pdf_portrait.png' && basename($images->posterPortrait) !== 'article_portrait.png') {
                     ?>
-                    <div class="col-md-2 col-sm-3 col-xs-4">
+                    <div class="col-md-2 col-sm-3 col-xs-4 hidden-xs">
                         <center>
                             <img alt="<?php echo $value['title']; ?>" class="img img-responsive posterPortrait" src="<?php echo $images->posterPortrait; ?>" style="min-width: 86px;" />
                         </center>
@@ -170,7 +182,7 @@ foreach ($videos as $value) {
                     <?php
                 } else if (!empty($images->poster) && basename($images->poster) !== 'notfound.jpg' && basename($images->poster) !== 'pdf.png' && basename($images->poster) !== 'article.png') {
                     ?>
-                    <div class="col-md-2 col-sm-3 col-xs-4">
+                    <div class="col-md-2 col-sm-3 col-xs-4 hidden-xs">
                         <center>
                             <img alt="<?php echo $value['title']; ?>" class="img img-responsive" src="<?php echo $images->poster; ?>" style="min-width: 86px;" />
                         </center>
@@ -178,7 +190,7 @@ foreach ($videos as $value) {
                     <?php
                 } else if (empty($obj->landscapePosters) && !empty($images->posterPortrait)) {
                     ?>
-                    <div class="col-md-2 col-sm-3 col-xs-4">
+                    <div class="col-md-2 col-sm-3 col-xs-4 hidden-xs">
                         <center>
                             <img alt="<?php echo $value['title']; ?>" class="img img-responsive posterPortrait" src="<?php echo $images->posterPortrait; ?>" style="min-width: 86px;" />
                         </center>
@@ -186,7 +198,7 @@ foreach ($videos as $value) {
                     <?php
                 } else {
                     ?>
-                    <div class="col-md-2 col-sm-3 col-xs-4">
+                    <div class="col-md-2 col-sm-3 col-xs-4 hidden-xs">
                         <center>
                             <img alt="<?php echo $value['title']; ?>" class="img img-responsive" src="<?php echo $images->poster; ?>" style="min-width: 86px;" />
                         </center>
@@ -212,15 +224,17 @@ foreach ($videos as $value) {
                 </div>
             </div>
             <div class="footerBtn">
-                <a class="btn btn-danger playBtn <?php echo $canWatchPlayButton; ?>" href="<?php echo YouPHPFlix2::getLinkToVideo($value['id']); ?>">
-                    <i class="fa fa-play"></i> 
+                <a class="btn btn-danger playBtn <?php echo $canWatchPlayButton; ?>" 
+                   href="<?php echo YouPHPFlix2::getLinkToVideo($value['id']); ?>" 
+                   embed="<?php echo Video::getLinkToVideo ($value['id'], $value['clean_title'], true); ?>">
+                    <i class="fa fa-play"></i>
                     <span class="hidden-xs"><?php echo __("Play"); ?></span>
                 </a>
                 <?php
                 if (!empty($value['trailer1'])) {
                     ?>
-                    <a href="#" class="btn btn-warning" onclick="flixFullScreen('<?php echo parseVideos($value['trailer1'], 1, 0, 0, 0, 1); ?>');return false;">
-                        <span class="fa fa-film"></span> 
+                    <a href="#" class="btn btn-warning" onclick="flixFullScreen('<?php echo parseVideos($value['trailer1'], 1, 0, 0, 0, 1); ?>', '');return false;">
+                        <span class="fa fa-film"></span>
                         <span class="hidden-xs"><?php echo __("Trailer"); ?></span>
                     </a>
                     <?php
@@ -228,10 +242,11 @@ foreach ($videos as $value) {
                 ?>
                 <?php
                 echo AVideoPlugin::getNetflixActionButton($value['id']);
+                getSharePopupButton($value['id']);
                 ?>
             </div>
         </div>
-    </div>     
+    </div>
     <?php
 }
 

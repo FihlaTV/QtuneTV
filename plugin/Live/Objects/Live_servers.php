@@ -136,13 +136,16 @@ class Live_servers extends ObjectYPT {
     }
 
     static function getAllActive() {
-        global $global;
+        global $global, $liveServersgetAllActive;
+        if(isset($liveServersgetAllActive)){
+            return $liveServersgetAllActive;
+        }
         if (!static::isTableInstalled()) {
             return false;
         }
         $sql = "SELECT * FROM  " . static::getTableName() . " WHERE status='a' ";
 
-        $sql .= self::getSqlFromPost();
+        //$sql .= self::getSqlFromPost();
         $res = sqlDAL::readSql($sql);
         $fullData = sqlDAL::fetchAllAssoc($res);
         sqlDAL::close($res);
@@ -154,6 +157,7 @@ class Live_servers extends ObjectYPT {
         } else {
             die($sql . '\nError : (' . $global['mysqli']->errno . ') ' . $global['mysqli']->error);
         }
+        $liveServersgetAllActive = $rows;
         return $rows;
     }
 

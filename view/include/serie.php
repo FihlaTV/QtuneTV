@@ -1,3 +1,8 @@
+<?php
+global $isSerie;
+$isSerie = 1;
+?>
+<!-- serie -->
 <div class="row main-video" id="mvideo">
     <div class="col-md-2 firstC"></div>
     <div class="col-md-8 secC">
@@ -26,11 +31,11 @@
                 </script>
 
             </div>
-            
-            
-            <a href="<?php echo $global["HTTP_REFERER"]; ?>" class="btn btn-outline btn-xs" style="position: absolute; top: 5px; right: 5px; display: none;" id="youtubeModeOnFullscreenCloseButton">
-                <i class="fas fa-times"></i>
-            </a>
+
+
+            <?php
+            showCloseButton();
+            ?>
         </div>
     </div>
 

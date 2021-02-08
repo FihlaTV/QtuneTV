@@ -1,3 +1,31 @@
+<?php
+$footerjs = "";
+if (thereIsAnyUpdate()) {
+    $footerjs .= "$.toast({
+    heading: 'Update required',
+    text: '<a href=\"" . $global['webSiteRootURL'] . "update\">" . __('You have a new version to install') . "</a>',
+    showHideTransition: 'plain',
+    icon: 'error',
+    hideAfter: 20000
+});";
+}
+/*
+if ($version = thereIsAnyRemoteUpdate()) {
+    $footerjs .= "$.toast({
+    heading: 'Update available',
+    text: '<a href=\"" . $global['webSiteRootURL'] . "update\">" . __('Our repository is now running at version') . " " . $version->version . "</a>',
+    showHideTransition: 'plain',
+    icon: 'warning',
+    hideAfter: 20000
+});";
+}
+ * 
+ */
+if (empty($advancedCustom)) {
+    $advancedCustom = AVideoPlugin::getObjectData("CustomizeAdvanced");
+}
+?>
+<div class="clearfix"></div>
 <footer style="<?php echo $advancedCustom->footerStyle; ?> display: none;" id="mainFooter">
     <?php
     $custom = "";
@@ -26,28 +54,7 @@
 <script>
     $(function () {
 <?php
-if (!empty($_GET['error'])) {
-    ?>
-            avideoAlert("<?php echo __("Sorry!"); ?>", "<?php echo $_GET['error']; ?>", "error");
-            window.history.pushState({}, document.title, '<?php echo getSelfURI(); ?>');
-    <?php
-}
-?>
-<?php
-if (!empty($_GET['msg'])) {
-    ?>
-            avideoAlert("<?php echo __("Ops!"); ?>", "<?php echo $_GET['msg']; ?>", "info");
-            window.history.pushState({}, document.title, '<?php echo getSelfURI(); ?>');
-    <?php
-}
-?>
-<?php
-if (!empty($_GET['success']) && strlen($_GET['success']) > 4) {
-    ?>
-            avideoAlert("<?php echo __("Congratulations!"); ?>", "<?php echo $_GET['success']; ?>", "info");
-            window.history.pushState({}, document.title, '<?php echo getSelfURI(); ?>');
-    <?php
-}
+showAlertMessage();
 ?>
     });
 </script>
@@ -119,22 +126,56 @@ if (!empty($advancedCustom->footerHTMLCode->value)) {
     var checkFooterTimout;
     $(function () {
         checkFooter();
-        
+
         $(window).scroll(function () {
             clearTimeout(checkFooterTimout);
             checkFooterTimout = setTimeout(function () {
                 checkFooter();
             }, 100);
         });
+        $(window).resize(function () {
+            clearTimeout(checkFooterTimout);
+            checkFooterTimout = setTimeout(function () {
+                checkFooter();
+            }, 100);
+        });
+
+        $(window).mouseup(function () {
+            clearTimeout(checkFooterTimout);
+            checkFooterTimout = setTimeout(function () {
+                checkFooter();
+            }, 100);
+        });
+
+<?php echo $footerjs; ?>
+
     });
     function checkFooter() {
         $("#mainFooter").fadeIn();
-        if ($(document).height() <= $(window).height()) {
+        if (getPageHeight() <= $(window).height()) {
             clearTimeout(checkFooterTimout);
-            checkFooterTimout = setTimeout(function(){ checkFooter(); },1000);
+            checkFooterTimout = setTimeout(function () {
+                checkFooter();
+            }, 1000);
             $("#mainFooter").css("position", "fixed");
         } else {
             $("#mainFooter").css("position", "relative");
         }
     }
+
+
+    function getPageHeight() {
+        return $('#mainNavBar').height() + $('#mainFooter').height() + $('.container, .container-fluid').first().height();
+    }
 </script>
+<!--
+<?php
+if (User::isAdmin() && !empty($getCachesProcessed) && is_array($getCachesProcessed)) {
+    arsort($getCachesProcessed);
+    echo "Total cached methods " . PHP_EOL;
+    foreach ($getCachesProcessed as $key => $value) {
+        echo "$key => $value" . PHP_EOL;
+    }
+}
+?>
+-->

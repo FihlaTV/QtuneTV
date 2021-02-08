@@ -10,6 +10,12 @@ require_once $global['systemRootPath'] . 'objects/subscribe.php';
 require_once $global['systemRootPath'] . 'objects/functions.php';
 require_once $global['systemRootPath'] . 'plugin/LiveLinks/Objects/LiveLinksTable.php';
 
+if(empty($_GET['id'])){
+    header('Content-Type: image/jpg');
+    echo file_get_contents($filename);
+    exit;
+}
+
 $liveLink = new LiveLinksTable($_GET['id']);
 if (empty($_GET['format'])) {
     $_GET['format'] = "png";
@@ -23,6 +29,17 @@ if (empty($_GET['format'])) {
 } else {
     $_GET['format'] = "png";
     header('Content-Type: image/x-png');
+}
+
+if(LiveLinks::isLiveThumbsDisabled()){
+    $_REQUEST['live_servers_id'] = Live::getLiveServersIdRequest();
+    $uploadedPoster = $global['systemRootPath'] . Live::getPosterThumbsImage($liveLink->getUsers_id(), $_REQUEST['live_servers_id']);
+    //var_dump($livet['users_id'], $_REQUEST['live_servers_id'],$uploadedPoster );exit;
+    if(file_exists($uploadedPoster)){
+        header('Content-Type: image/jpg');
+        echo file_get_contents($uploadedPoster);
+        exit;
+    }
 }
 $video = $liveLink->getLink();
 

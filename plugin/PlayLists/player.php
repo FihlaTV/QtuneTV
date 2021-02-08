@@ -2,7 +2,8 @@
 if (!isset($global['systemRootPath'])) {
     require_once '../../videos/configuration.php';
 }
-
+$isSerie = 1;
+$isPlayList = true;
 require_once $global['systemRootPath'] . 'objects/playlist.php';
 require_once $global['systemRootPath'] . 'plugin/PlayLists/PlayListElement.php';
 
@@ -51,7 +52,7 @@ if (!empty($video['id'])) {
 <!DOCTYPE html>
 <html lang="<?php echo $_SESSION['language']; ?>">
     <head>
-        <title><?php echo $playListObj->getName(); ?> :: <?php echo $config->getWebSiteTitle(); ?></title>
+        <title><?php echo $playListObj->getName() . $config->getPageTitleSeparator() . $config->getWebSiteTitle(); ?></title>
         <link href="<?php echo $global['webSiteRootURL']; ?>view/js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
         <link href="<?php echo $global['webSiteRootURL']; ?>view/css/player.css" rel="stylesheet" type="text/css"/>
         <link href="<?php echo $global['webSiteRootURL']; ?>view/css/social.css" rel="stylesheet" type="text/css"/>
@@ -116,7 +117,7 @@ if (!empty($video['id'])) {
                     <?php
                 }
                 ?>
-
+                <!-- playlist player -->
                 <div class="row main-video" id="mvideo">
                     <div class="col-sm-2 col-md-2 firstC"></div>
                     <div class="col-sm-8 col-md-8 secC">
@@ -154,9 +155,9 @@ if (!empty($video['id'])) {
                                 </div>
                             <?php } ?>
 
-                            <a href="<?php echo $global["HTTP_REFERER"]; ?>" class="btn btn-outline btn-xs" style="position: absolute; top: 5px; right: 5px; display: none;" id="youtubeModeOnFullscreenCloseButton">
-                                <i class="fas fa-times"></i>
-                            </a>
+                            <?php 
+                            showCloseButton();
+                            ?>
                         </div>
                     </div>
                     <div class="col-sm-2 col-md-2"></div>
@@ -205,12 +206,13 @@ if (!empty($video['id'])) {
                 </div>
             <?php } ?>
         </div>
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/video.js/video.min.js" type="text/javascript"></script>
+        <?php
+        include $global['systemRootPath'] . 'view/include/video.min.js.php';
+        ?>
         <?php
         echo AVideoPlugin::afterVideoJS();
         include $global['systemRootPath'] . 'view/include/footer.php';
         $videoJSArray = array(
-            "view/js/videojs-persistvolume/videojs.persistvolume.js",
             "view/js/BootstrapMenu.min.js");
         $jsURL = combineFiles($videoJSArray, "js");
         ?>
@@ -298,6 +300,9 @@ if (!empty($video['id'])) {
                                                     setTimeout(function () {
                                                         player.currentTime(playerPlaylist[index].videoStartSeconds);
                                                     }, 500);
+                                                    if(typeof enableDownloadProtection === 'function'){
+                                                        enableDownloadProtection();    
+                                                    }   
                                                 });
                                                 setTimeout(function () {
                                                     var Button = videojs.getComponent('Button');

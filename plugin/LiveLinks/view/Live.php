@@ -19,11 +19,13 @@ if (empty($_GET['link'])) {
 $_GET['link'] = intval($_GET['link']);
 $liveLink = new LiveLinksTable($_GET['link']);
 
+$isLiveLink = $liveLink->getId();
 if ($liveLink->getType() == 'logged_only' && !User::isLogged()) {
     die('Link for logged only');
 }
 
 $uuid = $_GET['link'];
+$t['id'] = $uuid;
 $t['users_id'] = $liveLink->getUsers_id();
 $t['title'] = $liveLink->getTitle();
 $t['link'] = $liveLink->getLink();
@@ -60,7 +62,7 @@ if (empty($sideAd) && !AVideoPlugin::loadPluginIfEnabled("Chat2")) {
 <!DOCTYPE html>
 <html lang="<?php echo $_SESSION['language']; ?>">
     <head>
-        <title><?php echo $t['title']; ?> - <?php echo __("Live Video"); ?> - <?php echo $config->getWebSiteTitle(); ?></title>
+        <title><?php echo $t['title'] . $config->getPageTitleSeparator() . __("Live Links") . $config->getPageTitleSeparator() . $config->getWebSiteTitle(); ?></title>
         <link href="<?php echo $global['webSiteRootURL']; ?>js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
         <link href="<?php echo $global['webSiteRootURL']; ?>js/videojs-contrib-ads/videojs.ads.css" rel="stylesheet" type="text/css"/>
         <link href="<?php echo $global['webSiteRootURL']; ?>css/player.css" rel="stylesheet" type="text/css"/>
@@ -145,7 +147,7 @@ if (empty($sideAd) && !AVideoPlugin::loadPluginIfEnabled("Chat2")) {
                             <?php
                             $link = LiveLinks::getLinkToLiveFromId($_GET['link']);
                             $linkEmbed = LiveLinks::getLinkToLiveFromId($_GET['link'], true);
-                            getShareMenu($t['title'], $link, $link, $linkEmbed, "row");
+                            getShareMenu($t['title'], $link, $link, $linkEmbed, $img, "row");
                             ?>
                             <div class="col-md-12 watch8-action-buttons text-muted">
 
@@ -166,9 +168,9 @@ if (empty($sideAd) && !AVideoPlugin::loadPluginIfEnabled("Chat2")) {
             </div>  
 
         </div>
-        <script src="<?php echo $global['webSiteRootURL']; ?>js/video.js/video.min.js" type="text/javascript"></script>
-        <script src="<?php echo $global['webSiteRootURL']; ?>js/videojs-contrib-ads/videojs.ads.min.js" type="text/javascript"></script>
-        <script src="<?php echo $global['webSiteRootURL']; ?>plugin/Live/view/videojs-contrib-hls.min.js" type="text/javascript"></script>
+        <?php
+        include $global['systemRootPath'] . 'view/include/video.min.js.php';
+        ?>
         <?php
         include $global['systemRootPath'] . 'view/include/footer.php';
         ?>
@@ -178,7 +180,6 @@ if (empty($sideAd) && !AVideoPlugin::loadPluginIfEnabled("Chat2")) {
             $p->getChat($uuid);
         }
         ?>
-        <script src="<?php echo $global['webSiteRootURL']; ?>js/videojs-persistvolume/videojs.persistvolume.js" type="text/javascript"></script>
         <script src="<?php echo $global['webSiteRootURL']; ?>js/webui-popover/jquery.webui-popover.min.js" type="text/javascript"></script>
         <script src="<?php echo $global['webSiteRootURL']; ?>js/bootstrap-list-filter/bootstrap-list-filter.min.js" type="text/javascript"></script>
 

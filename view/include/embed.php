@@ -1,3 +1,4 @@
+<!-- embed -->
 <div class="row main-video" id="mvideo">
     <div class="col-md-2 firstC"></div>
     <div class="col-md-8 secC">
@@ -35,19 +36,20 @@
             if (((strpos($video['videoLink'], "youtu.be") == false) && (strpos($video['videoLink'], "youtube.com") == false) && (strpos($video['videoLink'], "vimeo.com") == false)) || ($disableYoutubeIntegration)) {
                 $_GET['isEmbedded'] = "e";
                 ?>
-            <video playsinline webkit-playsinline="webkit-playsinline"  id="mainVideo" style="display: none; height: 0;width: 0;" >
-                <?php
-                if (function_exists('getVTTTracks')) {
-                    echo getVTTTracks($video['filename']);
-                }
-                ?>
-            </video>
+                <video playsinline webkit-playsinline="webkit-playsinline"  id="mainVideo" style="display: none; height: 0;width: 0;" >
+                    <?php
+                    if (function_exists('getVTTTracks')) {
+                        echo getVTTTracks($video['filename']);
+                    }
+                    ?>
+                </video>
                 <div id="main-video" class="embed-responsive embed-responsive-16by9">
                     <iframe class="embed-responsive-item" scrolling="no" allowfullscreen="true" src="<?php
-                    echo parseVideos($video['videoLink']);
+                    $url = parseVideos($video['videoLink']);
                     if ($config->getAutoplay()) {
-                        echo "?autoplay=1";
+                        $url = addQueryStringParameter($url, 'autoplay',1);
                     }
+                    echo $url;
                     ?>"></iframe>
                     <script>
                         $(document).ready(function () {
@@ -65,6 +67,7 @@
                     $_GET['isEmbedded'] = "v";
                 }
                 $_GET['isMediaPlaySite'] = $video['id'];
+                PlayerSkins::playerJSCodeOnLoad($video['id'], @$autoPlayVideo['url']);
                 ?>      
                 <div id="main-video" class="embed-responsive embed-responsive-16by9">
                     <video playsinline webkit-playsinline="webkit-playsinline"  id="mainVideo" class="embed-responsive-item video-js vjs-default-skin <?php echo $vjsClass; ?> vjs-big-play-centered" controls <?php
@@ -86,43 +89,7 @@
 
                             //$(".vjs-big-play-button").hide();
                             $(".vjs-control-bar").css("opacity: 1; visibility: visible;");
-                            if (typeof player === 'undefined') {
-                            player = videojs('mainVideo'<?php echo PlayerSkins::getDataSetup(); ?>);
-                            }
-                            player.ready(function () {
-    <?php
-    if ($config->getAutoplay()) {
-        echo "setTimeout(function () { if(typeof player === 'undefined'){ player = videojs('mainVideo'" . PlayerSkins::getDataSetup() . ");} playerPlay(0);}, 150);";
-    } else {
-        ?>
-                                    playerPlayIfAutoPlay(0);
-    <?php } ?>
-                                num = $('#videosList').find('.pagination').find('li.active').attr('data-lp');
-                                loadPage(num);
-                            });
-                            player.persistvolume({
-                                namespace: "AVideo"
-                            });
-                            player.on('play', function () {
-                                addView(<?php echo $video['id']; ?>, this.currentTime());
-                            });
-                            player.on('ended', function () {
-                                console.log("Finish Video");
-    <?php if (!empty($autoPlayVideo)) { ?>
-                    playNext('<?php echo $autoPlayVideo['url']; ?>');
-    <?php } ?>
 
-                            });
-                            player.on('timeupdate', function () {
-                                var time = Math.round(this.currentTime());
-                                if (time >= 5 && time % 5 === 0) {
-                                    addView(<?php echo $video['id']; ?>, time);
-                                }
-                            });
-                            player.on('ended', function () {
-                                var time = Math.round(this.currentTime());
-                                addView(<?php echo $video['id']; ?>, time);
-                            });
                         });
                     </script>
 
@@ -146,9 +113,9 @@
             }
             ?>
 
-            <a href="<?php echo $global["HTTP_REFERER"]; ?>" class="btn btn-outline btn-xs" style="position: absolute; top: 5px; right: 5px; display: none;" id="youtubeModeOnFullscreenCloseButton">
-                <i class="fas fa-times"></i>
-            </a>
+            <?php
+            showCloseButton();
+            ?>
         </div>
     </div>
 

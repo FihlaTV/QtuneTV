@@ -2,6 +2,8 @@
 require_once '../../videos/configuration.php';
 require_once $global['systemRootPath'] . 'objects/user.php';
 $isLive = 1;
+global $doNotFullScreen;
+$doNotFullScreen = 1;
 $p = AVideoPlugin::loadPlugin("Live");
 $obj = $p->getDataObject();
 if (!empty($_GET['c'])) {
@@ -25,10 +27,11 @@ if (!empty($_GET['u']) && !empty($_GET['embedv2'])) {
 } else if (!empty($_GET['u'])) {
     include $global['systemRootPath'] . 'plugin/Live/view/modeYoutubeLive.php';
     exit;
-} else if (!User::canStream()) {
-    header('HTTP/1.0 403 Forbidden');
-    header("Location: {$global['webSiteRootURL']}?error=" . __($obj->streamDeniedMsg));
+} else if (!User::isLogged()) {
+    gotToLoginAndComeBackHere("");
     exit;
+} else if (!User::canStream()) {
+    forbiddenPage(__($obj->streamDeniedMsg));
 }
 
 require_once $global['systemRootPath'] . 'objects/userGroups.php';
@@ -42,6 +45,7 @@ if (!empty($_GET['users_id']) && User::isAdmin()) {
 
 // if user already have a key
 $trasnmition = LiveTransmition::createTransmitionIfNeed($users_id);
+$getLiveKey = array('key'=>$trasnmition['key'], 'live_servers_id'=> Live::getLiveServersIdRequest());
 if (!empty($_GET['resetKey'])) {
     LiveTransmition::resetTransmitionKey($users_id);
     header("Location: {$global['webSiteRootURL']}plugin/Live/");
@@ -74,14 +78,16 @@ if (!empty($chat2) && !empty($chat2->useStaticLayout)) {
 <!DOCTYPE html>
 <html lang="<?php echo $_SESSION['language']; ?>">
     <head>
-        <title><?php echo __("Live"); ?> - <?php echo $config->getWebSiteTitle(); ?></title>
+        <title><?php echo __("Live") . $config->getPageTitleSeparator() . $config->getWebSiteTitle(); ?></title>
         <link href="<?php echo $global['webSiteRootURL']; ?>js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
         <link href="<?php echo $global['webSiteRootURL']; ?>css/player.css" rel="stylesheet" type="text/css"/>
         <?php
         include $global['systemRootPath'] . 'view/include/head.php';
         ?>
         <script src="<?php echo $global['webSiteRootURL']; ?>plugin/Live/view/swfobject.js" type="text/javascript"></script>
-        <script src="<?php echo $global['webSiteRootURL']; ?>js/video.js/video.min.js" type="text/javascript"></script>
+        <?php
+        include $global['systemRootPath'] . 'view/include/video.min.js.php';
+        ?>
         <link href="<?php echo $global['webSiteRootURL']; ?>view/js/bootstrap-fileinput/css/fileinput.min.css" rel="stylesheet" type="text/css"/>
         <script src="<?php echo $global['webSiteRootURL']; ?>view/js/bootstrap-fileinput/js/fileinput.min.js" type="text/javascript"></script>
         <style>
@@ -221,10 +227,11 @@ if (!empty($chat2) && !empty($chat2->useStaticLayout)) {
                     });
 
                     $.ajax({
-                        url: 'saveLive.php',
+                        url: '<?php echo $global['webSiteRootURL']; ?>plugin/Live/saveLive.php',
                         data: {
                             "title": $('#title').val(),
                             "description": $('#description').val(),
+                            "categories_id": $('select[name="categories_id"]').val(),
                             "key": "<?php echo $trasnmition['key']; ?>",
                             "listed": $('#listed').is(":checked"),
                             "userGroups": selectedUserGroups
