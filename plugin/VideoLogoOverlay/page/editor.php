@@ -14,8 +14,8 @@ $o = AVideoPlugin::getObjectData("VideoLogoOverlay");
         <?php
         include $global['systemRootPath'] . 'view/include/head.php';
         ?>
-        <link href="<?php echo $global['webSiteRootURL']; ?>js/Croppie/croppie.css" rel="stylesheet" type="text/css"/>
-        <script src="<?php echo $global['webSiteRootURL']; ?>js/Croppie/croppie.min.js" type="text/javascript"></script>
+        <link href="<?php echo getCDN(); ?>js/Croppie/croppie.css" rel="stylesheet" type="text/css"/>
+        <script src="<?php echo getCDN(); ?>js/Croppie/croppie.min.js" type="text/javascript"></script>
 
     </head>
     <body class="<?php echo $global['bodyClass']; ?>">
@@ -41,8 +41,8 @@ $o = AVideoPlugin::getObjectData("VideoLogoOverlay");
                         <div class="col-md-10 ">
                             <select class="form-control" id="position">
                                 <?php
-                                foreach ($o->position_options as $value) {
-                                    echo "<option ".($value==$o->position?"selected='selected'":"").">{$value}</option>";
+                                foreach ($o->position->type as $value) {
+                                    echo "<option ".($value==$o->position->value?"selected='selected'":"").">{$value}</option>";
                                 }
                                 ?>  
                             </select>

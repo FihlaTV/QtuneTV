@@ -41,17 +41,21 @@ if (!empty($_POST['videoLink'])) {
     $extension = strtolower(@$path_parts["extension"]);
     if (empty($_POST['id']) && !(in_array($extension, $audioLinks) || in_array($extension, $videoLinks))) {
         $info = url_get_contents($config->getEncoderURL() . "getLinkInfo/" . base64_encode($_POST['videoLink']));
-        $infoObj = json_decode($info);
-        $filename = uniqid("_YPTuniqid_", true);
+        $infoObj = _json_decode($info);
+        $paths = Video::getNewVideoFilename();
+        $filename = $paths['filename'];
         $filename = $obj->setFilename($filename);
-        $obj->setTitle($infoObj->title);
-        $obj->setClean_title($infoObj->title);
-        $obj->setDuration($infoObj->duration);
-        $obj->setDescription($infoObj->description);
-        file_put_contents($global['systemRootPath'] . "videos/{$filename}.jpg", base64_decode($infoObj->thumbs64));
+        if(is_object($infoObj)){
+            $obj->setTitle($infoObj->title);
+            $obj->setClean_title($infoObj->title);
+            $obj->setDuration($infoObj->duration);
+            $obj->setDescription($infoObj->description);
+            file_put_contents($global['systemRootPath'] . "videos/{$filename}.jpg", base64_decode($infoObj->thumbs64));
+        }
         $_POST['videoLinkType'] = "embed";
     } else if (empty($_POST['id'])) {
-        $filename = uniqid("_YPTuniqid_", true);
+        $paths = Video::getNewVideoFilename();
+        $filename = $paths['filename'];
         $filename = $obj->setFilename($filename);
         $obj->setTitle($path_parts["filename"]);
         $obj->setClean_title($path_parts["filename"]);
@@ -87,7 +91,8 @@ if (!empty($_POST['isArticle'])) {
     if (empty($_POST['id'])) {
         $obj->setStatus('a');
     }
-    $filename = uniqid("_YPTuniqid_", true);
+    $paths = Video::getNewVideoFilename();
+    $filename = $paths['filename'];
     $filename = $obj->setFilename($filename);
 }
 TimeLogEnd(__FILE__, __LINE__);
@@ -118,7 +123,7 @@ $obj->setExternalOptions(@$_POST['externalOptions']);
 TimeLogEnd(__FILE__, __LINE__);
 $resp = $obj->save(true);
 // if is a new embed video
-if (empty($_POST['id']) && $obj->getType() == 'embed') {
+if (empty($_POST['id']) && ($obj->getType() == 'embed' || $obj->getType() == 'linkVideo' )) {
     AVideoPlugin::afterNewVideo($resp);
 }
 
@@ -134,8 +139,7 @@ $obj->msg = $msg;
 $obj->info = json_encode($info);
 $obj->infoObj = json_encode($infoObj);
 $obj->videos_id = intval($resp);
-$obj->video = Video::getVideo($obj->videos_id, false, true);
-
+$obj->video = Video::getVideoLight($obj->videos_id);
 
 TimeLogEnd(__FILE__, __LINE__);
 echo json_encode($obj);

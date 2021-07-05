@@ -15,10 +15,10 @@ $_REQUEST['rowCount'] = getRowCount(1000);
 $_REQUEST['current'] = getCurrentPage();
 $categories = Category::getAllCategories(true);
 $total = Category::getTotalCategories(true);
-$breaks = array('<br />', '<br>', '<br/>');
+//$breaks = array('<br />', '<br>', '<br/>');
 foreach ($categories as $key => $value) {
     $categories[$key]['iconHtml'] = "<span class='$value[iconClass]'></span>";
-    $categories[$key]['description'] = str_ireplace($breaks, "\r\n", $value['description']);
+    //$categories[$key]['description'] = str_ireplace($breaks, "\r\n", $value['description']);
     /*
     $sql = "SELECT * FROM `category_type_cache` WHERE categoryId = ?";
     $res = sqlDAL::readSql($sql,"i",array($value['id']));
@@ -39,4 +39,4 @@ foreach ($categories as $key => $value) {
 if (empty($_POST['sort']) && empty($_GET['sort'])) {
     array_multisort(array_column($categories, 'hierarchyAndName'), SORT_ASC, $categories);
 }
-echo '{  "current": '.$_REQUEST['current'].',"rowCount": '.$_REQUEST['rowCount'].', "total": '.$total.', "rows":'. json_encode($categories).'}';
+echo '{  "current": '.getCurrentPage().',"rowCount": '.getRowCount().', "total": '.$total.', "rows":'. json_encode($categories).'}';

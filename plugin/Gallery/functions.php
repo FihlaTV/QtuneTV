@@ -10,7 +10,7 @@ function showThis($who) {
     return false;
 }
 
-function createGallery($title, $sort, $rowCount, $getName, $mostWord, $lessWord, $orderString, $defaultSort = "ASC", $ignoreGroup = false, $icon = "fas fa-bookmark") {
+function createGallery($title, $sort, $rowCount, $getName, $mostWord, $lessWord, $orderString, $defaultSort = "ASC", $ignoreGroup = false, $icon = "fas fa-bookmark", $infinityScroll = false) {
     if (!showThis($getName)) {
         return "";
     }
@@ -57,18 +57,40 @@ function createGallery($title, $sort, $rowCount, $getName, $mostWord, $lessWord,
         $totalPages = ceil($total / $_REQUEST['rowCount']);
         $page = $_GET['page'];
         if ($totalPages < $_GET['page']) {
+            if ($infinityScroll) {
+                echo '</div>';
+                return 0;
+            }
             $page = $totalPages;
             $_REQUEST['current'] = $totalPages;
         }
         $videos = Video::getAllVideos("viewableNotUnlisted", false, $ignoreGroup);
         // need to add dechex because some times it return an negative value and make it fails on javascript playlists
-        $countCols = createGallerySection($videos, dechex(crc32($getName)));
         ?>
-        <div class="col-sm-12" style="z-index: 1;">
+        <div class="gallerySectionContent">
             <?php
-            echo getPagination($totalPages, $page, "{$url}{page}{$args}");
+            $countCols = createGallerySection($videos, dechex(crc32($getName)));
             ?>
         </div>
+        <?php
+        if ($countCols) {
+            ?>
+            <!-- createGallery -->
+            <div class="col-sm-12" style="z-index: 1;">
+                <?php
+                $infinityScrollGetFromSelector = "";
+                $infinityScrollAppendIntoSelector = "";
+                if ($infinityScroll) {
+                    $infinityScrollGetFromSelector = ".gallerySectionContent";
+                    $infinityScrollAppendIntoSelector = ".gallerySectionContent";
+                }
+
+                echo getPagination($totalPages, $page, "{$url}{page}{$args}", 10, $infinityScrollGetFromSelector, $infinityScrollAppendIntoSelector);
+                ?>
+            </div>
+            <?php
+        }
+        ?>
     </div>
     <?php
     if (empty($countCols)) {
@@ -172,18 +194,21 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
                    if (!is_object($images)) {
                        $images = new stdClass();
                        $images->thumbsGif = "";
-                       $images->poster = "{$global['webSiteRootURL']}view/img/notfound.jpg";
-                       $images->thumbsJpg = "{$global['webSiteRootURL']}view/img/notfoundThumbs.jpg";
-                       $images->thumbsJpgSmall = "{$global['webSiteRootURL']}view/img/notfoundThumbsSmall.jpg";
+                       $images->poster = "" . getCDN() . "view/img/notfound.jpg";
+                       $images->thumbsJpg = "" . getCDN() . "view/img/notfoundThumbs.jpg";
+                       $images->thumbsJpgSmall = "" . getCDN() . "view/img/notfoundThumbsSmall.jpg";
+                   }
+                   if ($value['type'] === 'serie' && !empty($value['serie_playlists_id']) && stripos($images->thumbsJpg, 'notfound') !== false) {
+                       $images = PlayList::getRandomImageFromPlayList($value['serie_playlists_id']);
                    }
                    $startG = microtime(true);
                    $imgGif = $images->thumbsGif;
                    $poster = $images->thumbsJpg;
                    ?>
                 <div class="aspectRatio16_9">
-                    <img src="<?php echo $images->thumbsJpgSmall; ?>" data-src="<?php echo $poster; ?>" alt="<?php echo $value['title']; ?>" class="thumbsJPG img img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $value['rotation']; ?>  <?php echo ($poster != $images->thumbsJpgSmall) ? "blur" : ""; ?>" id="thumbsJPG<?php echo $value['id']; ?>" />
+                    <img src="<?php echo $images->thumbsJpgSmall; ?>" data-src="<?php echo $poster; ?>" alt="<?php echo $value['title']; ?>" class="thumbsJPG img img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $value['rotation']; ?>  <?php echo ($poster != $images->thumbsJpgSmall && !empty($advancedCustom->usePreloadLowResolutionImages)) ? "blur" : ""; ?>" id="thumbsJPG<?php echo $value['id']; ?>" />
                     <?php if (!empty($imgGif)) { ?>
-                        <img src="<?php echo $global['webSiteRootURL']; ?>img/loading-gif.png" data-src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $value['title']; ?>" id="thumbsGIF<?php echo $value['id']; ?>" class="thumbsGIF img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $value['rotation']; ?>" height="130" />
+                        <img src="<?php echo getCDN(); ?>img/loading-gif.png" data-src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $value['title']; ?>" id="thumbsGIF<?php echo $value['id']; ?>" class="thumbsGIF img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $value['rotation']; ?>" height="130" />
                     <?php } ?>
                     <?php
                     echo AVideoPlugin::thumbsOverlay($value['id']);
@@ -257,36 +282,28 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
 
             <div class="text-muted galeryDetails" style="overflow: hidden;">
                 <div class="galleryTags">
-                    <?php if (empty($_GET['catName']) && !empty($obj->showCategoryTag)) { ?>
-                        <a class="label label-default" href="<?php echo $global['webSiteRootURL']; ?>cat/<?php echo $value['clean_category']; ?>">
-                            <?php
-                            if (!empty($value['iconClass'])) {
-                                ?>
-                                <i class="<?php echo $value['iconClass']; ?>"></i>
-                                <?php
-                            }
-                            ?>
-                            <?php echo $value['category']; ?>
+                    <!-- category tags -->
+                    <?php
+                    if (empty($_GET['catName']) && !empty($obj->showCategoryTag)) {
+                        $iconClass = 'fas fa-folder';
+                        if (!empty($value['iconClass'])) {
+                            $iconClass = $value['iconClass'];
+                        }
+                        $icon = '<i class="' . $iconClass . '"></i>';
+                        ?>
+                        <a class="label label-default" href="<?php echo $global['webSiteRootURL']; ?>cat/<?php echo $value['clean_category']; ?>" 
+                           data-toggle="tooltip" title="<?php echo htmlentities($icon . ' ' . $value['category']); ?>"  data-html="true">
+                               <?php
+                               echo $icon;
+                               ?>
                         </a>
                     <?php } ?>
+                    <!-- plugins tags -->
                     <?php
                     @$timesG[__LINE__] += microtime(true) - $startG;
                     $startG = microtime(true);
                     if (!empty($obj->showTags)) {
-                        $value['tags'] = Video::getTags($value['id']);
-                        foreach ($value['tags'] as $value2) {
-                            if (!empty($value2->label) && $value2->label === __("Paid Content")) {
-                                ?><span class="label label-<?php echo $value2->type; ?>"><?php echo $value2->text; ?></span><?php
-                            }
-                            if (!empty($value2->label) && $value2->label === __("Group")) {
-                                ?><span class="label label-<?php echo $value2->type; ?>"><?php echo $value2->text; ?></span><?php
-                            }
-                            if (!empty($value2->label) && $value2->label === __("Plugin")) {
-                                ?>
-                                <span class="label label-<?php echo $value2->type; ?>"><?php echo $value2->text; ?></span>
-                                <?php
-                            }
-                        }
+                        echo implode('', Video::getTagsHTMLLabelArray($value['id']));
                     }
                     @$timesG[__LINE__] += microtime(true) - $startG;
                     $startG = microtime(true);
@@ -319,11 +336,14 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
                     </a>
                     <?php
                     if ((!empty($value['description'])) && !empty($obj->Description)) {
-                        $desc = str_replace(array('"', "'", "#", "/", "\\"), array('``', "`", "", "", ""), preg_replace("/\r|\n/", " ", nl2br(trim($value['description']))));
+                        //$desc = str_replace(array('"', "'", "#", "/", "\\"), array('``', "`", "", "", ""), preg_replace("/\r|\n/", " ", nl2br(trim($value['description']))));
+                        $desc = nl2br(trim($value['description']));
                         if (!empty($desc)) {
+                            $duid = uniqid();
                             $titleAlert = str_replace(array('"', "'"), array('``', "`"), $value['title']);
                             ?>
-                            <a href="#" onclick='avideoAlert("<?php echo $titleAlert; ?>", "<div style=\"max-height: 300px; overflow-y: scroll;overflow-x: hidden;\"><?php echo $desc; ?></div>", "info");return false;' ><i class="far fa-file-alt"></i> <?php echo __("Description"); ?></a>
+                            <a href="#" onclick='avideoAlert("<?php echo $titleAlert; ?>", "<div style=\"max-height: 300px; overflow-y: scroll;overflow-x: hidden;\" id=\"videoDescriptionAlertContent<?php echo $duid; ?>\" ></div>", "");$("#videoDescriptionAlertContent<?php echo $duid; ?>").html($("#videoDescription<?php echo $duid; ?>").html());return false;' ><i class="far fa-file-alt"></i> <?php echo __("Description"); ?></a>
+                            <div id="videoDescription<?php echo $duid; ?>" style="display: none;"><?php echo $desc; ?></div>
                             <?php
                         }
                     }
@@ -331,7 +351,7 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
                 </div>
                 <?php if (Video::canEdit($value['id'])) { ?>
                     <div>
-                        <a href="<?php echo $global['webSiteRootURL']; ?>mvideos?video_id=<?php echo $value['id']; ?>" class="text-primary">
+                        <a href="#" onclick="avideoModalIframe('<?php echo $global['webSiteRootURL']; ?>mvideos?video_id=<?php echo $value['id']; ?>');return false;" class="text-primary">
                             <i class="fa fa-edit"></i> <?php echo __("Edit Video"); ?>
                         </a>
                     </div>
@@ -389,8 +409,8 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
             }
             @$timesG[__LINE__] += microtime(true) - $startG;
             $startG = microtime(true);
-            getLdJson($value['id']);
-            getItemprop($value['id']);
+            //getLdJson($value['id']);
+            //getItemprop($value['id']);
             ?>
         </div>
 
@@ -466,119 +486,82 @@ function createGalleryLiveSection($videos) {
         }
         $colsClass = "col-lg-" . (12 / $obj->screenColsLarge) . " col-md-" . (12 / $obj->screenColsMedium) . " col-sm-" . (12 / $obj->screenColsSmall) . " col-xs-" . (12 / $obj->screenColsXSmall);
 
+        if (!empty($video['className'])) {
+            $colsClass .= " {$video['className']}";
+        }
 
         $liveNow = '<span class="label label-danger liveNow faa-flash faa-slow animated" style="position: absolute;
     bottom: 5px;
     right: 5px;">' . __("LIVE NOW") . '</span>';
-        if ($video['type'] == 'live') {
-            $lives = Live::getOnlineLivesFromUser($video['users_id']);
-            foreach ($lives as $key => $liveOnlineItem) {
-                $lives[$key] = array(
-                    'title' => $liveOnlineItem['title'],
-                    'poster' => Live::getImage($video['users_id'], @$liveOnlineItem['live_servers_id']),
-                    'href' => $liveOnlineItem['href'],
-                    'link' => $liveOnlineItem['link'],
-                    'imgGif' => Live::getImageGif($video['users_id'], $video['live_servers_id'], @$liveOnlineItem['live_servers_id'])
-                );
-            }
-
-            if (empty($lives) && empty($liveobj->doNotShowOfflineLiveOnCategoryList)) {
-                $url = addQueryStringParameter(Live::getLinkToLiveFromUsers_id($video['users_id']), 'playlists_id_live', 0);
-                $lives = array(
-                    array(
-                        'title' => $video['title'],
-                        'poster' => Live::getOfflineImage(),
-                        'href' => $url,
-                        'link' => addQueryStringParameter($url, 'embed', 1),
-                        'imgGif' => false
-                    )
-                );
-                $liveNow = '<span class="label label-default liveNow faa-flash faa-slow animated" style="position: absolute;
-    bottom: 5px;
-    right: 5px;">' . __("OFFLINE") . '</span>';
-            }
-        } else {
-            $lives = array(
-                array(
-                    'title' => $video['title'],
-                    'poster' => LiveLinks::getImage($video['id']),
-                    'href' => LiveLinks::getLink($video['id']),
-                    'link' => LiveLinks::getLink($video['id'], true),
-                    'imgGif' => LiveLinks::getImageGif($video['id'])
-                )
-            );
-        }
-        foreach ($lives as $liveOnlineItem) {
-            ?>
-            <div class=" <?php echo $colsClass; ?> galleryVideo thumbsImage fixPadding" style="z-index: <?php echo $zindex--; ?>; min-height: 175px;" itemscope itemtype="http://schema.org/VideoObject">
-                <a class="galleryLink" videos_id="<?php echo $video['id']; ?>" 
-                   href="<?php echo $liveOnlineItem['href']; ?>"  
-                   embed="<?php echo $liveOnlineItem['link']; ?>" title="<?php echo $liveOnlineItem['title']; ?>">
-                    <div class="aspectRatio16_9">
-                        <img src="<?php echo $liveOnlineItem['poster']; ?>" alt="<?php echo $liveOnlineItem['title'] ?>" class="thumbsJPG img img-responsive" id="thumbsJPG<?php echo $video['id']; ?>" />
-                        <?php if (!empty($liveOnlineItem['imgGif'])) { ?>
-                            <img src="<?php echo $global['webSiteRootURL']; ?>img/loading-gif.png" data-src="<?php echo $liveOnlineItem['imgGif']; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $video['title']; ?>" id="thumbsGIF<?php echo $video['id']; ?>" class="thumbsGIF img-responsive " height="130" />
-                            <?php
-                        }
-                        echo $liveNow;
-                        ?>
-                    </div>
-                </a>
-                <a class="h6 galleryLink" videos_id="<?php echo $liveOnlineItem['title']; ?>" 
-                   href="<?php echo $liveOnlineItem['href']; ?>"  
-                   embed="<?php echo $liveOnlineItem['link']; ?>" title="<?php echo $liveOnlineItem['title']; ?>">
-                    <h2><?php echo $liveOnlineItem['title'] ?></h2>
-                </a>
-
-                <div class="text-muted galeryDetails" style="overflow: hidden;">
-                    <div class="galleryTags">
-                        <?php if (empty($_GET['catName']) && !empty($obj->showCategoryTag)) { ?>
-                            <a class="label label-default" href="<?php echo $global['webSiteRootURL']; ?>cat/<?php echo $video['clean_category']; ?>">
-                                <?php
-                                if (!empty($video['iconClass'])) {
-                                    ?>
-                                    <i class="<?php echo $video['iconClass']; ?>"></i>
-                                    <?php
-                                }
-                                ?>
-                                <?php echo $video['category']; ?>
-                            </a>
-                        <?php } ?>
-                    </div>
-                    <div>
-                        <i class="fa fa-user"></i>
-                        <a class="text-muted" href="<?php echo User::getChannelLink($video['users_id']); ?>">
-                            <?php echo $name; ?>
-                        </a>
+        ?>
+        <div class=" <?php echo $colsClass; ?> galleryVideo thumbsImage fixPadding" style="z-index: <?php echo $zindex--; ?>; min-height: 175px;">
+            <a class="galleryLink" videos_id="<?php echo $video['id']; ?>" 
+               href="<?php echo $video['href']; ?>"  
+               embed="<?php echo $video['link']; ?>" title="<?php echo $video['title']; ?>">
+                <div class="aspectRatio16_9">
+                    <img src="<?php echo $video['poster']; ?>" alt="<?php echo $video['title'] ?>" class="thumbsJPG img img-responsive" id="thumbsJPG<?php echo $video['id']; ?>" />
+                    <?php if (!empty($video['imgGif'])) { ?>
+                        <img src="<?php echo getCDN(); ?>img/loading-gif.png" data-src="<?php echo $video['imgGif']; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $video['title']; ?>" id="thumbsGIF<?php echo $video['id']; ?>" class="thumbsGIF img-responsive " height="130" />
                         <?php
-                        if ((!empty($video['description'])) && !empty($obj->Description)) {
-                            $desc = str_replace(array('"', "'", "#", "/", "\\"), array('``', "`", "", "", ""), preg_replace("/\r|\n/", " ", nl2br(trim($video['description']))));
-                            if (!empty($desc)) {
-                                $titleAlert = str_replace(array('"', "'"), array('``', "`"), $video['title']);
+                    }
+                    echo $liveNow;
+                    ?>
+                </div>
+            </a>
+            <a class="h6 galleryLink" videos_id="<?php echo $video['title']; ?>" 
+               href="<?php echo $video['href']; ?>"  
+               embed="<?php echo $video['link']; ?>" title="<?php echo $video['title']; ?>">
+                <h2><?php echo $video['title'] ?></h2>
+            </a>
+
+            <div class="text-muted galeryDetails" style="overflow: hidden;">
+                <div class="galleryTags">
+                    <?php if (empty($_GET['catName']) && !empty($obj->showCategoryTag)) { ?>
+                        <a class="label label-default" href="<?php echo $global['webSiteRootURL']; ?>cat/<?php echo $video['clean_category']; ?>">
+                            <?php
+                            if (!empty($video['iconClass'])) {
                                 ?>
-                                <a href="#" onclick='avideoAlert("<?php echo $titleAlert; ?>", "<div style=\"max-height: 300px; overflow-y: scroll;overflow-x: hidden;\"><?php echo $desc; ?></div>", "info");return false;' ><i class="far fa-file-alt"></i> <?php echo __("Description"); ?></a>
+                                <i class="<?php echo $video['iconClass']; ?>"></i>
                                 <?php
                             }
+                            ?>
+                            <?php echo $video['category']; ?>
+                        </a>
+                    <?php } ?>
+                </div>
+                <div>
+                    <i class="fa fa-user"></i>
+                    <a class="text-muted" href="<?php echo User::getChannelLink($video['users_id']); ?>">
+                        <?php echo $name; ?>
+                    </a>
+                    <?php
+                    if ((!empty($video['description'])) && !empty($obj->Description)) {
+                        $desc = str_replace(array('"', "'", "#", "/", "\\"), array('``', "`", "", "", ""), preg_replace("/\r|\n/", " ", nl2br(trim($video['description']))));
+                        if (!empty($desc)) {
+                            $titleAlert = str_replace(array('"', "'"), array('``', "`"), $video['title']);
+                            ?>
+                            <a href="#" onclick='avideoAlert("<?php echo $titleAlert; ?>", "<div style=\"max-height: 300px; overflow-y: scroll;overflow-x: hidden;\"><?php echo $desc; ?></div>", "info");return false;' ><i class="far fa-file-alt"></i> <?php echo __("Description"); ?></a>
+                            <?php
                         }
-                        ?>
-                    </div>
+                    }
+                    ?>
                 </div>
             </div>
+        </div>
 
-            <?php
-            if ($countCols > 1) {
-                if ($countCols % $obj->screenColsLarge === 0) {
-                    echo "<div class='clearfix hidden-md hidden-sm hidden-xs'></div>";
-                }
-                if ($countCols % $obj->screenColsMedium === 0) {
-                    echo "<div class='clearfix hidden-lg hidden-sm hidden-xs'></div>";
-                }
-                if ($countCols % $obj->screenColsSmall === 0) {
-                    echo "<div class='clearfix hidden-lg hidden-md hidden-xs'></div>";
-                }
-                if ($countCols % $obj->screenColsXSmall === 0) {
-                    echo "<div class='clearfix hidden-lg hidden-md hidden-sm'></div>";
-                }
+        <?php
+        if ($countCols > 1) {
+            if ($countCols % $obj->screenColsLarge === 0) {
+                echo "<div class='clearfix hidden-md hidden-sm hidden-xs'></div>";
+            }
+            if ($countCols % $obj->screenColsMedium === 0) {
+                echo "<div class='clearfix hidden-lg hidden-sm hidden-xs'></div>";
+            }
+            if ($countCols % $obj->screenColsSmall === 0) {
+                echo "<div class='clearfix hidden-lg hidden-md hidden-xs'></div>";
+            }
+            if ($countCols % $obj->screenColsXSmall === 0) {
+                echo "<div class='clearfix hidden-lg hidden-md hidden-sm'></div>";
             }
         }
     }
@@ -591,6 +574,12 @@ function createGalleryLiveSection($videos) {
         ?>
     </div>
     <?php
+    if (!empty($video['galleryCallback'])) {
+        $video['galleryCallback'] = addcslashes($video['galleryCallback'], '"');
+        echo '<!-- galleryCallback --><script>$(document).ready(function () {eval("' . $video['galleryCallback'] . '")});</script>';
+    }
+
+
     unset($_POST['disableAddTo']);
     return $countCols;
 }
@@ -663,7 +652,7 @@ function getTrendingVideos($rowCount = 12, $screenColsLarge = 0, $screenColsMedi
     $_REQUEST['rowCount'] = $rowCount;
     $videos = Video::getAllVideos("viewableNotUnlisted");
     // need to add dechex because some times it return an negative value and make it fails on javascript playlists
-    echo "<link href=\"{$global['webSiteRootURL']}plugin/Gallery/style.css\" rel=\"stylesheet\" type=\"text/css\"/><div class='row gallery '>";
+    echo "<link href=\"" . getCDN() . "plugin/Gallery/style.css\" rel=\"stylesheet\" type=\"text/css\"/><div class='row gallery '>";
     $countCols = createGallerySection($videos, "", array(), false, $screenColsLarge, $screenColsMedium, $screenColsSmall, $screenColsXSmall);
     echo "</div>";
     return $countCols;

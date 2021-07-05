@@ -1,4 +1,5 @@
 <?php
+$isFirstPage = 1;
 include $global['systemRootPath'] . 'plugin/Gallery/view/topLogic.php';
 ?>
 <!DOCTYPE html>
@@ -28,4 +29,4 @@ include $global['systemRootPath'] . 'plugin/Gallery/view/topLogic.php';
         ?>
     </body>
 </html>
-<?php include $global['systemRootPath'] . 'objects/include_end.php'; ?>
+<?php include_once $global['systemRootPath'] . 'objects/include_end.php'; ?>

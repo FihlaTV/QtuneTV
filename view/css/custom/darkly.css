@@ -18,3 +18,41 @@
 #sidebar {
     margin-top: 60px  !important;
 }
+::-webkit-scrollbar-track, ::-webkit-scrollbar-thumb{-webkit-box-shadow: inset 0 0 6px rgba(255,255,255,255.3) !important;}
+
+#myNavbar .select2-container{
+    color: #ffffff;
+    background-color: #464545;
+    border-color: #464545;
+}
+
+#myNavbar .select2-container:hover{
+    background-color: #2c2c2c;
+    border-color: #272727;
+}
+#myNavbar .select2-selection{
+    height: 45px;
+}
+#rightLoginButton{
+    height: 45px;
+    padding: 10px 15px !important;
+}
+#rightProfileButton > img{
+    height: 45px !important;
+    width: 45px !important;
+    max-height: 45px !important;
+    max-width: 45px !important;
+}
+#mainNavBar div.navbar-header.pull-right > ul > li > div > ul.dropdown-menu-right{
+    margin-top: 12px;
+}
+#mainNavBar div.navbar-header.pull-right{
+    width: 50px;
+    margin: 0 5px;
+}
+th a, .select2-container--default span{
+    color: #FFF !important;
+}
+th:hover, .select2-dropdown{
+    background-color: #111 !important;
+}

@@ -31,20 +31,35 @@ $t['title'] = $liveLink->getTitle();
 $t['link'] = $liveLink->getLink();
 $t['description'] = $liveLink->getDescription();
 
+AVideoPlugin::getModeLiveLink($liveLink->getId());
+$toTime = strtotime($liveLink->getStart_date());
+if ($toTime > time()) {
+    $message = "<strong>{$t['title']}</strong><br>{$t['description']}";
+    $image = User::getPhoto($t['users_id']);
+    $bgImage = LiveLinks::getImage($t['id']);
+    countDownPage($toTime, $message, $image, $bgImage);
+}
+
 $u = new User($t['users_id']);
 $user_id = $u->getBdId();
 $subscribe = Subscribe::getButton($user_id);
 $name = $u->getNameIdentificationBd();
 $name = "<a href='" . User::getChannelLink($user_id) . "' class='btn btn-xs btn-default'>{$name} " . User::getEmailVerifiedIcon($user_id) . "</a>";
 
+$video = array();
 $video['creator'] = '<div class="pull-left"><img src="' . User::getPhoto($user_id) . '" alt="User Photo" class="img img-responsive img-circle" style="max-width: 40px;"/></div><div class="commentDetails" style="margin-left:45px;"><div class="commenterName text-muted"><strong>' . $name . '</strong><br>' . $subscribe . '</div></div>';
 $video['type'] = "liveLink";
-$img = "{$global['webSiteRootURL']}plugin/LiveLinks/getImage.php?link={$_GET['link']}&format=jpg";
-$imgw = 640;
-$imgh = 360;
+$video['title'] = $t['title'];
+$video['description'] = $t['description'];
+$video['users_id'] = $t['users_id'];
+$poster = $img = LiveLinks::getImage($t['id']);
+$imgw = 400;
+$imgh = 255;
+
 
 if (!empty($_GET['embed'])) {
-    include $global['systemRootPath'] . 'plugin/LiveLinks/view/videoEmbeded.php';
+    $video['videoLink'] = LiveLinks::getSourceLink($t['id']);
+    include $global['systemRootPath'] . 'view/videoEmbeded.php';
     return false;
 }
 
@@ -63,10 +78,10 @@ if (empty($sideAd) && !AVideoPlugin::loadPluginIfEnabled("Chat2")) {
 <html lang="<?php echo $_SESSION['language']; ?>">
     <head>
         <title><?php echo $t['title'] . $config->getPageTitleSeparator() . __("Live Links") . $config->getPageTitleSeparator() . $config->getWebSiteTitle(); ?></title>
-        <link href="<?php echo $global['webSiteRootURL']; ?>js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>js/videojs-contrib-ads/videojs.ads.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>css/player.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>js/webui-popover/jquery.webui-popover.min.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>js/videojs-contrib-ads/videojs.ads.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>css/player.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>js/webui-popover/jquery.webui-popover.min.css" rel="stylesheet" type="text/css"/>
         <?php
         include $global['systemRootPath'] . 'view/include/head.php';
         ?>
@@ -85,7 +100,7 @@ if (empty($sideAd) && !AVideoPlugin::loadPluginIfEnabled("Chat2")) {
         <?php
         include $global['systemRootPath'] . 'view/include/navbar.php';
         ?>
-        <div class="container-fluid principalContainer" id="modeYoutubePrincipal">
+        <div class="container-fluid principalContainer" style="padding: 0;" id="modeYoutubePrincipal">
             <?php
             if (!$isCompressed) {
                 ?>
@@ -180,8 +195,8 @@ if (empty($sideAd) && !AVideoPlugin::loadPluginIfEnabled("Chat2")) {
             $p->getChat($uuid);
         }
         ?>
-        <script src="<?php echo $global['webSiteRootURL']; ?>js/webui-popover/jquery.webui-popover.min.js" type="text/javascript"></script>
-        <script src="<?php echo $global['webSiteRootURL']; ?>js/bootstrap-list-filter/bootstrap-list-filter.min.js" type="text/javascript"></script>
+        <script src="<?php echo getCDN(); ?>js/webui-popover/jquery.webui-popover.min.js" type="text/javascript"></script>
+        <script src="<?php echo getCDN(); ?>js/bootstrap-list-filter/bootstrap-list-filter.min.js" type="text/javascript"></script>
 
     </body>
 </html>

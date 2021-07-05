@@ -13,6 +13,7 @@ if (!empty($_GET['evideo'])) {
     $v = Video::decodeEvideo();
     $evideo = $v['evideo'];
 }
+$playlist_index = 0;
 if (!empty($evideo)) {
     $video = $v['video'];
     $img = $evideo->thumbnails;
@@ -29,8 +30,8 @@ if (!empty($evideo)) {
     require_once $global['systemRootPath'] . 'objects/subscribe.php';
     require_once $global['systemRootPath'] . 'objects/functions.php';
 
-    $img = "{$global['webSiteRootURL']}view/img/notfound.jpg";
-    $poster = "{$global['webSiteRootURL']}view/img/notfound.jpg";
+    $img = "".getCDN()."view/img/notfound.jpg";
+    $poster = "".getCDN()."view/img/notfound.jpg";
     $imgw = 1280;
     $imgh = 720;
 
@@ -68,12 +69,10 @@ if (!empty($evideo)) {
 
         if (!empty($_GET['playlist_index'])) {
             $playlist_index = $_GET['playlist_index'];
-        } else {
-            $playlist_index = 0;
         }
 
         $videosArrayId = PlayList::getVideosIdFromPlaylist($playlist_id);
-        if(empty($videosArrayId)){
+        if (empty($videosArrayId)) {
             videoNotFound(__('Playlist is empty or does not exist'));
         }
         $videosPlayList = Video::getAllVideos("viewable", false, false, $videosArrayId, false, true);
@@ -83,9 +82,9 @@ if (!empty($evideo)) {
 
         unset($_GET['playlist_id']);
         $isPlayListTrailer = false;
-        
+
         $playListObject = AVideoPlugin::getObjectData("PlayLists");
-        
+
         if (!empty($videoSerie)) {
             $videoSerie = Video::getVideo($videoSerie["id"], "", true);
             if (!empty($playListObject->showTrailerInThePlayList) && !empty($videoSerie["trailer1"]) && filter_var($videoSerie["trailer1"], FILTER_VALIDATE_URL) !== FALSE) {
@@ -96,7 +95,7 @@ if (!empty($evideo)) {
                 $isPlayListTrailer = true;
             }
         }
-        if (empty($playlist_index) && $isPlayListTrailer) {
+        if (empty($playlist_index) && $isPlayListTrailer && !empty($videoSerie)) {
             $video = $videoSerie;
         } else {
             $vid = new Video("", "", $videosPlayList[$playlist_index]['id']);
@@ -110,6 +109,12 @@ if (!empty($evideo)) {
         } else if (!empty($videosPlayList[0])) {
             $autoPlayVideo = Video::getVideo($videosPlayList[0]['id'], "viewableNotUnlisted", false, false, false, true);
             $autoPlayVideo['url'] = $global['webSiteRootURL'] . "playlist/{$playlist_id}/0";
+        }
+
+        if ($serie = PlayLists::isPlayListASerie($playlist_id)) {
+            setVideos_id($serie['id']);
+        } else if (!empty($videosPlayList[$playlist_index])) {
+            setVideos_id($videosPlayList[$playlist_index]['id']);
         }
     } else {
         $catLink = "";
@@ -138,7 +143,7 @@ if (!empty($evideo)) {
         if (!empty($_GET['v']) && (empty($video) || $video['id'] != $_GET['v'])) {
             $video = false;
         }
-        if(!empty($video['id'])){
+        if (!empty($video['id'])) {
             // allow users to count a view again in case it is refreshed
             Video::unsetAddView($video['id']);
 
@@ -167,37 +172,9 @@ if (!empty($evideo)) {
         } else {
             $modeYouTubeTimeLog['Code part 1.3'] = microtime(true) - $modeYouTubeTime;
             $modeYouTubeTime = microtime(true);
-            /*
-              if ($video['category_order'] == 1) {
-              $modeYouTubeTimeLog['Code part 1.4'] = microtime(true)-$modeYouTubeTime;
-              $modeYouTubeTime = microtime(true);
-              unset($_POST['sort']);
-              $category = Category::getAllCategories();
-              $_POST['sort']['title'] = "ASC";
-
-              $modeYouTubeTimeLog['Code part 1.4.1'] = microtime(true)-$modeYouTubeTime;
-              $modeYouTubeTime = microtime(true);
-              // maybe there's a more slim method?
-              $videos = Video::getAllVideos();
-              $videoFound = false;
-              $autoPlayVideo;
-              foreach ($videos as $value) {
-              if ($videoFound) {
-              $autoPlayVideo = $value;
-              break;
-              }
-
-              if ($value['id'] == $video['id']) {
-              // if the video is found, make another round to have the next video properly.
-              $videoFound = true;
-              }
-              }
-              } else {
-             * 
-             */
             $modeYouTubeTimeLog['Code part 1.5'] = microtime(true) - $modeYouTubeTime;
             $modeYouTubeTime = microtime(true);
-            if(!empty($video['id'])){
+            if (!empty($video['id'])) {
                 $autoPlayVideo = Video::getRandom($video['id']);
             }
             //}
@@ -223,14 +200,14 @@ if (!empty($evideo)) {
         $video['creator'] = '<div class="pull-left"><img src="' . User::getPhoto($video['users_id']) . '" alt="User Photo" class="img img-responsive img-circle zoom" style="max-width: 40px;"/></div><div class="commentDetails" style="margin-left:45px;"><div class="commenterName text-muted"><strong>' . $name . '</strong><br />' . $subscribe . '<br /><small>' . humanTiming(strtotime($video['videoCreation'])) . '</small></div></div>';
         $obj = new Video("", "", $video['id']);
 
-// dont need because have one embeded video on this page
+// Don't need because have an embedded video on this page
 // $resp = $obj->addView();
     }
 
     if (!empty($video) && $video['type'] == "video") {
         $poster = "{$global['webSiteRootURL']}videos/{$video['filename']}.jpg";
     } else {
-        $poster = "{$global['webSiteRootURL']}view/img/audio_wave.jpg";
+        $poster = "".getCDN()."view/img/audio_wave.jpg";
     }
 
     if (!empty($video)) {
@@ -241,7 +218,7 @@ if (!empty($evideo)) {
             $imgw = $data[0];
             $imgh = $data[1];
         } else if ($video['type'] == "audio") {
-            $img = "{$global['webSiteRootURL']}view/img/audio_wave.jpg";
+            $img = "".getCDN()."view/img/audio_wave.jpg";
         }
         $type = 'video';
         if ($video['type'] === 'pdf') {
@@ -262,7 +239,7 @@ if (!empty($evideo)) {
             $img = isMobile() ? $images->thumbsJpg : $images->poster;
         }
     } else {
-        $poster = "{$global['webSiteRootURL']}view/img/notfound.jpg";
+        $poster = "".getCDN()."view/img/notfound.jpg";
     }
     $objSecure = AVideoPlugin::getObjectDataIfEnabled('SecureVideosDirectory');
     $modeYouTubeTimeLog['Code part 3'] = microtime(true) - $modeYouTubeTime;
@@ -279,28 +256,28 @@ if (!empty($evideo)) {
         $autoPlayThumbsSprit = "";
     }
 
-    if (empty($_GET['videoName'])) {
+    if (empty($_GET['videoName']) && !empty($video)) {
         $_GET['videoName'] = $video['clean_title'];
     }
-
-    $v = Video::getVideoFromCleanTitle($_GET['videoName']);
-
-    $modeYouTubeTimeLog['Code part 4'] = microtime(true) - $modeYouTubeTime;
-    $modeYouTubeTime = microtime(true);
-    AVideoPlugin::getModeYouTube($v['id']);
-    $modeYouTubeTimeLog['Code part 5'] = microtime(true) - $modeYouTubeTime;
-    $modeYouTubeTime = microtime(true);
-    if (empty($video)) {
-        header('HTTP/1.0 404 Not Found', true, 404);
+    if(!empty($_GET['videoName'])){
+        $v = Video::getVideoFromCleanTitle($_GET['videoName']);
     }
-    $modeYouTubeTimeLog['Code part 6'] = microtime(true) - $modeYouTubeTime;
-    $modeYouTubeTime = microtime(true);
+    if (empty($v) && empty($videosPlayList[$playlist_index]['id'])) {
+        videoNotFound("");
+    } else {
+        $modeYouTubeTimeLog['Code part 4'] = microtime(true) - $modeYouTubeTime;
+        $modeYouTubeTime = microtime(true);
+        AVideoPlugin::getModeYouTube($v['id']);
+        $modeYouTubeTimeLog['Code part 5'] = microtime(true) - $modeYouTubeTime;
+        $modeYouTubeTime = microtime(true);
+    }
 }
 
 // video not found
 if (empty($video)) {
-    $img = "{$global['webSiteRootURL']}view/img/this-video-is-not-available.jpg";
-    $poster = "{$global['webSiteRootURL']}view/img/this-video-is-not-available.jpg";
+    /*
+    $img = "".getCDN()."view/img/this-video-is-not-available.jpg";
+    $poster = "".getCDN()."view/img/this-video-is-not-available.jpg";
     $imgw = 1280;
     $imgh = 720;
     unset($_SESSION['type']);
@@ -322,6 +299,9 @@ if (empty($video)) {
     $video['filename'] = "";
 
     header('HTTP/1.0 404 Not Found', true, 404);
+     * 
+     */
+    videoNotFound('The video is not available');
 }
 $metaDescription = " {$video['id']}";
 
@@ -339,16 +319,16 @@ if (!empty($video['users_id']) && User::hasBlockedUser($video['users_id'])) {
 <html lang="<?php echo $_SESSION['language']; ?>">
     <head>
         <title><?php echo $titleTag; ?></title>
-        <link href="<?php echo $global['webSiteRootURL']; ?>view/js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>view/css/player.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>plugin/Gallery/style.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>view/js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>view/css/player.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>plugin/Gallery/style.css" rel="stylesheet" type="text/css"/>
         <?php
         include $global['systemRootPath'] . 'view/include/head.php';
-        
-        if(!empty($_GET['v'])){
+
+        if (!empty($_GET['v'])) {
             getOpenGraph($_GET['v']);
             getLdJson($_GET['v']);
-        }else{
+        } else {
             getOpenGraph(0);
             getLdJson(0);
         }
@@ -371,20 +351,20 @@ if (!empty($video['users_id']) && User::hasBlockedUser($video['users_id'])) {
                 transition: max-height 0.25s ease-in;
             }
             #descriptionAreaShowMoreBtn{
-                 position: absolute;
-                 bottom: 0;
+                position: absolute;
+                bottom: 0;
             }
             #descriptionArea .showMore{
-                 display: block;
+                display: block;
             }
             #descriptionArea .showLess{
-                 display: none;
+                display: none;
             }
             #descriptionArea.expanded .showMore{
-                 display: none;
+                display: none;
             }
             #descriptionArea.expanded .showLess{
-                 display: block;
+                display: block;
             }
         </style>
     </head>
@@ -428,20 +408,16 @@ if (!empty($video['users_id']) && User::hasBlockedUser($video['users_id'])) {
         ?>
         <?php
         echo AVideoPlugin::afterVideoJS();
-        if ($advancedCustom != false) {
-            $disableYoutubeIntegration = $advancedCustom->disableYoutubePlayerIntegration;
-        } else {
-            $disableYoutubeIntegration = false;
-        }
+        $disableYoutubeIntegration = @$advancedCustom->disableYoutubePlayerIntegration || isMobile();
 
         if ((isset($_GET['isEmbedded'])) && ($disableYoutubeIntegration == false)) {
             if ($_GET['isEmbedded'] == "y") {
                 ?>
-                <script src="<?php echo $global['webSiteRootURL']; ?>view/js/videojs-youtube/Youtube.js" type="text/javascript"></script>
+                <script src="<?php echo getCDN(); ?>view/js/videojs-youtube/Youtube.js" type="text/javascript"></script>
                 <?php
             } else if ($_GET['isEmbedded'] == "v") {
                 ?>
-                <script src="<?php echo $global['webSiteRootURL']; ?>view/js/videojs-vimeo/videojs-vimeo.js" type="text/javascript"></script>
+                <script src="<?php echo getCDN(); ?>view/js/videojs-vimeo/videojs-vimeo.js" type="text/javascript"></script>
                 <?php
             }
         }
@@ -465,9 +441,9 @@ if (!empty($video['users_id']) && User::hasBlockedUser($video['users_id'])) {
         <script>
             var fading = false;
         </script>
-        
+
         <?php
-            showCloseButton();
+        showCloseButton();
         ?>
     </body>
 </html>

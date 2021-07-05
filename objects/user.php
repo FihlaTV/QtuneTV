@@ -306,7 +306,7 @@ if (typeof gtag !== \"function\") {
     public static function getUserFromChannelName($channelName) {
         $channelName = cleanString($channelName);
         global $global;
-        $channelName = $global['mysqli']->real_escape_string($channelName);
+        $channelName = ($channelName);
         $sql = "SELECT * FROM users WHERE channelName = ? LIMIT 1";
         $res = sqlDAL::readSql($sql, "s", array($channelName));
         $user = sqlDAL::fetchAssoc($res);
@@ -426,13 +426,13 @@ if (typeof gtag !== \"function\") {
         }
         if (!empty($photo) && preg_match("/videos\/userPhoto\/.*/", $photo)) {
             if (file_exists($global['systemRootPath'] . $photo)) {
-                $photo = $global['webSiteRootURL'] . $photo . "?" . filemtime($global['systemRootPath'] . $photo);
+                $photo = getCDN() . $photo . "?" . filemtime($global['systemRootPath'] . $photo);
             } else {
                 $photo = "";
             }
         }
         if (empty($photo)) {
-            $photo = $global['webSiteRootURL'] . "view/img/userSilhouette.jpg";
+            $photo = getCDN() . "view/img/userSilhouette.jpg";
         }
         return $photo;
     }
@@ -451,7 +451,7 @@ if (typeof gtag !== \"function\") {
         global $global;
         $photo = self::_getPhoto($users_id);
         if ($photo == "view/img/userSilhouette.jpg") {
-            return "{$global['webSiteRootURL']}view/img/userSilhouette.jpg";
+            return getCDN() . "view/img/userSilhouette.jpg";
         }
         if (empty($photo)) {
             return false;
@@ -461,8 +461,7 @@ if (typeof gtag !== \"function\") {
 
         convertImageToOG($source, $destination);
 
-        return $global['webSiteRootURL'] . self::_getOGImage($users_id);
-        ;
+        return getCDN() . self::_getOGImage($users_id);
     }
 
     public static function getEmailVerifiedIcon($id = "") {
@@ -520,13 +519,13 @@ if (typeof gtag !== \"function\") {
         }
         if (!empty($photo) && preg_match("/videos\/userPhoto\/.*/", $photo)) {
             if (file_exists($global['systemRootPath'] . $photo)) {
-                $photo = $global['webSiteRootURL'] . $photo;
+                $photo = getCDN() . $photo;
             } else {
                 $photo = "";
             }
         }
         if (empty($photo)) {
-            $photo = $global['webSiteRootURL'] . "view/img/background.png";
+            $photo = getCDN() . "view/img/background.png";
         }
         return $photo;
     }
@@ -574,20 +573,19 @@ if (typeof gtag !== \"function\") {
             $this->emailVerified = "false";
         }
 
-        $this->user = $global['mysqli']->real_escape_string($this->user);
-        $this->password = $global['mysqli']->real_escape_string($this->password);
-        $this->name = $global['mysqli']->real_escape_string($this->name);
-        $this->status = $global['mysqli']->real_escape_string($this->status);
-        $this->about = $global['mysqli']->real_escape_string($this->about);
+        $user = ($this->user);
+        $password = ($this->password); 
+        $name = ($this->name); 
+        $status = ($this->status);
         $this->about = preg_replace("/(\\\)+n/", "\n", $this->about);
         $this->channelName = self::_recommendChannelName($this->channelName, 0, $this->user, $this->id);
-        $this->channelName = $global['mysqli']->real_escape_string($this->channelName);
+        $channelName = ($this->channelName);
         if (filter_var($this->donationLink, FILTER_VALIDATE_URL) === false) {
             $this->donationLink = "";
         }
         if (!empty($this->id)) {
             $formats = "ssssiiii";
-            $values = array($this->user, $this->password, $this->email, $this->name, $this->isAdmin, $this->canStream, $this->canUpload, $this->canCreateMeet);
+            $values = array($user, $password, $this->email, $name, $this->isAdmin, $this->canStream, $this->canUpload, $this->canCreateMeet);
             $sql = "UPDATE users SET user = ?, password = ?, "
                     . "email = ?, name = ?, isAdmin = ?,"
                     . "canStream = ?,canUpload = ?,canCreateMeet = ?,";
@@ -624,8 +622,8 @@ if (typeof gtag !== \"function\") {
                     . " modified = now() WHERE id = ?";
         } else {
             $formats = "ssssiiiissssss";
-            $values = array($this->user, $this->password, $this->email, $this->name, $this->isAdmin, $this->canStream, $this->canUpload, $this->canCreateMeet,
-                $this->status, $this->photoURL, $this->recoverPass, $this->channelName, $this->analyticsCode, $this->externalOptions);
+            $values = array($user, $password, $this->email, $name, $this->isAdmin, $this->canStream, $this->canUpload, $this->canCreateMeet,
+                $status, $this->photoURL, $this->recoverPass, $channelName, $this->analyticsCode, $this->externalOptions);
             $sql = "INSERT INTO users (user, password, email, name, isAdmin, canStream, canUpload, canCreateMeet, canViewChart, status,photoURL,recoverPass, created, modified, channelName, analyticsCode, externalOptions) "
                     . " VALUES (?,?,?,?,?,?,?,?, false, "
                     . "?,?,?, now(), now(),?,?,?)";
@@ -654,7 +652,7 @@ if (typeof gtag !== \"function\") {
 
     public static function getChannelOwner($channelName) {
         global $global;
-        $channelName = $global['mysqli']->real_escape_string($channelName);
+        $channelName = ($channelName);
         $sql = "SELECT * FROM users WHERE channelName = ? LIMIT 1";
         $res = sqlDAL::readSql($sql, "s", array($channelName));
         $result = sqlDAL::fetchAssoc($res);
@@ -670,7 +668,7 @@ if (typeof gtag !== \"function\") {
 
     public static function getFromUsername($user) {
         global $global;
-        $user = $global['mysqli']->real_escape_string($user);
+        $user = ($user);
         $sql = "SELECT * FROM users WHERE user = ? LIMIT 1";
         $res = sqlDAL::readSql($sql, "s", array($user));
         $result = sqlDAL::fetchAssoc($res);
@@ -696,11 +694,15 @@ if (typeof gtag !== \"function\") {
     public static function canWatchVideo($videos_id) {
         $cacheName = "canWatchVideo$videos_id";
         if (!User::isLogged()) {
+            $cacheName = "canWatchVideoNOTLOGED$videos_id";
             $cache = ObjectYPT::getCache($cacheName, 3600);
         } else {
             $cache = ObjectYPT::getSessionCache($cacheName, 600);
         }
         if (isset($cache)) {
+            if($cache === 'false'){
+                $cache = false;
+            }
             return $cache;
         }
 
@@ -770,7 +772,6 @@ if (typeof gtag !== \"function\") {
 
         _error_log("User::canWatchVideo The user " . User::getId() . " is not on any of the user groups ({$videos_id}) " . json_encode($rows));
         self::setCacheWatchVideo($cacheName, false);
-        ;
         return false;
     }
 
@@ -784,11 +785,13 @@ if (typeof gtag !== \"function\") {
         }
 
         if (AVideoPlugin::userCanWatchVideoWithAds(User::getId(), $videos_id)) {
+            //_error_log("User::userCanWatchVideoWithAds (can) " . User::getId() . " " . $videos_id);
             return true;
         }
         _error_log("User::userCanWatchVideoWithAds (No can not) " . User::getId() . " " . $videos_id);
 
         if (self::canWatchVideo($videos_id)) {
+            //_error_log("User::canWatchVideo (can) " . $videos_id);
             return true;
         }
         _error_log("User::canWatchVideo (No can not) " . $videos_id);
@@ -820,7 +823,7 @@ if (typeof gtag !== \"function\") {
     const CAPTCHA_ERROR = 3;
     const REQUIRE2FA = 4;
 
-    public function login($noPass = false, $encodedPass = false) {
+    public function login($noPass = false, $encodedPass = false, $ignoreEmailVerification = false) {
         if (User::isLogged()) {
             return false;
         }
@@ -843,7 +846,7 @@ if (typeof gtag !== \"function\") {
 
         // check for multiple logins attempts to prevent hacking end
         // if user is not verified
-        if (!empty($user) && empty($user['isAdmin']) && empty($user['emailVerified']) && !empty($advancedCustomUser->unverifiedEmailsCanNOTLogin)) {
+        if (empty($ignoreEmailVerification) && !empty($user) && empty($user['isAdmin']) && empty($user['emailVerified']) && !empty($advancedCustomUser->unverifiedEmailsCanNOTLogin)) {
             unset($_SESSION['user']);
             self::sendVerificationLink($user['id']);
             return self::USER_NOT_VERIFIED;
@@ -920,7 +923,7 @@ if (typeof gtag !== \"function\") {
         global $global;
         return '<div class="input-group">'
                 . '<span class="input-group-addon"><img src="' . $global['webSiteRootURL'] . 'captcha" id="captcha' . $uid . '"></span>
-                    <span class="input-group-addon"><span class="btn btn-xs btn-success" id="btnReloadCapcha' . $uid . '"><span class="glyphicon glyphicon-refresh"></span></span></span>
+                    <span class="input-group-addon"><span class="btn btn-xs btn-success btnReloadCapcha" id="btnReloadCapcha' . $uid . '"><span class="glyphicon glyphicon-refresh"></span></span></span>
                     <input name="captcha" placeholder="' . __("Type the code") . '" class="form-control" type="text" style="height: 60px;" maxlength="5" id="captchaText' . $uid . '">
                 </div>
                 <script>
@@ -996,7 +999,12 @@ if (typeof gtag !== \"function\") {
         return !empty($_SESSION['user']['emailVerified']);
     }
 
-    public static function isAdmin() {
+    public static function isAdmin($users_id=0) {
+        if(!empty($users_id)){
+            $user = new User($users_id);
+            return !empty($user->getIsAdmin());
+        }
+        
         self::recreateLoginFromCookie();
         return !empty($_SESSION['user']['isAdmin']);
     }
@@ -1056,7 +1064,6 @@ if (typeof gtag !== \"function\") {
         global $global, $advancedCustom;
         $formats = "";
         $values = array();
-        $user = $global['mysqli']->real_escape_string($user);
         $sql = "SELECT * FROM users WHERE user = ? ";
 
         $formats .= "s";
@@ -1104,7 +1111,6 @@ if (typeof gtag !== \"function\") {
         global $global;
         $formats = "";
         $values = array();
-        $user = $global['mysqli']->real_escape_string($user);
         $sql = "SELECT * FROM users WHERE user = ? ";
 
         $formats .= "s";
@@ -1246,24 +1252,25 @@ if (typeof gtag !== \"function\") {
                     }
                 }
             }
-            unset($user['password']);
-            unset($user['recoverPass']);
+            unset($user['password'], $user['recoverPass']);
             if (!Permissions::canAdminUsers() && $user['id'] !== User::getId()) {
-                unset($user['first_name']);
-                unset($user['last_name']);
-                unset($user['address']);
-                unset($user['zip_code']);
-                unset($user['country']);
-                unset($user['region']);
-                unset($user['city']);
+                unset(
+                    $user['first_name'],
+                    $user['last_name'],
+                    $user['address'],
+                    $user['zip_code'],
+                    $user['country'],
+                    $user['region'],
+                    $user['city']
+                );
             }
-            $user = $user;
             return $user;
         }
         return false;
     }
 
     public static function getUserFromEmail($email) {
+        $email = trim($email);
         $sql = "SELECT * FROM users WHERE email = ? LIMIT 1";
         $res = sqlDAL::readSql($sql, "s", array($email));
         $user = sqlDAL::fetchAssoc($res);
@@ -1347,14 +1354,23 @@ if (typeof gtag !== \"function\") {
         //current=1&rowCount=10&sort[sender]=asc&searchPhrase=
         global $global;
         $sql = "SELECT * FROM users u WHERE 1=1 ";
-        $sql .= " AND id IN (SELECT users_id FROM users_has_users_groups ug WHERE ug.users_groups_id = {$users_groups_id}) ";
+        $sql .= " AND (id IN (SELECT users_id FROM users_has_users_groups ug WHERE ug.users_groups_id = {$users_groups_id}) ";
+
+        $ids = AVideoPlugin::getDynamicUsersId($users_groups_id);
+        if(!empty($ids) && is_array($ids)){
+            $ids = array_unique($ids);
+            $sql .= " OR id IN ('". implode("','", $ids)."') ";
+        }
+        $sql .= " ) ";
+        
         if (!empty($status)) {
             if (strtolower($status) === 'i') {
-                $sql .= " AND status = 'i' ";
+                $sql .= " AND u.status = 'i' ";
             } else {
-                $sql .= " AND status = 'a' ";
+                $sql .= " AND u.status = 'a' ";
             }
         }
+        
         $sql .= BootGrid::getSqlFromPost($searchFields);
 
         $user = array();
@@ -1387,8 +1403,14 @@ if (typeof gtag !== \"function\") {
         //current=1&rowCount=10&sort[sender]=asc&searchPhrase=
         global $global;
         $sql = "SELECT id FROM users WHERE 1=1  ";
-        $sql .= " AND id IN (SELECT users_id FROM users_has_users_groups ug WHERE ug.users_groups_id = {$users_groups_id}) ";
+        $sql .= " AND (id IN (SELECT users_id FROM users_has_users_groups ug WHERE ug.users_groups_id = {$users_groups_id}) ";
 
+        $ids = AVideoPlugin::getDynamicUsersId($users_groups_id);
+        if(!empty($ids) && is_array($ids)){
+            $ids = array_unique($ids);
+            $sql .= " OR id IN ('". implode("','", $ids)."') ";
+        }
+        $sql .= " ) ";
         if (!empty($status)) {
             if (strtolower($status) === 'i') {
                 $sql .= " AND status = 'i' ";
@@ -1440,6 +1462,34 @@ if (typeof gtag !== \"function\") {
 
         return $user;
     }
+    
+    
+
+    public static function getAllActiveUsersThatCanUpload() {
+        if (!Permissions::canAdminUsers()) {
+            return false;
+        }
+        //will receive
+        //current=1&rowCount=10&sort[sender]=asc&searchPhrase=
+        global $global;
+        $sql = "SELECT * FROM users WHERE 1=1 AND status = 'a' AND (canUpload = 1 OR isAdmin = 1) ";
+
+        $user = array();
+        $res = sqlDAL::readSql($sql . ";");
+        $downloadedArray = sqlDAL::fetchAllAssoc($res);
+        sqlDAL::close($res);
+        if ($res != false) {
+            foreach ($downloadedArray as $row) {
+                $row = cleanUpRowFromDatabase($row);
+                $user[] = $row;
+            }
+        } else {
+            $user = false;
+            die($sql . '\nError : (' . $global['mysqli']->errno . ') ' . $global['mysqli']->error);
+        }
+
+        return $user;
+    }
 
     private static function getUserInfoFromRow($row) {
         $row['groups'] = UserGroups::getUserGroups($row['id']);
@@ -1462,16 +1512,17 @@ if (typeof gtag !== \"function\") {
                 }
             }
         }
-        unset($row['password']);
-        unset($row['recoverPass']);
+        unset($row['password'], $row['recoverPass']);
         if (!Permissions::canAdminUsers() && $row['id'] !== User::getId()) {
-            unset($row['first_name']);
-            unset($row['last_name']);
-            unset($row['address']);
-            unset($row['zip_code']);
-            unset($row['country']);
-            unset($row['region']);
-            unset($row['city']);
+            unset(
+                $row['first_name'],
+                $row['last_name'],
+                $row['address'],
+                $row['zip_code'],
+                $row['country'],
+                $row['region'],
+                $row['city']
+            );
         }
         return $row;
     }
@@ -1529,7 +1580,7 @@ if (typeof gtag !== \"function\") {
 
     public static function userExists($user) {
         global $global;
-        $user = $global['mysqli']->real_escape_string($user);
+        $user = ($user);
         $sql = "SELECT * FROM users WHERE user = ? LIMIT 1";
         $res = sqlDAL::readSql($sql, "s", array($user));
         $user = sqlDAL::fetchAssoc($res);
@@ -1558,7 +1609,6 @@ if (typeof gtag !== \"function\") {
 
     public static function createUserIfNotExists($user, $pass, $name, $email, $photoURL, $isAdmin = false, $emailVerified = false) {
         global $global, $advancedCustomUser;
-        $user = $global['mysqli']->real_escape_string($user);
         $userId = 0;
         if (!$userId = self::userExists($user)) {
             if (empty($pass)) {
@@ -1622,7 +1672,7 @@ if (typeof gtag !== \"function\") {
     function isRecoverPassExpired($recoverPass) {
         $string = decryptString($recoverPass);
         if ($string) {
-            $json = json_decode($string);
+            $json = _json_decode($string);
             if (is_object($json)) {
                 if (time() < $json->valid) {
                     return false;
@@ -1972,7 +2022,7 @@ if (typeof gtag !== \"function\") {
     }
 
     public static function decodeVerificationCode($code) {
-        $obj = json_decode(base64_decode($code));
+        $obj = _json_decode(base64_decode($code));
         return $obj;
     }
 
@@ -2116,21 +2166,17 @@ if (typeof gtag !== \"function\") {
     }
 
     public static function loginFromRequest() {
-        $inputJSON = url_get_contents('php://input');
-        $input = json_decode($inputJSON, true); //convert JSON into array
-        if (is_array($input)) {
-            foreach ($input as $key => $value) {
-                if (empty($_REQUEST[$key])) {
-                    $_REQUEST[$key] = $value;
-                }
-            }
-        }
+        inputToRequest();
         if (!empty($_REQUEST['do_not_login'])) {
             return false;
+        }
+        if(empty($_REQUEST['pass']) && !empty($_REQUEST['password'])){
+            $_REQUEST['pass'] = $_REQUEST['password'];
         }
         if (!empty($_REQUEST['user']) && !empty($_REQUEST['pass'])) {
             $user = new User(0, $_REQUEST['user'], $_REQUEST['pass']);
             $user->login(false, !empty($_REQUEST['encodedPass']));
+            $_REQUEST['do_not_login'] = 1;
         }
     }
 
@@ -2321,6 +2367,31 @@ if (typeof gtag !== \"function\") {
                 . " modified = now() WHERE id = ?";
 
         return sqlDAL::writeSql($sql, "si", array($string, $users_id));
+    }
+    
+    static function userGroupsMatch($user_groups, $users_id=0){        
+        if(empty($users_id)){
+            $users_id = User::getId();
+        } 
+        if(empty($user_groups)){
+            return true;
+        }
+        if(empty($users_id)){
+            return false;
+        }
+        if(!is_array($user_groups)){
+            $user_groups = array($user_groups);
+        }        
+        $user_users_groups = UserGroups::getUserGroups($users_id);
+        if(empty($user_users_groups)){
+            return false;
+        }
+        foreach ($user_users_groups as $value) {
+            if(in_array($value['id'], $user_groups)){
+                return true;
+            }
+        }
+        return false;
     }
 
 }

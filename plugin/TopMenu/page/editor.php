@@ -21,9 +21,9 @@ $groups = UserGroups::getAllUsersGroups();
         <?php
         include $global['systemRootPath'] . 'view/include/head.php';
         ?>
-        <link rel="stylesheet" type="text/css" href="<?php echo $global['webSiteRootURL']; ?>view/css/DataTables/datatables.min.css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>js/Croppie/croppie.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>js/bootstrap3-wysiwyg/bootstrap3-wysihtml5.min.css" rel="stylesheet" type="text/css"/>
+        <link rel="stylesheet" type="text/css" href="<?php echo getCDN(); ?>view/css/DataTables/datatables.min.css"/>
+        <link href="<?php echo getCDN(); ?>js/Croppie/croppie.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>js/bootstrap3-wysiwyg/bootstrap3-wysihtml5.min.css" rel="stylesheet" type="text/css"/>
         <style>
             #sortable li{
                 list-style: none;
@@ -98,8 +98,11 @@ $groups = UserGroups::getAllUsersGroups();
                                                     <div class="form-group">
                                                         <label for="type">Type:</label>
                                                         <select class="form-control" id="type">
-                                                            <option value="1"><?php echo __('Default'); ?></option>
-                                                            <option value="2"><?php echo __('Left Menu'); ?></option>
+                                                            <?php
+                                                            foreach (Menu::$typeName as $key => $value) {
+                                                                echo "<option value=\"{$key}\">{$value}</option>";
+                                                            }
+                                                            ?>
                                                         </select>
                                                     </div>
                                                 </div>
@@ -260,9 +263,9 @@ $groups = UserGroups::getAllUsersGroups();
     <?php
     include $global['systemRootPath'] . 'view/include/footer.php';
     ?>
-    <script type="text/javascript" src="<?php echo $global['webSiteRootURL']; ?>view/css/DataTables/datatables.min.js"></script>
-    <script src="<?php echo $global['webSiteRootURL']; ?>js/Croppie/croppie.min.js" type="text/javascript"></script>
-    <script src="<?php echo $global['webSiteRootURL']; ?>js/bootstrap3-wysiwyg/bootstrap3-wysihtml5.all.js" type="text/javascript"></script>  
+    <script type="text/javascript" src="<?php echo getCDN(); ?>view/css/DataTables/datatables.min.js"></script>
+    <script src="<?php echo getCDN(); ?>js/Croppie/croppie.min.js" type="text/javascript"></script>
+    <script src="<?php echo getCDN(); ?>js/bootstrap3-wysiwyg/bootstrap3-wysihtml5.all.js" type="text/javascript"></script>  
     <script>
             var currentItem = [];
 
@@ -410,7 +413,7 @@ $groups = UserGroups::getAllUsersGroups();
                     $('#item_order').val(item.item_order);
                     $('#item_status').val(item.status);
                     $('#text').val(item.text);
-                    $('#menuSeoUrlItem').val(item.menuSeoUrlItem);                    
+                    $('#menuSeoUrlItem').val(item.menuSeoUrlItem);
                     $("#menuItemIcon").val(item.icon);
                     $("#menuItemIcon").trigger('change');
                     $('iframe').contents().find('.wysihtml5-editor').html(item.text);

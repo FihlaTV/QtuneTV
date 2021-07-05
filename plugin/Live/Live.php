@@ -54,26 +54,26 @@ class Live extends PluginAbstract {
     }
 
     public function getPluginVersion() {
-        return "5.3";
+        return "7.1";
     }
 
     public function updateScript() {
         global $global;
-        //update version 2.0
+//update version 2.0
         $sql = "SELECT 1 FROM live_transmitions_history LIMIT 1";
         $res = sqlDAL::readSql($sql);
         $fetch = sqlDAL::fetchAssoc($res);
         if (!$fetch) {
             sqlDal::writeSql(file_get_contents($global['systemRootPath'] . 'plugin/Live/install/updateV2.0.sql'));
         }
-        //update version 3.0
+//update version 3.0
         $sql = "SELECT 1 FROM live_transmition_history_log LIMIT 1";
         $res = sqlDAL::readSql($sql);
         $fetch = sqlDAL::fetchAssoc($res);
         if (!$fetch) {
             sqlDal::writeSql(file_get_contents($global['systemRootPath'] . 'plugin/Live/install/updateV3.0.sql'));
         }
-        //update version 4.0
+//update version 4.0
         $sql = "SELECT 1 FROM live_servers LIMIT 1";
         $res = sqlDAL::readSql($sql);
         $fetch = sqlDAL::fetchAssoc($res);
@@ -84,7 +84,7 @@ class Live extends PluginAbstract {
                 sqlDal::writeSql(trim($value));
             }
         }
-        //update version 5.0
+//update version 5.0
         $sql = "SELECT 1 FROM live_restreams LIMIT 1";
         $res = sqlDAL::readSql($sql);
         $fetch = sqlDAL::fetchAssoc($res);
@@ -95,7 +95,7 @@ class Live extends PluginAbstract {
                 sqlDal::writeSql(trim($value));
             }
         }
-        //update version 5.1
+//update version 5.1
         if (AVideoPlugin::compareVersion($this->getName(), "5.1") < 0) {
             $sqls = file_get_contents($global['systemRootPath'] . 'plugin/Live/install/updateV5.1.sql');
             $sqlParts = explode(";", $sqls);
@@ -103,7 +103,7 @@ class Live extends PluginAbstract {
                 sqlDal::writeSql(trim($value));
             }
         }
-        //update version 5.2
+//update version 5.2
         if (AVideoPlugin::compareVersion($this->getName(), "5.2") < 0) {
             $sqls = file_get_contents($global['systemRootPath'] . 'plugin/Live/install/updateV5.2.sql');
             $sqlParts = explode(";", $sqls);
@@ -111,9 +111,15 @@ class Live extends PluginAbstract {
                 sqlDal::writeSql(trim($value));
             }
         }
-        //update version 5.2
         if (AVideoPlugin::compareVersion($this->getName(), "6.0") < 0) {
             $sqls = file_get_contents($global['systemRootPath'] . 'plugin/Live/install/updateV6.0.sql');
+            $sqlParts = explode(";", $sqls);
+            foreach ($sqlParts as $value) {
+                sqlDal::writeSql(trim($value));
+            }
+        }
+        if (AVideoPlugin::compareVersion($this->getName(), "7.0") < 0) {
+            $sqls = file_get_contents($global['systemRootPath'] . 'plugin/Live/install/updateV7.0.sql');
             $sqlParts = explode(";", $sqls);
             foreach ($sqlParts as $value) {
                 sqlDal::writeSql(trim($value));
@@ -145,7 +151,9 @@ class Live extends PluginAbstract {
         $obj->restreamerURL = "{$global['webSiteRootURL']}plugin/Live/standAloneFiles/restreamer.json.php";
         self::addDataObjectHelper('restreamerURL', 'Restreamer URL', 'https://github.com/WWBN/AVideo/wiki/Restream');
         $obj->controlURL = "{$global['webSiteRootURL']}plugin/Live/standAloneFiles/control.json.php";
-        self::addDataObjectHelper('controlURL', 'Control URL', 'Still under development');
+        self::addDataObjectHelper('controlURL', 'Control URL');
+        $obj->controlServer = "http://localhost:8080/";
+        self::addDataObjectHelper('controlServer', 'Control Server');
         $obj->disableRestream = false;
         self::addDataObjectHelper('disableRestream', 'Disable Restream', 'If you check this, we will not send requests to your Restreamer URL');
         $obj->disableDVR = false;
@@ -164,14 +172,16 @@ class Live extends PluginAbstract {
         self::addDataObjectHelper('experimentalWebcam', 'Experimental Webcam', 'Requires flash and it is deprecated, will be removed. not recommend to enable it.');
         $obj->doNotShowLiveOnVideosList = false;
         self::addDataObjectHelper('doNotShowLiveOnVideosList', 'Do not show live on videos list', 'We will not show the live thumbs on the main Gallery page');
+        $obj->doNotShowOnlineOfflineLabel = false;
+        self::addDataObjectHelper('doNotShowOnlineOfflineLabel', 'Hide the Online/Offline Badge on live streams');
         $obj->doNotShowLiveOnCategoryList = false;
         self::addDataObjectHelper('doNotShowLiveOnCategoryList', 'Do not show live on site category list', 'We will not show the live thumbs on the main Gallery page');
         $obj->doNotShowOfflineLiveOnCategoryList = false;
         self::addDataObjectHelper('doNotShowOfflineLiveOnCategoryList', 'Do not show offline lives on site category list', 'We will not show the live thumbs on the main Gallery page if it is offline');
         $obj->limitLiveOnVideosList = 12;
         self::addDataObjectHelper('limitLiveOnVideosList', 'Videos List Limit', 'This will limit the maximum of videos that you will see in the Videos page');
-        //$obj->doNotShowGoLiveButton = false;
-        //self::addDataObjectHelper('doNotShowGoLiveButton', 'Hide Top Button', 'This will hide the "Go Live" button on the top menu bar');
+//$obj->doNotShowGoLiveButton = false;
+//self::addDataObjectHelper('doNotShowGoLiveButton', 'Hide Top Button', 'This will hide the "Go Live" button on the top menu bar');
         $obj->doNotProcessNotifications = false;
         self::addDataObjectHelper('doNotProcessNotifications', 'Do not show notifications', 'Do not show the notification on the top bar');
         $obj->useLiveServers = false;
@@ -192,20 +202,22 @@ class Live extends PluginAbstract {
         self::addDataObjectHelper('requestStatsInterval', 'Stats Request Interval', 'how many seconds until request the stats again');
         $obj->streamDeniedMsg = "You can not stream live videos";
         self::addDataObjectHelper('streamDeniedMsg', 'Denied Message', 'We will show this message when a user is not allowed so watch a livestream');
-        
+        $obj->allowMultipleLivesPerUser = true;
+        self::addDataObjectHelper('allowMultipleLivesPerUser', 'Allow Multiple Lives Per User', 'Your users will be able to make unlimited livestreams');
+
         return $obj;
     }
 
     public function getHeadCode() {
         global $global;
         $obj = $this->getDataObject();
-        // preload image
+// preload image
         $js = "";
         $css = '';
 
         if (!empty($obj->playLiveInFullScreen)) {
             if ((isLive() || isEmbed()) && canFullScreen()) {
-                $css .= '<link href="' . $global['webSiteRootURL'] . 'plugin/YouPHPFlix2/view/css/fullscreen.css" rel="stylesheet" type="text/css"/>';
+                $css .= '<link href="' . getCDN() . 'plugin/YouPHPFlix2/view/css/fullscreen.css" rel="stylesheet" type="text/css"/>';
                 $css .= '<style>.container-fluid {overflow: visible;padding: 0;}#mvideo{padding: 0 !important; position: absolute; top: 0;}</style>';
             }
             $js .= '<script>var playLiveInFullScreen = true</script>';
@@ -220,14 +232,14 @@ class Live extends PluginAbstract {
 
         $js = '';
         if (!empty($obj->playLiveInFullScreen)) {
-            $js = '<script src="' . $global['webSiteRootURL'] . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
+            $js = '<script src="' . getCDN() . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
             $js .= '<script>$(function () { if(typeof linksToEmbed === \'function\'){ linksToEmbed(\'.liveVideo a.galleryLink\'); } });</script>';
-        }else
+        } else
         if (!empty($obj->playLiveInFullScreenOnIframe)) {
-            $js = '<script src="' . $global['webSiteRootURL'] . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
+            $js = '<script src="' . getCDN() . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
             $js .= '<script>$(function () { if(typeof linksToFullscreen === \'function\'){ linksToFullscreen(\'.liveVideo a.galleryLink\'); } });</script>';
         }
-        include $global['systemRootPath'].'plugin/Live/view/footer.php';
+        include $global['systemRootPath'] . 'plugin/Live/view/footer.php';
         return $js;
     }
 
@@ -247,7 +259,7 @@ class Live extends PluginAbstract {
         $parts = explode("/", $server);
         $app = array_pop($parts);
         $domain = self::getControl();
-        //return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
+//return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
         return "{$app}?p=" . User::getUserPass();
     }
 
@@ -280,59 +292,107 @@ class Live extends PluginAbstract {
         return $obj->server;
     }
 
-    static function getDropURL($key) {
+    static function getDropURL($key, $live_servers_id = 0) {
         $server = self::getPlayerServer();
         $server = rtrim($server, "/");
         $parts = explode("/", $server);
         $app = array_pop($parts);
-        $domain = self::getControl();
-        //return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
+        $domain = self::getControl($live_servers_id);
+//return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
         return "{$domain}?command=drop_publisher&app={$app}&name={$key}&token=" . getToken(60);
     }
 
-    static function getIsRecording($key) {
+    static function getIsRecording($key, $live_servers_id = 0) {
         $server = self::getPlayerServer();
         $server = rtrim($server, "/");
         $parts = explode("/", $server);
         $app = array_pop($parts);
-        $domain = self::getControl();
-        //return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
+        $domain = self::getControl($live_servers_id);
+//return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
         return "{$domain}?command=is_recording&app={$app}&name={$key}&token=" . getToken(60);
     }
 
-    static function getStartRecordURL($key) {
+    static function getStartRecordURL($key, $live_servers_id = 0) {
         $server = self::getPlayerServer();
         $server = rtrim($server, "/");
         $parts = explode("/", $server);
         $app = array_pop($parts);
-        $domain = self::getControl();
+        $domain = self::getControl($live_servers_id);
         //return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
         return "{$domain}?command=record_start&app={$app}&name={$key}&token=" . getToken(60);
     }
 
-    static function getStopRecordURL($key) {
+    static function getStopRecordURL($key, $live_servers_id = 0) {
         $server = self::getPlayerServer();
         $server = rtrim($server, "/");
         $parts = explode("/", $server);
         $app = array_pop($parts);
-        $domain = self::getControl();
+        $domain = self::getControl($live_servers_id);
 
         return "{$domain}?command=record_stop&app={$app}&name={$key}&token=" . getToken(60);
     }
 
-    static function getButton($command, $live_transmition_id, $live_servers_id = 0, $iconsOnly = false, $label = "", $class = "", $tooltip = "") {
+    static function controlRecording($key, $live_servers_id, $start = true, $try = 0) {
+        if ($start) {
+            $url = self::getStartRecordURL($key, $live_servers_id);
+        } else {
+            $url = self::getStopRecordURL($key, $live_servers_id);
+        }
+        $response = url_get_contents($url, '', 5);
+        _error_log("Live:controlRecording {$url} {$live_servers_id} - [{$response}]");
+        $obj = new stdClass();
+        $obj->error = true;
+        $obj->msg = "";
+        $obj->remoteResponse = false;
+        if (!empty($response)) {
+            $json = json_decode($response);
+            if (!empty($json)) {
+                if ($start && empty($json->error) && empty($json->response) && $try < 4) {
+                    _error_log("Live:controlRecording start record is not ready trying again in 5 seconds " . (isCommandLineInterface() ? 'From Command Line' : 'Not Command Line'));
+                    _error_log("Live:controlRecording " . json_encode(debug_backtrace()));
+
+                    sleep(5);
+                    return self::controlRecording($key, $live_servers_id, $start, $try + 1);
+                }
+                _error_log("Live:controlRecording start record is ready {$json->response}");
+                $obj->error = $json->error;
+                $obj->msg = $json->msg;
+                $obj->remoteResponse = true;
+            } else {
+                $obj->msg = "JSON response fail";
+            }
+        } else {
+            $obj->msg = "Control response fail";
+        }
+        if ($obj->error) {
+            _error_log("Live::controlRecording: [$key], [$live_servers_id], [$start] " . json_encode($obj));
+        }
+        return $obj;
+    }
+
+    static function controlRecordingAsync($key, $live_servers_id, $start = true) {
+        outputAndContinueInBackground();
+        $command = "php {$global['systemRootPath']}plugin/Live/controlRecording.php '$key' '$live_servers_id' '$start'";
+
+        _error_log("NGINX Live::controlRecordingAsync start  ($command)");
+        $pid = execAsync($command);
+        _error_log("NGINX Live::controlRecordingAsync end {$pid}");
+        return $pid;
+    }
+
+    static function getButton($command, $key, $live_servers_id = 0, $iconsOnly = false, $label = "", $class = "", $tooltip = "") {
         if (!User::canStream()) {
             return "";
         }
         global $global;
         $id = "getButton" . uniqid();
-        if (empty($live_servers_id)) {
-            $live_servers_id = self::getLiveServersIdRequest();
-        }
-
+        $afterLabel = "";
         switch ($command) {
             case "record_start":
-                $buttonClass = "btn btn-default btn-sm";
+                if (!AVideoPlugin::isEnabledByName('SendRecordedToEncoder')) {
+                    return '';
+                }
+                $buttonClass = "btn btn-success";
                 $iconClass = "fas fa-video";
                 if (empty($label)) {
                     $label = __("Start Record");
@@ -340,9 +400,13 @@ class Live extends PluginAbstract {
                 if (empty($tooltip)) {
                     $tooltip = __("Start Record");
                 }
+                $afterLabel = '<span class="fas fa-circle isRecordingIcon isRecordingIcon' . $key . '" ></span>';
                 break;
             case "record_stop":
-                $buttonClass = "btn btn-default btn-sm";
+                if (!AVideoPlugin::isEnabledByName('SendRecordedToEncoder')) {
+                    return '';
+                }
+                $buttonClass = "btn btn-danger";
                 $iconClass = "fas fa-video-slash";
                 if (empty($label)) {
                     $label = __("Stop Record");
@@ -352,7 +416,7 @@ class Live extends PluginAbstract {
                 }
                 break;
             case "drop_publisher":
-                $buttonClass = "btn btn-default btn-sm";
+                $buttonClass = "btn btn-default";
                 $iconClass = "fas fa-wifi";
                 if (empty($label)) {
                     $label = __("Disconnect Livestream");
@@ -362,7 +426,7 @@ class Live extends PluginAbstract {
                 }
                 break;
             case "drop_publisher_reset_key":
-                $buttonClass = "btn btn-default btn-sm";
+                $buttonClass = "btn btn-default";
                 $iconClass = "fas fa-key";
                 if (empty($label)) {
                     $label = __("Disconnect Livestream");
@@ -377,24 +441,22 @@ class Live extends PluginAbstract {
         if ($iconsOnly) {
             $label = "";
         }
-        $html = "<button class='{$buttonClass} {$class}' id='{$id}'  data-toggle=\"tooltip\" data-placement=\"bottom\" title=\"{$tooltip}\"><i class='{$iconClass}'></i> {$label}";
+        $html = "<button class='{$buttonClass} {$class}' id='{$id}'  data-toggle=\"tooltip\" data-placement=\"bottom\" title=\"{$tooltip}\"><i class='{$iconClass}'></i> {$label} {$afterLabel}";
         $html .= "<script>$(document).ready(function () {
             $('#{$id}').click(function(){
         modal.showPleaseWait();
                 $.ajax({
-                    url: '{$global['webSiteRootURL']}plugin/Live/control.json.php?command=$command&live_transmition_id={$live_transmition_id}&live_servers_id={$live_servers_id}',
+                    url: '{$global['webSiteRootURL']}plugin/Live/control.json.php?command=$command&key={$key}&live_servers_id={$live_servers_id}',
                     success: function (response) {
                         console.log('getDropButton called');
                         console.log(response);
                         
                         modal.hidePleaseWait();
                         if (response.error) {
-                            avideoAlert('" . __("Sorry!") . "', response.msg, 'error');
+                            avideoToastError('" . __('Error') . " '+response.msg);
                         } else{
-                            if(response.newkey != response.key){
-                                avideoAlert('" . __("Congratulations!") . "', '" . __("New Key") . ": '+response.newkey, 'success');
-                            }
                             $('#streamkey, .streamkey').val(response.newkey);
+                            avideoToastSuccess('" . __('Success') . " '+response.msg);
                         }
                     }
                 });
@@ -404,31 +466,43 @@ class Live extends PluginAbstract {
         return $html;
     }
 
-    static function getRecordControlls($live_transmition_id, $live_servers_id = 0, $iconsOnly = false) {
+    static function getRecordControlls($key, $live_servers_id = 0, $iconsOnly = false) {
         if (!User::canStream()) {
             return "";
         }
 
         $btn = "<div class=\"btn-group justified\">";
-        $btn .= self::getButton("record_start", $live_transmition_id, $live_servers_id, $iconsOnly);
-        $btn .= self::getButton("record_stop", $live_transmition_id, $live_servers_id, $iconsOnly);
+        $btn .= self::getButton("record_start", $key, $live_servers_id, $iconsOnly);
+        $btn .= self::getButton("record_stop", $key, $live_servers_id, $iconsOnly);
         $btn .= "</div>";
 
         return $btn;
     }
 
-    static function getAllControlls($live_transmition_id, $live_servers_id = 0, $iconsOnly = false) {
+    static function getAllControlls($key, $live_servers_id = 0, $iconsOnly = false) {
         if (!User::canStream()) {
             return "";
         }
 
-        $btn = "<div class=\"btn-group justified\">";
+        $btn = "<div class=\"btn-group justified recordLiveControlsDiv\" style=\"display: none;\" id=\"liveControls\">";
         //$btn .= self::getButton("drop_publisher", $live_transmition_id, $live_servers_id);
-        $btn .= self::getButton("drop_publisher_reset_key", $live_transmition_id, $live_servers_id, $iconsOnly);
-        $btn .= self::getButton("record_start", $live_transmition_id, $live_servers_id, $iconsOnly);
-        $btn .= self::getButton("record_stop", $live_transmition_id, $live_servers_id, $iconsOnly);
+        $btn .= self::getButton("drop_publisher_reset_key", $key, $live_servers_id, $iconsOnly);
+        $btn .= self::getButton("record_start", $key, $live_servers_id, $iconsOnly);
+        $btn .= self::getButton("record_stop", $key, $live_servers_id, $iconsOnly);
         $btn .= "</div>";
+        $btn .= "<script>
+                $(document).ready(function () {
+                    setInterval(function () {
+                        if (isOnlineLabel || $('.liveOnlineLabel.label-success').length) {
+                            $('#liveControls').slideDown();
+                        } else {
+                            $('#liveControls').slideUp();
+                        }
+                    }, 1000);
 
+                });
+            </script>";
+    
         return $btn;
     }
 
@@ -448,7 +522,7 @@ class Live extends PluginAbstract {
 
     static function getControl($live_servers_id = -1) {
         $obj = AVideoPlugin::getObjectData("Live");
-        if (!empty($obj->controlURL)) {
+        if (!empty($obj->useLiveServers) && !empty($live_servers_id)) {
             if ($live_servers_id < 0) {
                 $live_servers_id = self::getCurrentLiveServersId();
             }
@@ -461,24 +535,56 @@ class Live extends PluginAbstract {
     }
 
     static function getRTMPLink($users_id) {
+        return self::getRTMPLinkFromKey(self::getKeyFromUser($users_id));
+    }
+
+    static function getRTMPLinkFromKey($key) {
+        $lso = new LiveStreamObject($key);
+
+        return $lso->getRTMPLink();
+    }
+
+    static function getRTMPLinkWithOutKey($users_id) {
+        $lso = new LiveStreamObject(self::getKeyFromUser($users_id));
+
+        return $lso->getRTMPLinkWithOutKey();
+    }
+
+    static function getRTMPLinkWithOutKeyFromKey($key) {
+        $lso = new LiveStreamObject($key);
+
+        return $lso->getRTMPLinkWithOutKey();
+    }
+
+    static function getKeyFromUser($users_id) {
         if (!User::isLogged() || ($users_id !== User::getId() && !User::isAdmin())) {
             return false;
         }
         $user = new User($users_id);
         $trasnmition = LiveTransmition::createTransmitionIfNeed($users_id);
-        return self::getServer() . "?p=" . $user->getPassword() . "/" . $trasnmition['key'];
+        return $trasnmition['key'];
+    }
+
+    static function getDynamicKey($key) {
+        $objLive = AVideoPlugin::getDataObject("Live");
+        if ($objLive->allowMultipleLivesPerUser) {
+            $key .= '-' . date('His');
+        }
+        return $key;
     }
 
     static function getPlayerServer() {
         $obj = AVideoPlugin::getObjectData("Live");
         $url = $obj->playerServer;
+        $url = getCDNOrURL($url, 'CDN_Live');
         if (!empty($obj->useLiveServers)) {
             $ls = new Live_servers(self::getLiveServersIdRequest());
             if (!empty($ls->getPlayerServer())) {
                 $url = $ls->getPlayerServer();
+                $url = getCDNOrURL($url, 'CDN_LiveServers', $ls->getId());
             }
         }
-        $url = str_replace("encoder.gdrive.local", "192.168.1.18", $url);
+        //$url = str_replace("encoder.gdrive.local", "192.168.1.18", $url);
         return $url;
     }
 
@@ -520,25 +626,9 @@ class Live extends PluginAbstract {
     }
 
     static function getM3U8File($uuid, $doNotProtect = false) {
-        global $global;
-        $o = AVideoPlugin::getObjectData("Live");
-        $playerServer = self::getPlayerServer();
         $live_servers_id = self::getLiveServersIdRequest();
-        $liveServer = new Live_servers($live_servers_id);
-        if ($liveServer->getStats_url()) {
-            $o->protectLive = $liveServer->getProtectLive();
-            $o->useAadaptiveMode = $liveServer->getUseAadaptiveMode();
-        }
-
-        $uuid = LiveTransmition::keyNameFix($uuid);
-
-        if ($o->protectLive && empty($doNotProtect)) {
-            return "{$global['webSiteRootURL']}plugin/Live/m3u8.php?live_servers_id={$live_servers_id}&uuid=" . encryptString($uuid);
-        } else if ($o->useAadaptiveMode) {
-            return $playerServer . "/{$uuid}.m3u8";
-        } else {
-            return $playerServer . "/{$uuid}/index.m3u8";
-        }
+        $lso = new LiveStreamObject($uuid, $live_servers_id, false, false);
+        return $lso->getM3U8($doNotProtect);
     }
 
     public function getDisableGifThumbs() {
@@ -560,7 +650,7 @@ class Live extends PluginAbstract {
 
     public function getChat($uuid) {
         global $global;
-        //check if LiveChat Plugin is available
+//check if LiveChat Plugin is available
         $filename = $global['systemRootPath'] . 'plugin/LiveChat/LiveChat.php';
         if (file_exists($filename)) {
             require_once $filename;
@@ -568,21 +658,43 @@ class Live extends PluginAbstract {
         }
     }
 
-    function getStatsObject($live_servers_id = 0) {
+    function getStatsObject($live_servers_id = 0, $force_recreate = false, $tries = 0) {
         if (!function_exists('simplexml_load_file')) {
             _error_log("Live::getStatsObject: You need to install the simplexml_load_file function to be able to see the Live stats", AVideoLog::$ERROR);
             return false;
         }
 
+        $name = "getStats" . DIRECTORY_SEPARATOR . "live_servers_id_{$live_servers_id}" . DIRECTORY_SEPARATOR . "getStatsObject";
+
         global $getStatsObject;
-        if (!empty($getStatsObject[$live_servers_id])) {
-            return $getStatsObject[$live_servers_id];
+        if (!isset($getStatsObject)) {
+            $getStatsObject = array();
         }
+        if (empty($force_recreate)) {
+//_error_log("Live::getStatsObject[$live_servers_id] 1: searching for cache");
+            if (isset($getStatsObject[$live_servers_id])) {
+                _error_log("Live::getStatsObject[$live_servers_id] 2: return cached result");
+                return $getStatsObject[$live_servers_id];
+            }
+
+            $result = ObjectYPT::getCache($name, maxLifetime() + 60, true);
+
+            if (!empty($result)) {
+                _error_log("Live::getStatsObject[$live_servers_id] 3: return cached result $name [lifetime=" . (maxLifetime() + 60) . "]");
+                return _json_decode($result);
+            }
+            _error_log("Live::getStatsObject[$live_servers_id] 4: cache not found");
+        } else {
+            _error_log("Live::getStatsObject[$live_servers_id] 5: forced to be recreated");
+        }
+
         $o = $this->getDataObject();
         if ($o->doNotProcessNotifications) {
             $xml = new stdClass();
             $xml->server = new stdClass();
             $xml->server->application = array();
+            $getStatsObject[$live_servers_id] = $xml;
+            ObjectYPT::setCache($name, json_encode($xml));
             return $xml;
         }
         if (empty($o->requestStatsTimout)) {
@@ -591,18 +703,30 @@ class Live extends PluginAbstract {
         ini_set('allow_url_fopen ', 'ON');
         $url = $this->getStatsURL($live_servers_id);
         if (!empty($_SESSION['getStatsObjectRequestStatsTimout'][$url])) {
-            _error_log("Live::getStatsObject RTMP Server ($url) is NOT responding we will wait less from now on => live_servers_id = ($live_servers_id) ");
-            // if the server already fail, do not wait mutch for it next time, just wait 0.5 seconds
+            _error_log("Live::getStatsObject[$live_servers_id] RTMP Server ($url) is NOT responding we will wait less from now on => live_servers_id = ($live_servers_id) ");
+// if the server already fail, do not wait mutch for it next time, just wait 0.5 seconds
             $o->requestStatsTimout = $_SESSION['getStatsObjectRequestStatsTimout'][$url];
         }
+//_error_log_debug("Live::getStatsObject ($url) ({$o->requestStatsTimout}) ");
+
+
+        $waitFile = getTmpDir() . md5($name);
+        if (file_exists($waitFile) && filemtime($waitFile) > time() - 10 && $tries < 10) {
+            _error_log("Live::getStatsObject[$live_servers_id]: there is a request in progeress, please wait {$waitFile}");
+            sleep(1);
+            return self::getStatsObject($live_servers_id, $force_recreate, $tries + 1);
+        }
+        _error_log("Live::getStatsObject[$live_servers_id]: Creating a waitfile {$waitFile}");
+        file_put_contents($waitFile, time());
         $data = $this->get_data($url, $o->requestStatsTimout);
+        unlink($waitFile);
         if (empty($data)) {
             _session_start();
             if (empty($_SESSION['getStatsObjectRequestStatsTimout'])) {
                 $_SESSION['getStatsObjectRequestStatsTimout'] = array();
             }
-            $_SESSION['getStatsObjectRequestStatsTimout'][$url] = $o->requestStatsTimout-1;
-            if($_SESSION['getStatsObjectRequestStatsTimout'][$url]<1){
+            $_SESSION['getStatsObjectRequestStatsTimout'][$url] = $o->requestStatsTimout - 1;
+            if ($_SESSION['getStatsObjectRequestStatsTimout'][$url] < 1) {
                 $_SESSION['getStatsObjectRequestStatsTimout'][$url] = 2;
             }
             _error_log("Live::getStatsObject RTMP Server ($url) is OFFLINE, timeout=({$o->requestStatsTimout}) we could not connect on it => live_servers_id = ($live_servers_id) ", AVideoLog::$ERROR);
@@ -610,7 +734,7 @@ class Live extends PluginAbstract {
         } else {
             if (!empty($_SESSION['getStatsObjectRequestStatsTimout'][$url])) {
                 _error_log("Live::getStatsObject RTMP Server ($url) is respond again => live_servers_id = ($live_servers_id) ");
-                // the server respont again, wait the default time
+// the server respont again, wait the default time
                 _session_start();
                 $_SESSION['getStatsObjectRequestStatsTimout'][$url] = 0;
                 unset($_SESSION['getStatsObjectRequestStatsTimout'][$url]);
@@ -618,17 +742,18 @@ class Live extends PluginAbstract {
         }
         $xml = simplexml_load_string($data);
         $getStatsObject[$live_servers_id] = $xml;
+        ObjectYPT::setCache($name, json_encode($xml));
         return $xml;
     }
 
     function get_data($url, $timeout) {
-        try {
-            $content = url_get_contents($url, "", $timeout);
-            return $content;
-        } catch (Exception $exc) {
-            _error_log($exc->getTraceAsString());
+        global $global;
+        if (!IsValidURL($url)) {
+            return false;
         }
-        return false;
+
+        _error_log_debug("Live::get_data($url, $timeout)");
+        return url_get_contents($url, '', $timeout);
     }
 
     public function getChartTabs() {
@@ -641,7 +766,7 @@ class Live extends PluginAbstract {
     }
 
     static public function saveHistoryLog($key) {
-        // get the latest history for this key
+// get the latest history for this key
         $latest = LiveTransmitionHistory::getLatest($key);
 
         if (!empty($latest)) {
@@ -678,7 +803,7 @@ class Live extends PluginAbstract {
         }
     }
 
-    // not implemented yet
+// not implemented yet
     static function startRecording($users_id) {
         if (!User::isAdmin() && User::getId() != $users_id) {
             return false;
@@ -696,17 +821,17 @@ class Live extends PluginAbstract {
     }
 
     static function getApplicationName() {
-        $obj = AVideoPlugin::getObjectData('Live');
-        $parts = explode("/", $obj->playerServer);
+        $rtmpServer = self::getServer();
+        $parts = explode('/', $rtmpServer);
         $live = end($parts);
 
-        if (empty($live)) {
-            $live = "live";
+        if (!preg_match('/^live/i', $live)) {
+            $live = 'live';
         }
         return $live;
     }
 
-    // not implemented yet
+// not implemented yet
     static function stopRecording($users_id) {
         if (!User::isAdmin() && User::getId() != $users_id) {
             return false;
@@ -728,7 +853,7 @@ class Live extends PluginAbstract {
         return self::getLinkToLiveFromUsers_idAndLiveServer($users_id, $live_servers_id);
     }
 
-    static function getLinkToLiveFromUsers_idAndLiveServer($users_id, $live_servers_id) {
+    static function getLinkToLiveFromUsers_idAndLiveServer($users_id, $live_servers_id, $live_index = null) {
         if (empty($users_id)) {
             return false;
         }
@@ -737,22 +862,32 @@ class Live extends PluginAbstract {
         if (empty($user->getChannelName())) {
             return false;
         }
-        return self::getLinkToLiveFromChannelNameAndLiveServer($user->getChannelName(), $live_servers_id);
+        return self::getLinkToLiveFromChannelNameAndLiveServer($user->getChannelName(), $live_servers_id, $live_index);
     }
 
-    static function getLinkToLiveFromChannelNameAndLiveServer($channelName, $live_servers_id) {
+    static function getLinkToLiveFromChannelNameAndLiveServer($channelName, $live_servers_id, $live_index = null) {
         global $global;
         $live_servers_id = intval($live_servers_id);
         $channelName = trim($channelName);
         if (empty($channelName)) {
             return false;
         }
-        $playlists_id_live = "";
-        if (!empty($_REQUEST['playlists_id_live'])) {
-            $playlists_id_live = "?playlists_id_live=" . $_REQUEST['playlists_id_live'];
+
+        $url = "{$global['webSiteRootURL']}live/{$live_servers_id}/" . urlencode($channelName);
+
+        if (!empty($live_index)) {
+            $url .= '/' . urlencode($live_index);
+        } else if (!isset($live_index) && !empty($_REQUEST['live_index'])) {
+            $url .= '/' . urlencode($_REQUEST['live_index']);
         }
-        //return "{$global['webSiteRootURL']}plugin/Live/?live_servers_id={$live_servers_id}&c=" . urlencode($channelName);
-        return "{$global['webSiteRootURL']}live/{$live_servers_id}/" . urlencode($channelName) . $playlists_id_live;
+
+        if (!empty($_REQUEST['playlists_id_live'])) {
+            $url = addQueryStringParameter($url, 'playlists_id_live', $_REQUEST['playlists_id_live']);
+        }
+
+
+//return "{$global['webSiteRootURL']}plugin/Live/?live_servers_id={$live_servers_id}&c=" . urlencode($channelName);
+        return $url;
     }
 
     static function getAvailableLiveServersId() {
@@ -771,6 +906,10 @@ class Live extends PluginAbstract {
         } else {
             return intval($last['live_servers_id']);
         }
+    }
+
+    static function getLastsLiveHistoriesFromUser($users_id, $count = 10) {
+        return LiveTransmitionHistory::getLastsLiveHistoriesFromUser($users_id, $count);
     }
 
     static function getLinkToLiveFromUsers_idWithLastServersId($users_id) {
@@ -798,43 +937,62 @@ class Live extends PluginAbstract {
 
     public function getPluginMenu() {
         global $global;
-        return '<a href="plugin/Live/view/editor.php" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fa fa-edit"></i> ' . __('Edit Live Servers') . '</a>';
+
+        $obj = $this->getDataObject();
+
+        $btn = '<button onclick="avideoModalIframeLarge(\'' . $global['webSiteRootURL'] . 'plugin/Live/view/editor.php\');" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fa fa-edit"></i> ' . __('Edit Live Servers') . '</button>';
+
+        if ($obj->useLiveServers) {
+            $servers = Live_servers::getAll();
+            foreach ($servers as $value) {
+                $btn .= '<button onclick="avideoModalIframeSmall(\'' . $global['webSiteRootURL'] . 'plugin/Live/test.php?statsURL=' . urlencode($value['stats_url']) . '\');" class="btn btn-primary btn-sm btn-xs btn-block"> ' . __('Test Server') . ' ' . $value['id'] . '</button>';
+            }
+        } else {
+            $btn .= '<button onclick="avideoModalIframeSmall(\'' . $global['webSiteRootURL'] . 'plugin/Live/test.php?statsURL=' . urlencode($obj->stats) . '\');" class="btn btn-primary btn-sm btn-xs btn-block"> ' . __('Test Stats') . '</button>';
+        }
+
+        return $btn;
     }
 
-    static function getStats($force_recreate=false) {
+    static function getStats($force_recreate = false) {
         global $getStatsLive, $_getStats, $getStatsObject;
-        if(!empty($force_recreate)){
-            unset($getStatsLive);
-            $_getStats = array();
-            $getStatsObject = array();
-        }
-        if (isset($getStatsLive)) {
-            return $getStatsLive;
+        if (empty($force_recreate)) {
+            if (isset($getStatsLive)) {
+                _error_log('Live::getStats: return cached result');
+                return $getStatsLive;
+            }
         }
         $obj = AVideoPlugin::getObjectData("Live");
         if (empty($obj->useLiveServers)) {
-            $getStatsLive = self::_getStats(0);
+            //_error_log('getStats getStats 1: ' . ($force_recreate?'force_recreate':'DO NOT force_recreate'));
+            $getStatsLive = self::_getStats(0, $force_recreate);
+            //_error_log('Live::getStats(0) 1');
             return $getStatsLive;
-        } else if (!empty(Live::getLiveServersIdRequest())) {
-            $ls = new Live_servers(Live::getLiveServersIdRequest());
-            if (!empty($ls->getPlayerServer())) {
-                $server = self::_getStats($ls->getId());
-                $server->live_servers_id = $ls->getId();
-                $server->playerServer = $ls->getPlayerServer();
-                $getStatsLive = $server;
-                return $server;
+        } else {
+            $rows = Live_servers::getAllActive();
+            foreach ($rows as $key => $value) {
+                $ls = new Live_servers(Live::getLiveServersIdRequest());
+                if (!empty($row['playerServer'])) {
+                    //_error_log('getStats getStats 2: ' . ($force_recreate?'force_recreate':'DO NOT force_recreate'));
+                    $server = self::_getStats($row['id'], $force_recreate);
+                    $server->live_servers_id = $row['id'];
+                    $server->playerServer = $row['playerServer'];
+                    $getStatsLive = $server;
+                    return $server;
+                }
             }
         }
         $ls = Live_servers::getAllActive();
         $liveServers = array();
         $getLiveServersIdRequest = self::getLiveServersIdRequest();
         foreach ($ls as $value) {
-            $server = Live_servers::getStatsFromId($value['id']);
+            $server = Live_servers::getStatsFromId($value['id'], $force_recreate);
             if (!empty($server) && is_object($server)) {
                 $server->live_servers_id = $value['id'];
                 $server->playerServer = $value['playerServer'];
+                $server->applications = object_to_array($server->applications);
                 foreach ($server->applications as $key => $app) {
-                    if(self::isAdaptive($app['key'])){
+                    if (self::isAdaptive($app['key'])) {
                         continue;
                     }
                     $_REQUEST['live_servers_id'] = $value['id'];
@@ -850,18 +1008,15 @@ class Live extends PluginAbstract {
                 _error_log("Live::getStats Live Server NOT found {$value['id']} " . json_encode($server) . " " . json_encode($value));
             }
         }
+        _error_log("Live::getStats return " . json_encode($liveServers));
         $_REQUEST['live_servers_id'] = $getLiveServersIdRequest;
         $getStatsLive = $liveServers;
         return $liveServers;
     }
-    
-    static function isAdaptive($key){
-        $parts = explode("_", $key);
-        if(!empty($parts[1])){
-            $adaptive = array('hi', 'low', 'mid');
-            if(in_array($parts[1], $adaptive)){
-                return true;
-            }
+
+    static function isAdaptive($key) {
+        if (preg_match('/_(hi|low|mid)$/i', $key)) {
+            return true;
         }
         return false;
     }
@@ -877,24 +1032,39 @@ class Live extends PluginAbstract {
 
     static function getAvailableLiveServer() {
         global $_getAvailableLiveServer;
-        if(isset($_getAvailableLiveServer)){
+        if (isset($_getAvailableLiveServer)) {
             return $_getAvailableLiveServer;
         }
-        // create 1 min cache
+// create 1 min cache
         $name = "Live::getAvailableLiveServer";
-        $return = ObjectYPT::getCache($name, 60);
+        $return = ObjectYPT::getCache($name, 60, true);
         if (empty($return)) {
             $obj = AVideoPlugin::getObjectData("Live");
             if (empty($obj->useLiveServers)) {
                 $return = false;
             } else {
-                $liveServers = self::getStats();
+                $stats = getStatsNotifications();
+                $liveServers = array();
+                $servers = Live_servers::getAllActive();
+                foreach ($servers as $value) {
+                    $obj = new stdClass();
+                    $obj->live_servers_id = $value['id'];
+                    $obj->countLiveStream = 0;
+                    $liveServers[$value['id']] = $obj;
+                }
+
+                foreach ($stats['applications'] as $value) {
+                    if (!empty($value['live_servers_id'])) {
+                        $liveServers[$value['live_servers_id']]->countLiveStream++;
+                    }
+                }
+
                 usort($liveServers, function($a, $b) {
                     if ($a->countLiveStream == $b->countLiveStream) {
                         $_getAvailableLiveServer = 0;
                         return 0;
                     }
-                    $_getAvailableLiveServer = ($a->countLiveStream < $b->countLiveStream) ? -1 : 1;;
+                    $_getAvailableLiveServer = ($a->countLiveStream < $b->countLiveStream) ? -1 : 1;
                     return $_getAvailableLiveServer;
                 });
                 if (empty($liveServers[0])) {
@@ -926,13 +1096,18 @@ class Live extends PluginAbstract {
         return $lt->isAPrivateLive();
     }
 
-    static function getTitleFromUsers_Id($users_id){
+    static function getTitleFromUsers_Id($users_id) {
         $lt = self::getLiveTransmitionObjectFromUsers_id($users_id);
         return $lt->getTitle();
     }
-    
+
     static function getLiveTransmitionObjectFromUsers_id($users_id) {
-        $key = self::getLiveKey($users_id);
+        $latest = LiveTransmitionHistory::getLatestFromUser($users_id);
+        if (!empty($latest)) {
+            $key = $latest['key'];
+        } else {
+            $key = self::getLiveKey($users_id);
+        }
         return self::getLiveTransmitionObjectFromKey($key);
     }
 
@@ -957,7 +1132,7 @@ class Live extends PluginAbstract {
         return $getLiveTransmitionObjectFromKey[$parts[0]];
     }
 
-    static function _getStats($live_servers_id = 0) {
+    static function _getStats($live_servers_id = 0, $force_recreate = false) {
         global $global, $_getStats;
         if (empty($_REQUEST['name'])) {
             //_error_log("Live::_getStats {$live_servers_id} GET " . json_encode($_GET));
@@ -965,9 +1140,18 @@ class Live extends PluginAbstract {
             //_error_log("Live::_getStats {$live_servers_id} REQUEST " . json_encode($_REQUEST));
             $_REQUEST['name'] = "undefined";
         }
-        if (!empty($_getStats[$live_servers_id][$_REQUEST['name']]) && is_object($_getStats[$live_servers_id][$_REQUEST['name']])) {
-            //_error_log("Live::_getStats cached result {$_REQUEST['name']} " . json_encode($_getStats[$live_servers_id][$_REQUEST['name']]));
-            return $_getStats[$live_servers_id][$_REQUEST['name']];
+        //_error_log('_getStats: ' . ($force_recreate?'force_recreate':'DO NOT force_recreate'));
+        $cacheName = "getStats" . DIRECTORY_SEPARATOR . "live_servers_id_{$live_servers_id}" . DIRECTORY_SEPARATOR . "{$_REQUEST['name']}_" . User::getId();
+        if (empty($force_recreate)) {
+            if (!empty($_getStats[$live_servers_id][$_REQUEST['name']]) && is_object($_getStats[$live_servers_id][$_REQUEST['name']])) {
+                _error_log("Live::_getStats cached result 1 {$_REQUEST['name']} ");
+                return $_getStats[$live_servers_id][$_REQUEST['name']];
+            }
+            $result = ObjectYPT::getCache($cacheName, maxLifetime() + 60, true);
+            if (!empty($result)) {
+                _error_log("Live::_getStats cached result 2 {$_REQUEST['name']} {$cacheName}");
+                return _json_decode($result);
+            }
         }
         session_write_close();
         $obj = new stdClass();
@@ -977,45 +1161,52 @@ class Live extends PluginAbstract {
         $obj->applications = array();
         $obj->hidden_applications = array();
         $obj->name = $_REQUEST['name'];
+        $_getStats[$live_servers_id][$_REQUEST['name']] = $obj;
         $liveUsersEnabled = AVideoPlugin::isEnabledByName("LiveUsers");
         $p = AVideoPlugin::loadPlugin("Live");
-        $xml = $p->getStatsObject($live_servers_id);
+        $xml = $p->getStatsObject($live_servers_id, $force_recreate);
         $xml = json_encode($xml);
-        $xml = json_decode($xml);
-
+        $xml = _json_decode($xml);
         $stream = false;
         $lifeStream = array();
-        //$obj->server = $xml->server;
-        if (!empty($xml->server->application) && !is_array($xml->server->application)) {
-            $application = $xml->server->application;
-            $xml->server->application = array();
-            $xml->server->application[] = $application;
-        }
-        foreach ($xml->server->application as $key => $application) {
-            if (!empty($application->live->stream)) {
-                if (empty($lifeStream)) {
-                    $lifeStream = array();
+        $applicationName = self::getApplicationName();
+        if (empty($xml) || !is_object($xml)) {
+            _error_log("_getStats XML is not an object live_servers_id=$live_servers_id");
+        } else {
+//$obj->server = $xml->server;
+            if (!empty($xml->server->application) && !is_array($xml->server->application)) {
+                $application = $xml->server->application;
+                $xml->server->application = array();
+                $xml->server->application[] = $application;
+            }
+            foreach ($xml->server->application as $key => $application) {
+                if ($application->name !== $applicationName && $application->name !== 'adaptive') {
+                    continue;
                 }
+                if (!empty($application->live->stream)) {
+                    if (empty($lifeStream)) {
+                        $lifeStream = array();
+                    }
 
-                $stream = $application->live->stream;
-                if (empty($application->live->stream->name) && !empty($application->live->stream[0]->name)) {
-                    foreach ($application->live->stream as $stream) {
-                        if(Live::isAdaptive($stream->name)){
+                    $stream = $application->live->stream;
+                    if (empty($application->live->stream->name) && !empty($application->live->stream[0]->name)) {
+                        foreach ($application->live->stream as $stream) {
+                            if (Live::isAdaptive($stream->name)) {
+                                continue;
+                            }
+                            $lifeStream[] = $stream;
+                        }
+                    } else {
+                        if (Live::isAdaptive($stream->name)) {
                             continue;
                         }
-                        $lifeStream[] = $stream;
+                        $lifeStream[] = $application->live->stream;
                     }
-                } else {
-                    if(Live::isAdaptive($stream->name)){
-                        continue;
-                    }
-                    $lifeStream[] = $application->live->stream;
                 }
             }
         }
-
         $obj->disableGif = $p->getDisableGifThumbs();
-        $obj->countLiveStream = count($lifeStream);
+
         foreach ($lifeStream as $value) {
             if (!empty($value->name)) {
                 $row = LiveTransmition::keyExists($value->name);
@@ -1038,19 +1229,19 @@ class Live extends PluginAbstract {
                     }
                 } else
                 if (empty($row) || empty($row['public'])) {
-                    $obj->hidden_applications[] = "{$row['channelName']} ($hiddenName} is set to not be listed";
+                    $obj->hidden_applications[] = "{$row['channelName']} ($hiddenName} " . __("is set to not be listed");
                     if (!User::isAdmin()) {
                         continue;
                     } else {
-                        $title .= " (set to not be listed)";
+                        $title .= __(" (set to not be listed)");
                     }
                 } else
                 if ($u->getStatus() !== 'a') {
-                    $obj->hidden_applications[] = "{$row['channelName']} {$hiddenName} the user is inactive";
+                    $obj->hidden_applications[] = "{$row['channelName']} {$hiddenName} " . __("the user is inactive");
                     if (!User::isAdmin()) {
                         continue;
                     } else {
-                        $title .= " (user is inactive)";
+                        $title .= __(" (user is inactive)");
                     }
                 }
 
@@ -1068,25 +1259,36 @@ class Live extends PluginAbstract {
                 $user = $u->getUser();
                 $channelName = $u->getChannelName();
                 $photo = $u->getPhotoDB();
-                $poster = $global['webSiteRootURL'] . $p->getPosterImage($row['users_id'], $live_servers_id);
 
-                $playlists_id_live = 0;
-                if (preg_match("/.*_([0-9]+)/", $value->name, $matches)) {
-                    if (!empty($matches[1])) {
-                        $_REQUEST['playlists_id_live'] = intval($matches[1]);
-                        $playlists_id_live = $_REQUEST['playlists_id_live'];
-                        $photo = PlayLists::getImage($_REQUEST['playlists_id_live']);
-                        $title = PlayLists::getNameOrSerieTitle($_REQUEST['playlists_id_live']);
-                    }
+//return array('key'=>$key, 'cleanKey'=>$cleanKey, 'live_index'=>$live_index, 'playlists_id_live'=>$playlists_id_live);
+                $parameters = self::getLiveParametersFromKey($value->name);
+                $playlists_id_live = $parameters['playlists_id_live'];
+                $live_index = $parameters['live_index'];
+                if (!empty($playlists_id_live)) {
+                    $_REQUEST['playlists_id_live'] = $playlists_id_live;
+                    $playlists_id_live = $_REQUEST['playlists_id_live'];
+                    $photo = PlayLists::getImage($_REQUEST['playlists_id_live']);
+                    $title = PlayLists::getNameOrSerieTitle($_REQUEST['playlists_id_live']);
+                }
+                $poster = $p->getLivePosterImage($row['users_id'], $live_servers_id, $playlists_id_live, $live_index);
+                if (!empty($live_index)) {
+                    $_REQUEST['live_index'] = $live_index;
                 }
 
-                $link = Live::getLinkToLiveFromChannelNameAndLiveServer($u->getChannelName(), $live_servers_id);
-                // this variable is to keep it compatible for Mobile app
+                if (!empty($live_index) || $live_index === 'false') {
+                    $title .= " ({$live_index})";
+                }
+
+// this variable is to keep it compatible for Mobile app
                 $UserPhoto = $photo;
                 $key = LiveTransmition::keyNameFix($value->name);
+                $link = Live::getLinkToLiveFromChannelNameAndLiveServer($u->getChannelName(), $live_servers_id, $live_index);
                 $m3u8 = self::getM3U8File($key);
                 $obj->applications[] = array(
-                    "key" => $key,
+                    "live_index" => $live_index,
+                    "live_cleanKey" => $parameters['cleanKey'],
+                    "key" => $value->name,
+                    "isAdaptive" => self::isAdaptive($value->name),
                     "isPrivate" => self::isAPrivateLiveFromLiveKey($value->name),
                     "users" => $users,
                     "name" => $userName,
@@ -1096,12 +1298,17 @@ class Live extends PluginAbstract {
                     "title" => $title,
                     'channelName' => $channelName,
                     'poster' => $poster,
+                    'imgGif' => $p->getLivePosterImage($row['users_id'], $live_servers_id, $playlists_id_live, $live_index, 'webp'),
                     'link' => addQueryStringParameter($link, 'embed', 1),
                     'href' => $link,
                     'playlists_id_live' => $playlists_id_live,
+                    'live_index' => $live_index,
                     'm3u8' => $m3u8,
                     'isURL200' => isURL200($m3u8),
-                    'users_id' => $row['users_id']
+                    'users_id' => $row['users_id'],
+                    'live_servers_id' => $live_servers_id,
+                    'categories_id' => intval($row['categories_id']),
+                    'className' => "live_{$live_servers_id}_{$value->name}"
                 );
                 if ($value->name === $obj->name) {
                     $obj->error = property_exists($value, 'publishing') ? false : true;
@@ -1112,16 +1319,93 @@ class Live extends PluginAbstract {
                 }
             }
         }
+
+        $obj->countLiveStream = count($obj->applications);
         $obj->error = false;
         $_getStats[$live_servers_id][$_REQUEST['name']] = $obj;
-        //_error_log("Live::_getStats NON cached result {$_REQUEST['name']} " . json_encode($obj));
+//_error_log("Live::_getStats NON cached result {$_REQUEST['name']} " . json_encode($obj));
+        ObjectYPT::setCache($cacheName, json_encode($obj));
         return $obj;
     }
 
-    static function getImage($users_id, $live_servers_id, $playlists_id_live = 0) {
+    static function getLiveParametersFromKey($key) {
+        $key = preg_replace('/[^a-z0-9_-]/i', '', $key);
+        $obj = AVideoPlugin::getObjectData('Live');
+        $playlists_id_live = false;
+        if (preg_match("/.*_([0-9]+)/", $key, $matches)) {
+            if (!empty($matches[1])) {
+                $playlists_id_live = intval($matches[1]);
+            }
+        }
+        $live_index = '';
+
+        if (preg_match("/.*-([0-9a-zA-Z]+)/", $key, $matches)) {
+            if (!empty($matches[1])) {
+                $live_index = strip_tags($matches[1]);
+                if ($live_index === 'false') {
+                    $live_index = '';
+                }
+            }
+        }
+        $cleanKey = self::cleanUpKey($key);
+        return array('key' => $key, 'cleanKey' => $cleanKey, 'live_index' => $live_index, 'playlists_id_live' => $playlists_id_live);
+    }
+
+    static function getLiveIndexFromKey($key) {
+        $parameters = self::getLiveParametersFromKey($key);
+        return $parameters['live_index'];
+    }
+
+    static function cleanUpKey($key) {
+        if ($adapKey = self::isAdaptiveTransmition($key)) {
+            $key = $adapKey;
+        }
+        if ($plKey = self::isPlayListTransmition($key)) {
+            $key = $plKey;
+        }
+        if ($subKey = self::isSubTransmition($key)) {
+            $key = $subKey;
+        }
+        return $key;
+    }
+
+    static function isAdaptiveTransmition($key) {
+// check if is a subtransmition
+        $parts = explode("_", $key);
+        if (!empty($parts[1])) {
+            $adaptive = array('hi', 'low', 'mid');
+            if (in_array($parts[1], $adaptive)) {
+                return $parts[0];
+                ;
+            }
+        }
+        return false;
+    }
+
+    static function isPlayListTransmition($key) {
+// check if is a subtransmition
+        $parts = explode("_", $key);
+        if (!empty($parts[1])) {
+            return $parts[0];
+        } else {
+            return false;
+        }
+    }
+
+    static function isSubTransmition($key) {
+// check if is a subtransmition
+        $parts = explode("-", $key);
+        if (!empty($parts[1])) {
+            return $parts[0];
+        } else {
+            return false;
+        }
+    }
+
+    static function getImage($users_id, $live_servers_id, $playlists_id_live = 0, $live_index = '') {
         $p = AVideoPlugin::loadPlugin("Live");
-        if (self::isLive($users_id)) {
-            $url = $p->getLivePosterImage($users_id, $live_servers_id);
+        if (self::isLive($users_id, $live_servers_id, $live_index)) {
+            $url = $p->getLivePosterImage($users_id, $live_servers_id, $playlists_id_live, $live_index);
             $url = addQueryStringParameter($url, "playlists_id_live", $playlists_id_live);
         } else {
             $url = self::getOfflineImage(false);
@@ -1129,48 +1413,181 @@ class Live extends PluginAbstract {
         return $url;
     }
 
-    static function isLive($users_id, $live_servers_id = 0, $force_recreate=false) {
-        if(empty($users_id)){
+    static function getLatestKeyFromUser($users_id) {
+        if (empty($users_id)) {
             return false;
         }
-        $key = self::getLiveKey($users_id);
-        return self::isLiveAndIsReadyFromKey($key, $live_servers_id, $force_recreate=false);
+        $latest = LiveTransmitionHistory::getLatestFromUser($users_id);
+        if (empty($latest)) {
+            return false;
+        }
+        return $latest['key'];
     }
-    
-    static function isLiveFromKey($key, $live_servers_id = 0, $force_recreate=false) {
-        if(empty($key)){
+
+    static function isLive($users_id, $live_servers_id = 0, $live_index = '', $force_recreate = false) {
+        global $_live_is_live;
+        if (empty($users_id)) {
             return false;
         }
+        if (!isset($_live_is_live)) {
+            $_live_is_live = array();
+        }
+        $name = "{$users_id}_{$live_servers_id}";
+        if (!empty($_live_is_live[$name])) {
+            return $_live_is_live[$name];
+        }
+        $lh = LiveTransmitionHistory::getActiveLiveFromUser($users_id, $live_servers_id, '');
+        if (empty($lh)) {
+            _error_log("Live::isLive we could not found any active livestream for user $users_id, $live_servers_id");
+            return false;
+        }
+        $key = $lh['key'];
+        $_live_is_live[$name] = self::isLiveAndIsReadyFromKey($key, $live_servers_id, $live_index, $force_recreate);
+        return $_live_is_live[$name];
+    }
+
+    static function isKeyLiveInStats($key, $live_servers_id = 0, $live_index = '', $force_recreate = false) {
+        global $_isLiveFromKey;
+        if (empty($key) || $key == '-1') {
+            _error_log('Live::isKeyLiveInStats key is empty');
+            return false;
+        }
+        $index = "$key, $live_servers_id,$live_index";
+        if (!isset($_isLiveFromKey)) {
+            $_isLiveFromKey = array();
+        }
+
+        if (empty($force_recreate) && isset($_isLiveFromKey[$index])) {
+            _error_log('Live::isKeyLiveInStats key is already set');
+            return $_isLiveFromKey[$index];
+        }
+
+        //_error_log('getStats execute getStats: ' . __LINE__ . ' ' . __FILE__);
+        //$json = getStatsNotifications($force_recreate);
+        //_error_log('getStats execute getStats: ' . ($force_recreate?'force_recreate':'DO NOT force_recreate'));
+
         $json = self::getStats($force_recreate);
-        if (!empty($json) && is_object($json) && !empty($json->applications)) {
-            foreach ($json->applications as $value) {
-                if (preg_match("/{$key}.*/", $value['key'])) {
-                    if (empty($live_servers_id)) {
-                        return true;
-                    } else {
-                        if (intval(@$value['live_servers_id']) == $live_servers_id) {
-                            return true;
+        $_isLiveFromKey[$index] = false;
+        if (!empty($json)) {
+            _error_log("Live::isLiveFromKey {$key} JSON was not empty");
+            if (!is_array($json)) {
+                $json = array($json);
+            }
+            foreach ($json as $item) {
+                $applications = array();
+                if (empty($item->applications) && is_array($item)) {
+                    $applications = $item;
+                } else if (is_object($item) && !empty($item->applications)) {
+                    $applications = $item->applications;
+                }
+
+                foreach ($applications as $value) {
+                    $value = object_to_array($value);
+                    if (!is_array($value) || empty($value) || empty($value['key'])) {
+                        continue;
+                    }
+                    if (preg_match("/{$key}.*/", $value['key'])) {
+                        if (empty($live_servers_id)) {
+                            $_isLiveFromKey[$index] = true;
+                            $_isLiveFromKey[$index] = $_isLiveFromKey[$index];
+                            break 2;
+                        } else {
+                            if (intval(@$value['live_servers_id']) == $live_servers_id) {
+                                $_isLiveFromKey[$index] = true;
+                                $_isLiveFromKey[$index] = $_isLiveFromKey[$index];
+                                break 2;
+                            }
+                        }
+                    }
+                }
+
+                if (!empty($item->hidden_applications)) {
+                    $applications = $item->hidden_applications;
+                    foreach ($applications as $value) {
+                        $value = object_to_array($value);
+                        if (!is_array($value) || empty($value) || empty($value['key'])) {
+                            continue;
+                        }
+                        if (preg_match("/{$key}.*/", $value['key'])) {
+                            if (empty($live_servers_id)) {
+                                $_isLiveFromKey[$index] = true;
+                                $_isLiveFromKey[$index] = $_isLiveFromKey[$index];
+                                break 2;
+                            } else {
+                                if (intval(@$value['live_servers_id']) == $live_servers_id) {
+                                    $_isLiveFromKey[$index] = true;
+                                    $_isLiveFromKey[$index] = $_isLiveFromKey[$index];
+                                    break 2;
+                                }
+                            }
                         }
                     }
                 }
             }
         }
-        return false;
+        if (empty($_isLiveFromKey[$index])) {
+            _error_log("Live::isLiveFromKey is NOT online [{$key}]");
+        } else {
+            _error_log("Live::isLiveFromKey is online [{$key}]");
+        }
+        return $_isLiveFromKey[$index];
     }
-    
-    static function isLiveAndIsReadyFromKey($key, $live_servers_id = 0, $force_recreate=false) {
-        $m3u8 = self::getM3U8File($key);
-        $isLiveFromKey = self::isLiveFromKey($key, $live_servers_id, $force_recreate);
-        $is200 = isURL200($m3u8);
-        _error_log("isLiveFromKey: {$isLiveFromKey}");
-        _error_log("m3u8: {$m3u8}");
-        _error_log("is200: {$is200}");
-        return  $isLiveFromKey && $is200;
+
+    static function isLiveAndIsReadyFromKey($key, $live_servers_id = 0, $live_index = '', $force_recreate = false) {
+        global $_isLiveAndIsReadyFromKey;
+
+        if (!isset($_isLiveAndIsReadyFromKey)) {
+            $_isLiveAndIsReadyFromKey = array();
+        }
+        $name = "getStats" . DIRECTORY_SEPARATOR . "isLiveAndIsReadyFromKey{$key}_{$live_servers_id}";
+        if (empty($force_recreate)) {
+            if (isset($_isLiveAndIsReadyFromKey[$name])) {
+                return $_isLiveAndIsReadyFromKey[$name];
+            }
+            $cache = ObjectYPT::getCache($name, 60, true);
+        }
+        if (!empty($cache)) {
+            $json = _json_decode($cache);
+        }
+
+        if (!empty($json) && is_object($json)) {
+            $_isLiveAndIsReadyFromKey[$name] = $json->result;
+        } else {
+            $json = new stdClass();
+            $key = self::getLiveKeyFromRequest($key, $live_index);
+            //_error_log('getStats execute isKeyLiveInStats: ' . __LINE__ . ' ' . __FILE__);
+            //_error_log("isLiveAndIsReadyFromKey::key: {$key}");
+            $isLiveFromKey = self::isKeyLiveInStats($key, $live_servers_id, $live_index, $force_recreate);
+            $_isLiveAndIsReadyFromKey[$name] = true;
+            if (empty($isLiveFromKey)) {
+                _error_log("isLiveAndIsReadyFromKey the key {$key} is not present on the stats");
+                $_isLiveAndIsReadyFromKey[$name] = false;
+            } else {
+                $ls = $_REQUEST['live_servers_id'];
+                $_REQUEST['live_servers_id'] = $live_servers_id;
+                $m3u8 = self::getM3U8File($key);
+                $_REQUEST['live_servers_id'] = $ls;
+                //_error_log('getStats execute isURL200: ' . __LINE__ . ' ' . __FILE__);
+                $is200 = isURL200($m3u8, $force_recreate);
+                if (empty($is200)) {
+                    _error_log("isLiveAndIsReadyFromKey the m3u8 file is not present {$m3u8}");
+                    $_isLiveAndIsReadyFromKey[$name] = false;
+                }
+            }
+            $json->result = $_isLiveAndIsReadyFromKey[$name];
+            ObjectYPT::setCache($name, json_encode($json));
+        }
+
+        return $_isLiveAndIsReadyFromKey[$name];
     }
 
     static function getOnlineLivesFromUser($users_id) {
         $key = self::getLiveKey($users_id);
-        $json = self::getStats();
+        return self::getOnlineLivesFromKey($key);
+    }
+
+    static function getOnlineLivesFromKey($key) {
+        $json = getStatsNotifications();
         $lives = array();
         if (!empty($json) && is_object($json) && !empty($json->applications)) {
             foreach ($json->applications as $value) {
@@ -1196,37 +1613,77 @@ class Live extends PluginAbstract {
         return $lt->getKey();
     }
 
-    public function getImageGif($users_id, $live_servers_id = 0, $playlists_id_live = 0) {
+    static function getLiveKeyFromUser($users_id, $live_index = '', $playlists_id_live = '') {
+        $key = self::getLiveKey($users_id);
+        return self::getLiveKeyFromRequest($key, $live_index, $playlists_id_live);
+    }
+
+    static function getLiveKeyFromRequest($key, $live_index = '', $playlists_id_live = '') {
+        if (strpos($key, '-') === false) {
+            if (!empty($live_index)) {
+                $key .= '-' . preg_replace('/[^0-9a-z]/i', '', $live_index);
+            } else
+            if (!empty($_REQUEST['live_index'])) {
+                $key .= '-' . preg_replace('/[^0-9a-z]/i', '', $_REQUEST['live_index']);
+            }
+        }
+        if (strpos($key, '_') === false) {
+            if (!empty($playlists_id_live)) {
+                $key .= '_' . preg_replace('/[^0-9]/', '', $_REQUEST['playlists_id_live']);
+            } else if (!empty($_REQUEST['playlists_id_live'])) {
+                $key .= '_' . preg_replace('/[^0-9]/', '', $_REQUEST['playlists_id_live']);
+            }
+        }
+        return $key;
+    }
+
+    public function getImageGif($users_id, $live_servers_id = 0, $playlists_id_live = 0, $live_index = '') {
         global $global;
         if (empty($live_servers_id)) {
             $live_servers_id = self::getCurrentLiveServersId();
         }
+        if ($live_index === 'false') {
+            $live_index = '';
+        }
         $u = new User($users_id);
         $username = $u->getUser();
-        $file = "plugin/Live/getImage.php?live_servers_id={$live_servers_id}&u={$username}&format=gif";
+        $file = "plugin/Live/getImage.php";
         $url = $global['webSiteRootURL'] . $file;
+        $url = addQueryStringParameter($url, "live_servers_id", $live_servers_id);
         $url = addQueryStringParameter($url, "playlists_id_live", $playlists_id_live);
+        $url = addQueryStringParameter($url, "live_index", $live_index);
+        $url = addQueryStringParameter($url, "u", $username);
+        $url = addQueryStringParameter($url, "format", 'gif');
         return $url;
     }
 
-    public static function  getPosterImage($users_id, $live_servers_id) {
+    public static function getPosterImage($users_id, $live_servers_id) {
         global $global;
         $file = self::_getPosterImage($users_id, $live_servers_id);
 
         if (!file_exists($global['systemRootPath'] . $file)) {
-            $file = "plugin/Live/view/OnAir.jpg";
+            $file = self::getOnAirImage(false);
         }
 
         return $file;
     }
 
-    public function getLivePosterImage($users_id, $live_servers_id = 0) {
-        global $global;
+    public static function getPosterImageOrFalse($users_id, $live_servers_id) {
+        $poster = self::getPosterImage($users_id, $live_servers_id);
+        if (preg_match('/OnAir.jpg$/', $poster)) {
+            return false;
+        }
 
-        return $global['webSiteRootURL'] . self::getLivePosterImageRelativePath($users_id, $live_servers_id);
+        return $poster;
     }
 
-    public function getLivePosterImageRelativePath($users_id, $live_servers_id = 0) {
+    public function getLivePosterImage($users_id, $live_servers_id = 0, $playlists_id_live = 0, $live_index = '', $format = 'jpg') {
+        global $global;
+
+        return $global['webSiteRootURL'] . self::getLivePosterImageRelativePath($users_id, $live_servers_id, $playlists_id_live, $live_index, $format);
+    }
+
+    public function getLivePosterImageRelativePath($users_id, $live_servers_id = 0, $playlists_id_live = 0, $live_index = '', $format = 'jpg') {
         global $global;
         if (empty($live_servers_id)) {
             $live_servers_id = self::getCurrentLiveServersId();
@@ -1235,12 +1692,12 @@ class Live extends PluginAbstract {
             $file = self::_getPosterImage($users_id, $live_servers_id);
 
             if (!file_exists($global['systemRootPath'] . $file)) {
-                $file = "plugin/Live/view/OnAir.jpg";
+                $file = self::getOnAirImage(false);
             }
         } else {
             $u = new User($users_id);
             $username = $u->getUser();
-            $file = "plugin/Live/getImage.php?live_servers_id={$live_servers_id}&u={$username}&format=jpg";
+            $file = "plugin/Live/getImage.php?live_servers_id={$live_servers_id}&playlists_id_live={$playlists_id_live}&live_index={$live_index}&u={$username}&format={$format}";
         }
 
         return $file;
@@ -1254,15 +1711,48 @@ class Live extends PluginAbstract {
         return false;
     }
 
-    public function getPosterThumbsImage($users_id, $live_servers_id) {
+    public static function getPosterThumbsImage($users_id, $live_servers_id) {
         global $global;
         $file = self::_getPosterThumbsImage($users_id, $live_servers_id);
-        
+
         if (!file_exists($global['systemRootPath'] . $file)) {
             $file = self::getOnAirImage(false);
         }
 
         return $file;
+    }
+
+    public static function getPoster($users_id, $live_servers_id, $key = '') {
+        _error_log("getPoster($users_id, $live_servers_id, $key)");
+        $lh = LiveTransmitionHistory::getActiveLiveFromUser($users_id, $live_servers_id, $key);
+        $live_index = self::getLiveIndexFromKey($lh['key']);
+        $poster = self::getPosterImageOrFalse($users_id, $live_servers_id, $live_index);
+        if (empty($poster)) {
+            $poster = self::getOfflineImage(false);
+        }
+        if (empty($lh)) {
+            _error_log("getPoster empty activity");
+            return $poster;
+        }
+        $parameters = self::getLiveParametersFromKey($lh['key']);
+        $live_index = $parameters['live_index'];
+        $playlists_id_live = $parameters['playlists_id_live'];
+        if (self::isLiveAndIsReadyFromKey($lh['key'], $lh['live_servers_id'])) {
+            return self::getLivePosterImageRelativePath($users_id, $live_servers_id, $playlists_id_live, $live_index);
+            _error_log('getImage: ' . ("[{$lh['key']}, {$lh['live_servers_id']}]") . ' is live and ready');
+        } else {
+            if (self::isKeyLiveInStats($lh['key'], $lh['live_servers_id'])) {
+                _error_log('getImage: ' . ("[{$lh['key']}, {$lh['live_servers_id']}]") . ' key is in the stats');
+                return self::getPosterImage($users_id, $live_servers_id, $live_index);
+            } else {
+                _error_log('getImage: ' . ("[{$lh['key']}, {$lh['live_servers_id']}]") . ' key is NOT in the stats');
+                return $poster;
+            }
+        }
+    }
+
+    public static function getPosterFromKey($key, $live_servers_id, $live_index = '') {
+        $key = self::getLatestKeyFromUser($users_id);
     }
 
     static function getOfflineImage($includeURL = true) {
@@ -1288,7 +1778,7 @@ class Live extends PluginAbstract {
         return $file;
     }
 
-    public function _getPosterThumbsImage($users_id, $live_servers_id) {
+    public static function _getPosterThumbsImage($users_id, $live_servers_id) {
         $file = "videos/userPhoto/Live/user_{$users_id}_thumbs_{$live_servers_id}.jpg";
         return $file;
     }
@@ -1298,6 +1788,42 @@ class Live extends PluginAbstract {
         if (empty($obj->disableRestream)) {
             self::restream($liveTransmitionHistory_id);
         }
+        $lt = new LiveTransmitionHistory($liveTransmitionHistory_id);
+
+        AVideoPlugin::onLiveStream($lt->getUsers_id(), $lt->getLive_servers_id());
+    }
+
+    public static function deleteStatsCache($clearFirstPage = false) {
+        global $getStatsLive, $_getStats, $getStatsObject, $_getStatsNotifications, $__getAVideoCache, $_isLiveFromKey, $_isLiveAndIsReadyFromKey;
+
+        _error_log_debug("Live::deleteStatsCache");
+        $tmpDir = ObjectYPT::getCacheDir();
+        $cacheDir = $tmpDir . "getstats" . DIRECTORY_SEPARATOR;
+        if (isset($live_servers_id)) {
+            $cacheDir .= "live_servers_id_{$live_servers_id}";
+            $pattern = "/.getStats.{$live_servers_id}.*/i";
+            ObjectYPT::deleteCachePattern($pattern);
+        }
+//_error_log("Live::deleteStatsCache [{$cacheDir}]");
+        rrmdir($cacheDir);
+        exec('rm -R ' . $cacheDir);
+        if (is_dir($cacheDir)) {
+//_error_log("Live::deleteStatsCache [{$cacheDir}] looks like the cache was not deleted", AVideoLog::$ERROR);
+            exec('rm -R ' . $cacheDir);
+        } else {
+//_error_log("Live::deleteStatsCache [{$cacheDir}] Success");
+        }
+        if ($clearFirstPage) {
+            clearCache(true);
+        }
+        isURL200Clear();
+        unset($__getAVideoCache);
+        unset($getStatsLive);
+        unset($getStatsObject);
+        unset($_getStats);
+        unset($_getStatsNotifications);
+        unset($_isLiveFromKey);
+        unset($_isLiveAndIsReadyFromKey);
     }
 
     public static function getRestreamObject($liveTransmitionHistory_id) {
@@ -1334,9 +1860,9 @@ class Live extends PluginAbstract {
             }
             $data_string = json_encode($obj);
             _error_log("Live:restream ({$obj->restreamerURL}) {$data_string}");
-            //open connection
+//open connection
             $ch = curl_init();
-            //set the url, number of POST vars, POST data
+//set the url, number of POST vars, POST data
             curl_setopt($ch, CURLOPT_URL, $obj->restreamerURL);
             curl_setopt($ch, CURLOPT_POST, 1);
             curl_setopt($ch, CURLOPT_POSTFIELDS, $data_string);
@@ -1350,7 +1876,7 @@ class Live extends PluginAbstract {
             );
             $output = curl_exec($ch);
             curl_close($ch);
-            return json_decode($output);
+            return _json_decode($output);
         } catch (Exception $exc) {
             _error_log("Live:restream " . $exc->getTraceAsString());
         }
@@ -1387,7 +1913,7 @@ class Live extends PluginAbstract {
             return '';
         }
         $buttonTitle = $this->getButtonTitle();
-        //include $global['systemRootPath'] . 'plugin/Live/getUploadMenuButton.php';
+//include $global['systemRootPath'] . 'plugin/Live/getUploadMenuButton.php';
     }
 
     public static function getAllVideos($status = "", $showOnlyLoggedUserVideos = false, $activeUsersOnly = true) {
@@ -1445,7 +1971,7 @@ class Live extends PluginAbstract {
             if (!empty($_GET['limitOnceToOne'])) {
                 $sql .= " LIMIT 1";
                 unset($_GET['limitOnceToOne']);
-            }else{
+            } else {
                 $_REQUEST['rowCount'] = getRowCount();
                 if (!empty($_REQUEST['rowCount'])) {
                     $sql .= " LIMIT {$_REQUEST['rowCount']}";
@@ -1461,8 +1987,8 @@ class Live extends PluginAbstract {
             }
         }
 
-        //echo $sql;exit;
-        //_error_log("getAllVideos($status, $showOnlyLoggedUserVideos , $ignoreGroup , ". json_encode($videosArrayId).")" . $sql);
+//echo $sql;exit;
+//_error_log("getAllVideos($status, $showOnlyLoggedUserVideos , $ignoreGroup , ". json_encode($videosArrayId).")" . $sql);
         $res = sqlDAL::readSql($sql);
         $fullData = sqlDAL::fetchAllAssoc($res);
 
@@ -1478,7 +2004,7 @@ class Live extends PluginAbstract {
                     $otherInfo = array();
                     $otherInfo['category'] = xss_esc_back($row['category']);
                     $otherInfo['groups'] = UserGroups::getVideoGroups($row['id']);
-                    //$otherInfo['title'] = UTF8encode($row['title']);
+//$otherInfo['title'] = UTF8encode($row['title']);
                     $otherInfo['description'] = UTF8encode($row['description']);
                     $otherInfo['descriptionHTML'] = Video::htmlDescription($otherInfo['description']);
                     $otherInfo['filesize'] = 0;
@@ -1498,12 +2024,293 @@ class Live extends PluginAbstract {
 
                 $videos[] = $row;
             }
-            //$videos = $res->fetch_all(MYSQLI_ASSOC);
+//$videos = $res->fetch_all(MYSQLI_ASSOC);
         } else {
             $videos = false;
             die($sql . '\nError : (' . $global['mysqli']->errno . ') ' . $global['mysqli']->error);
         }
         return $videos;
+    }
+
+    static function finishLive($key) {
+        $lh = LiveTransmitionHistory::finish($key);
+    }
+
+    static function updateVideosUserGroup($videos_id, $key) {
+        $lt = LiveTransmition::keyExists($key);
+        if (!empty($lt)) {
+            $lt = new LiveTransmition($lt['id']);
+            $groups = $lt->getGroups();
+            if (!empty($groups)) {
+                UserGroups::updateVideoGroups($videos_id, $groups);
+            }
+        }
+    }
+
+    static function notifySocketStats($callBack = 'socketLiveONCallback', $array = array()) {
+        if (empty($array['stats'])) {
+            $array['stats'] = getStatsNotifications();
+        }
+        _error_log("NGINX Live::on_publish_socket_notification sendSocketMessageToAll Start");
+        $socketObj = sendSocketMessageToAll($array, $callBack);
+        _error_log("NGINX Live::on_publish_socket_notification SocketMessageToAll END");
+        return $socketObj;
+    }
+
+    static public function getImageType($content) {
+        global $global;
+        if (empty($content)) {
+            return LiveImageType::$UNKNOWN;
+        }
+        $contentLen = strlen($content);
+        if ($contentLen < 255) {
+// check if it is a file
+            if (file_exists($content)) {
+                $contentLen = strlen(file_get_contents($content));
+            }
+        }
+        if ($contentLen >= 2095335 && $contentLen <= 2095350) {
+            return LiveImageType::$DEFAULTGIF;
+        }
+        if ($contentLen >= 70805 && $contentLen <= 70810) {
+            return LiveImageType::$ONAIRENCODER;
+        }
+        $filesize = file_get_contents($global['systemRootPath'] . self::getOnAirImage(false));
+        if ($contentLen === $filesize) {
+            return LiveImageType::$ONAIR;
+        }
+        $filesize = file_get_contents($global['systemRootPath'] . self::getOfflineImage(false));
+        if ($contentLen === $filesize) {
+            return LiveImageType::$OFFLINE;
+        }
+//_error_log('getImageType: is not defined yet ('.$contentLen.')');
+        return LiveImageType::$LIVE;
+    }
+
+    static function isLiveImage($content) {
+        return self::getImageType($content) === LiveImageType::$LIVE;
+    }
+
+    static function isDefaultImage($content) {
+        $type = self::getImageType($content);
+        return $type === LiveImageType::$ONAIRENCODER || $type === LiveImageType::$ONAIR || $type === LiveImageType::$OFFLINE || $type === LiveImageType::$DEFAULTGIF;
+    }
+
+    function iskeyOnline($key) {
+        $stats = getStatsNotifications();
+        foreach ($stats["applications"] as $value) {
+            if (empty($value['key'])) {
+                continue;
+            }
+            if (preg_match('/' . $key . '/', $value['key'])) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    static function getValidNotOnlineLiveIndex($key, $live_index) {
+        if (empty($live_index)) {
+            return 1;
+        }
+        if (!Live::iskeyOnline("{$key}-{$live_index}")) {
+            return $live_index;
+        } else {
+            if (is_numeric($live_index)) {
+                return self::getValidNotOnlineLiveIndex($key, ++$live_index);
+            } else {
+                return self::getValidNotOnlineLiveIndex($key, $live_index . 'New');
+            }
+        }
+    }
+
+    static function getLatestValidNotOnlineLiveIndex($key) {
+        $live_index = LiveTransmitionHistory::getLatestIndexFromKey($key);
+        $live_index = self::getValidNotOnlineLiveIndex($key, $live_index);
+        return $live_index;
+    }
+
+    static function getLivesOnlineFromKey($key) {
+        global $_getLivesOnlineFromKey;
+        if(!isset($_getLivesOnlineFromKey)){
+            $_getLivesOnlineFromKey = array();
+        }
+        if(!isset($_getLivesOnlineFromKey[$key])){
+            $stats = getStatsNotifications();
+            $_getLivesOnlineFromKey[$key] = array();
+            foreach ($stats["applications"] as $value) {
+                if (empty($value['key'])) {
+                    continue;
+                }
+                if (preg_match('/' . $key . '/', $value['key'])) {
+                    $_getLivesOnlineFromKey[$key][] = $value;
+                }
+            }
+        }
+        return $_getLivesOnlineFromKey[$key];
+    }
+    
+    static function getFirstLiveOnlineFromKey($key) {
+        $onliveApplications = self::getLivesOnlineFromKey($key);
+        if(!empty($onliveApplications[0])){
+            return $onliveApplications[0];
+        }
+        return false;
+    }
+}
+
+class LiveImageType {
+
+    static $UNKNOWN = 'unknown';
+    static $OFFLINE = 'offline';
+    static $ONAIR = 'onair';
+    static $ONAIRENCODER = 'onair_encoder';
+    static $DEFAULTGIF = 'defaultgif';
+    static $LIVE = 'live';
+
+}
+
+class LiveStreamObject {
+
+    private $key, $live_servers_id, $live_index, $playlists_id_live;
+
+    function __construct($key, $live_servers_id = 0, $live_index = 0, $playlists_id_live = 0) {
+        $this->key = $key;
+        $this->live_servers_id = intval($live_servers_id);
+        $this->live_index = $live_index;
+        $this->playlists_id_live = intval($playlists_id_live);
+        $parts = Live::getLiveParametersFromKey($this->key);
+        $objLive = AVideoPlugin::getDataObject("Live");
+        if (empty($live_servers_id) && !empty($objLive->useLiveServers)) {
+            $live_servers_id = Live::getLiveServersIdRequest();
+        }
+        if (empty($this->live_index)) {
+            // check if the index is on the key already
+            if (!empty($parts['live_index'])) {
+                $this->live_index = $parts['live_index'];
+            } else if (!empty($_REQUEST['live_index'])) {
+                $this->live_index = $_REQUEST['live_index'];
+            }
+        }
+        $this->key = $parts['cleanKey'];
+        $this->live_index = preg_replace('/[^0-9a-z]/i', '', $this->live_index);
+    }
+
+    function getKey() {
+        return $this->key;
+    }
+
+    function getKeyWithIndex($forceIndexIfEnabled = false, $allowOnlineIndex = false) {
+        if ($forceIndexIfEnabled) {
+            $objLive = AVideoPlugin::getDataObject("Live");
+            if (!empty($objLive->allowMultipleLivesPerUser)) {
+                if (empty($allowOnlineIndex)) {
+                    $this->live_index = Live::getLatestValidNotOnlineLiveIndex($this->key);
+                } else {
+                    $this->live_index = LiveTransmitionHistory::getLatestIndexFromKey($this->key);
+                }
+            }
+        }
+        return Live::getLiveKeyFromRequest($this->key, $this->live_index, $this->playlists_id_live);
+    }
+
+    function getLive_servers_id() {
+        return $this->live_servers_id;
+    }
+
+    function getLive_index() {
+        return $this->live_index;
+    }
+
+    function getPlaylists_id_live() {
+        return $this->playlists_id_live;
+    }
+
+    function getURL() {
+        global $global;
+        $lt = LiveTransmition::getFromKey($this->key);
+        if (empty($lt)) {
+            return false;
+        }
+        $user = new User($lt['users_id']);
+        $channelName = $user->getChannelName();
+        if (empty($channelName)) {
+            return false;
+        }
+
+        $url = "{$global['webSiteRootURL']}live/{$this->live_servers_id}/" . urlencode($channelName);
+
+        if (!empty($this->live_index)) {
+            $url .= '/' . urlencode($this->live_index);
+        }
+
+        if (!empty($this->playlists_id_live)) {
+            $url = addQueryStringParameter($url, 'playlists_id_live', $this->playlists_id_live);
+        }
+
+        return $url;
+    }
+
+    function getURLEmbed() {
+        $url = $this->getURL();
+        return addQueryStringParameter($url, 'embed', 1);
+    }
+
+    function getM3U8($doNotProtect = false, $allowOnlineIndex = false) {
+        global $global;
+        $o = AVideoPlugin::getObjectData("Live");
+        $playerServer = Live::getPlayerServer();
+        if (!empty($this->live_servers_id)) {
+            $liveServer = new Live_servers($this->live_servers_id);
+            if ($liveServer->getStats_url()) {
+                $o->protectLive = $liveServer->getProtectLive();
+                $o->useAadaptiveMode = $liveServer->getUseAadaptiveMode();
+            }
+        }
+
+        $uuid = $this->getKeyWithIndex(false, $allowOnlineIndex);
+        $playerServer = addLastSlash($playerServer);
+        if ($o->protectLive && empty($doNotProtect)) {
+            return "{$global['webSiteRootURL']}plugin/Live/m3u8.php?live_servers_id={$this->live_servers_id}&uuid=" . encryptString($uuid);
+        } else if ($o->useAadaptiveMode) {
+            return $playerServer . "{$uuid}.m3u8";
+        } else {
+            return $playerServer . "{$uuid}/index.m3u8";
+        }
+    }
+    
+    function getOnlineM3U8($users_id, $doNotProtect = false) {
+        $li = $this->live_index;
+        if(empty($this->live_index)){            
+            $online = Live::getFirstLiveOnlineFromKey($this->key);
+            if(!empty($online)){
+                $parameters = Live::getLiveParametersFromKey($online['key']);
+                //var_dump($parameters, $this->live_index, $li, $online);exit;
+            }else{
+                $key = Live::getLatestKeyFromUser($users_id);
+                $parameters = Live::getLiveParametersFromKey($key);
+            }
+            $this->live_index = $parameters['live_index'];
+        }
+        $m3u8 = $this->getM3U8($doNotProtect, true);
+        $this->live_index = $li;
+        return $m3u8;
+    }
+
+    function getRTMPLink() {
+        return $this->getRTMPLinkWithOutKey() . $this->getKeyWithIndex(true);
+    }
+
+    function getRTMPLinkWithOutKey() {
+        $lt = LiveTransmition::getFromKey($this->key);
+        $user = new User($lt['users_id']);
+
+        $obj = new stdClass();
+        $obj->users_id = $lt['users_id'];
+        $obj->key = $this->key;
+        $encrypt = encryptString($obj);
+
+        return Live::getServer() . "?e={$encrypt}/";
     }
 
 }

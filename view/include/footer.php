@@ -1,6 +1,7 @@
 <?php
 $footerjs = "";
-if (thereIsAnyUpdate()) {
+$fileUpdates = thereIsAnyUpdate();
+if (!empty($fileUpdates)) {
     $footerjs .= "$.toast({
     heading: 'Update required',
     text: '<a href=\"" . $global['webSiteRootURL'] . "update\">" . __('You have a new version to install') . "</a>',
@@ -8,19 +9,8 @@ if (thereIsAnyUpdate()) {
     icon: 'error',
     hideAfter: 20000
 });";
+    //$footerjs .= 'var filesToUpdate='.json_encode($fileUpdates).';';
 }
-/*
-if ($version = thereIsAnyRemoteUpdate()) {
-    $footerjs .= "$.toast({
-    heading: 'Update available',
-    text: '<a href=\"" . $global['webSiteRootURL'] . "update\">" . __('Our repository is now running at version') . " " . $version->version . "</a>',
-    showHideTransition: 'plain',
-    icon: 'warning',
-    hideAfter: 20000
-});";
-}
- * 
- */
 if (empty($advancedCustom)) {
     $advancedCustom = AVideoPlugin::getObjectData("CustomizeAdvanced");
 }
@@ -58,10 +48,9 @@ showAlertMessage();
 ?>
     });
 </script>
-<!-- <script src="<?php echo $global['webSiteRootURL']; ?>bootstrap/js/bootstrap.min.js" type="text/javascript"></script> -->
-<script src="<?php echo $global['webSiteRootURL']; ?>view/js/jquery.lazy/jquery.lazy.min.js" type="text/javascript"></script>
-<script src="<?php echo $global['webSiteRootURL']; ?>view/js/jquery.lazy/jquery.lazy.plugins.min.js" type="text/javascript"></script>
-<script src="<?php echo $global['webSiteRootURL']; ?>view/js/script.js?<?php echo filectime("{$global['systemRootPath']}view/js/script.js"); ?>" type="text/javascript"></script>
+<script src="<?php echo getCDN(); ?>view/js/jquery.lazy/jquery.lazy.min.js" type="text/javascript"></script>
+<script src="<?php echo getCDN(); ?>view/js/jquery.lazy/jquery.lazy.plugins.min.js" type="text/javascript"></script>
+<script src="<?php echo getCDN(); ?>view/js/script.js?<?php echo filectime("{$global['systemRootPath']}view/js/script.js"); ?>" type="text/javascript"></script>
 <?php
 $jsFiles = array();
 //$jsFiles[] = "view/js/jquery.lazy/jquery.lazy.min.js";
@@ -80,19 +69,7 @@ $jsFiles[] = "view/js/webui-popover/jquery.webui-popover.min.js";
 $jsFiles[] = "view/js/bootstrap-list-filter/bootstrap-list-filter.min.js";
 $jsFiles[] = "view/js/js-cookie/js.cookie.js";
 $jsFiles[] = "view/js/jquery-toast/jquery.toast.min.js";
-if (!empty($video['type'])) {
-
-    $waveSurferEnabled = AVideoPlugin::getObjectDataIfEnabled("CustomizeAdvanced");
-    if ($waveSurferEnabled == false) {
-        $waveSurferEnabled = true;
-    } else {
-        $waveSurferEnabled = $waveSurferEnabled->EnableWavesurfer;
-    }
-    if ((($video['type'] == "audio") || ($video['type'] == "linkAudio")) && ($waveSurferEnabled)) {
-        $jsFiles[] = "view/js/videojs-wavesurfer/wavesurfer.min.js";
-        $jsFiles[] = "view/js/videojs-wavesurfer/dist/videojs.wavesurfer.min.js";
-    }
-}
+$jsFiles[] = "view/bootstrap/jquery-bootstrap-scrolling-tabs/jquery.scrolling-tabs.min.js";
 $jsFiles = array_merge($jsFiles, AVideoPlugin::getJSFiles());
 $jsURL = combineFiles($jsFiles, "js");
 ?>
@@ -112,16 +89,6 @@ if (!empty($advancedCustom->footerHTMLCode->value)) {
     echo $advancedCustom->footerHTMLCode->value;
 }
 ?>
-<textarea id="elementToCopy" style="
-          filter: alpha(opacity=0);
-          -moz-opacity: 0;
-          -khtml-opacity: 0;
-          opacity: 0;
-          position: absolute;
-          z-index: -9999;
-          top: 0;
-          left: 0;
-          pointer-events: none;"></textarea>
 <script>
     var checkFooterTimout;
     $(function () {
@@ -170,12 +137,18 @@ if (!empty($advancedCustom->footerHTMLCode->value)) {
 </script>
 <!--
 <?php
+/*
 if (User::isAdmin() && !empty($getCachesProcessed) && is_array($getCachesProcessed)) {
     arsort($getCachesProcessed);
     echo "Total cached methods " . PHP_EOL;
     foreach ($getCachesProcessed as $key => $value) {
         echo "$key => $value" . PHP_EOL;
     }
+}
+ * 
+ */
+if(!empty($config) && is_object($config)){
+    echo PHP_EOL.'v:'.$config->getVersion().PHP_EOL;
 }
 ?>
 -->

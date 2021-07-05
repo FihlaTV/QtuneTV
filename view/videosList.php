@@ -102,7 +102,7 @@ if (empty($video['id'])) {
 <div class="col-md-4 col-sm-12" style="position: relative; z-index: 2;">
     <select class="form-control" id="rowCount">
         <?php
-        $jsonArray = json_decode($advancedCustom->videosListRowCount);
+        $jsonArray = _json_decode($advancedCustom->videosListRowCount);
         foreach ($jsonArray as $item) {
             if ($item == -1) {
                 ?>
@@ -147,9 +147,9 @@ foreach ($videos as $key => $value) {
             if (!is_object($images)) {
                 $images = new stdClass();
                 $images->thumbsGif = "";
-                $images->poster = "{$global['webSiteRootURL']}view/img/notfound.jpg";
-                $images->thumbsJpg = "{$global['webSiteRootURL']}view/img/notfoundThumbs.jpg";
-                $images->thumbsJpgSmall = "{$global['webSiteRootURL']}view/img/notfoundThumbsSmall.jpg";
+                $images->poster = "".getCDN()."view/img/notfound.jpg";
+                $images->thumbsJpg = "".getCDN()."view/img/notfoundThumbs.jpg";
+                $images->thumbsJpgSmall = "".getCDN()."view/img/notfoundThumbsSmall.jpg";
             }
 
             $imgGif = $images->thumbsGif;
@@ -171,7 +171,7 @@ foreach ($videos as $key => $value) {
                     <?php
                     if (!empty($imgGif)) {
                         ?>
-                        <img src="<?php echo $global['webSiteRootURL']; ?>view/img/loading-gif.png" data-src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $value['title']; ?>" id="thumbsGIF<?php echo $value['id']; ?>" class="thumbsGIF img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $value['rotation']; ?>" height="130" />
+                        <img src="<?php echo getCDN(); ?>view/img/loading-gif.png" data-src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $value['title']; ?>" id="thumbsGIF<?php echo $value['id']; ?>" class="thumbsGIF img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $value['rotation']; ?>" height="130" />
                     <?php } ?>
 
                 </a>
@@ -228,7 +228,7 @@ foreach ($videos as $key => $value) {
                 <div class="pull-left" style="display: inline-table;">
                     <a class="label label-default" href="<?php echo $global['webSiteRootURL']; ?>cat/<?php echo $value['clean_category']; ?>">
                         <span class="<?php echo $value['iconClass']; ?>"></span>
-                        <span class="hidden-sm"><?php echo $value['category']; ?></span>
+                        <span class="hidden-sm hidden-xs"><?php echo $value['category']; ?></span>
                     </a>
                     <?php
                     if (!empty($objGallery->showTags)) {
@@ -392,5 +392,5 @@ if (!empty($videoName) && !empty($video['id'])) {
                             });
 </script>
 <?php
-include $global['systemRootPath'] . 'objects/include_end.php';
+//include $global['systemRootPath'] . 'objects/include_end.php';
 ?>

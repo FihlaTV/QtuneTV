@@ -39,7 +39,7 @@ $metaDescription = __("Trending");
     <head>
         <title><?php echo __("Trending") . getSEOComplement() . $config->getPageTitleSeparator() . $config->getWebSiteTitle(); ?></title>
         <?php include $global['systemRootPath'] . 'view/include/head.php'; ?>
-        <link href="<?php echo $global['webSiteRootURL']; ?>plugin/Gallery/style.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>plugin/Gallery/style.css" rel="stylesheet" type="text/css"/>
     </head>
 
     <body class="<?php echo $global['bodyClass']; ?>">
@@ -65,7 +65,7 @@ $metaDescription = __("Trending");
                                 <?php
                                 if (!empty($imgGif)) {
                                     ?>
-                                    <img src="<?php echo $global['webSiteRootURL']; ?>view/img/loading-gif.png" data-src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $value['title']; ?>" id="thumbsGIF<?php echo $value['id']; ?>" class="thumbsGIF img-responsive" height="196" />
+                                    <img src="<?php echo getCDN(); ?>view/img/loading-gif.png" data-src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $value['title']; ?>" id="thumbsGIF<?php echo $value['id']; ?>" class="thumbsGIF img-responsive" height="196" />
                                 <?php } ?>
                                 <span class="duration"><?php echo Video::getCleanDuration($value['duration']); ?></span>
                             </div>
@@ -216,8 +216,8 @@ $metaDescription = __("Trending");
         <?php
         include $global['systemRootPath'] . 'view/include/footer.php';
         ?>
-        <script src="<?php echo $global['webSiteRootURL']; ?>plugin/Gallery/script.js" type="text/javascript"></script>
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/infinite-scroll.pkgd.min.js" type="text/javascript"></script>
+        <script src="<?php echo getCDN(); ?>plugin/Gallery/script.js" type="text/javascript"></script>
+        <script src="<?php echo getCDN(); ?>view/js/infinite-scroll.pkgd.min.js" type="text/javascript"></script>
         <script>
             $(document).ready(function () {
                 $container = $('.results').infiniteScroll({

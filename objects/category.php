@@ -23,6 +23,15 @@ class Category {
     private $private;
     private $allow_download;
     private $order;
+    private $suggested;
+
+    function getSuggested() {
+        return empty($this->suggested) ? 0 : 1;
+    }
+
+    function setSuggested($suggested) {
+        $this->suggested = empty($suggested) ? 0 : 1;
+    }
 
     function getOrder() {
         return intval($this->order);
@@ -57,7 +66,7 @@ class Category {
     }
 
     function setName($name) {
-        $this->name = xss_esc($name);
+        $this->name = $name;
     }
 
     function setClean_name($clean_name) {
@@ -73,48 +82,14 @@ class Category {
         $this->parentId = $parentId;
     }
 
-    /*
-      function setType($type, $overwriteUserId = 0) {
-      global $global;
-      $internalId = $overwriteUserId;
-      if (empty($internalId)) {
-      $internalId = $this->id;
-      }
-      $exist = false;
-      // require this cause of Video::autosetCategoryType - but should be moveable easy here..
-      require_once dirname(__FILE__) . '/../objects/video.php';
-      $sql = "SELECT * FROM `category_type_cache` WHERE categoryId = ?";
-      $res = sqlDAL::readSql($sql, "i", array($internalId));
-      $catTypeCache = sqlDAL::fetchAssoc($res);
-      sqlDAL::close($res);
-      if ($catTypeCache != false) {
-      $exist = true;
-      }
-
-      if ($type == "3") {
-      // auto-cat-type
-      Video::autosetCategoryType($internalId);
-      } else {
-      if ($exist) {
-      $sql = "UPDATE `category_type_cache` SET `type` = ?, `manualSet` = '1' WHERE `category_type_cache`.`categoryId` = ?;";
-      sqlDAL::writeSql($sql, "si", array($type, $internalId));
-      } else {
-      $sql = "INSERT INTO `category_type_cache` (`categoryId`, `type`, `manualSet`) VALUES (?,?,'1')";
-      sqlDAL::writeSql($sql, "is", array($internalId, $type));
-      }
-      }
-      }
-     *
-     */
-
     function setDescription($description) {
-        $this->description = xss_esc($description);
+        $this->description = $description;
     }
 
     function __construct($id, $name = '') {
         if (empty($id)) {
             // get the category data from category and pass
-            $this->name = xss_esc($name);
+            $this->name = $name;
         } else {
             $this->id = $id;
             // get data from id
@@ -170,9 +145,10 @@ class Category {
                     . "parentId = ?,"
                     . "iconClass = ?,"
                     . "users_id = ?,"
+                    . "suggested = ?,"
                     . "`private` = ?, allow_download = ?, `order` = ?, modified = now() WHERE id = ?";
-            $format = "sssiisiiiii";
-            $values = array(xss_esc($this->name), xss_esc($this->clean_name), xss_esc($this->description), $this->nextVideoOrder, $this->parentId, $this->getIconClass(), $this->getUsers_id(), $this->getPrivate(), $this->getAllow_download(), $this->getOrder(), $this->id);
+            $format = "sssiisiiiiii";
+            $values = array($this->name, $this->clean_name, $this->description, intval($this->nextVideoOrder), $this->parentId, $this->getIconClass(), $this->getUsers_id(), $this->getSuggested(), $this->getPrivate(), $this->getAllow_download(), $this->getOrder(), $this->id);
         } else {
             $sql = "INSERT INTO categories ( "
                     . "name,"
@@ -182,13 +158,15 @@ class Category {
                     . "parentId,"
                     . "iconClass, "
                     . "users_id, "
-                    . "`private`, allow_download, `order`, created, modified) VALUES (?, ?,?,?,?,?,?,?,?,?,now(), now())";
-            $format = "sssiisiiii";
-            $values = array(xss_esc($this->name), xss_esc($this->clean_name), xss_esc($this->description), $this->nextVideoOrder, $this->parentId, $this->getIconClass(), $this->getUsers_id(), $this->getPrivate(), $this->getAllow_download(), $this->getOrder());
+                    . "suggested, "
+                    . "`private`, allow_download, `order`, created, modified) VALUES (?, ?,?,?,?,?,?,?,?,?,?,now(), now())";
+            $format = "sssiisiiiii";
+            $values = array($this->name, $this->clean_name, $this->description, intval($this->nextVideoOrder), $this->parentId, $this->getIconClass(), $this->getUsers_id(), $this->getSuggested(), $this->getPrivate(), $this->getAllow_download(), $this->getOrder());
         }
 
         $insert_row = sqlDAL::writeSql($sql, $format, $values);
         if ($insert_row) {
+            self::deleteOGImage($this->id);
             $_SESSION['user']['sessionCache']['getAllCategoriesClearCache'] = 1;
             ObjectYPT::deleteALLCache();
             if (empty($this->id)) {
@@ -249,6 +227,7 @@ class Category {
         } else {
             return false;
         }
+        ObjectYPT::deleteALLCache();
         self::clearCacheCount();
         self::deleteAssets($this->id);
         return sqlDAL::writeSql($sql, "i", array($this->id));
@@ -292,6 +271,16 @@ class Category {
         return ($res) ? $result : false;
     }
 
+    static function getCategoryLink($id) {
+        $cat = new Category($id);
+        return self::getCategoryLinkFromName($cat->getClean_name());
+    }
+
+    static function getCategoryLinkFromName($clean_name) {
+        global $global;
+        return "{$global['webSiteRootURL']}cat/{$clean_name}";
+    }
+
     static function getCategoryByName($name) {
         global $global;
         $sql = "SELECT * FROM categories WHERE clean_name = ? LIMIT 1";
@@ -300,6 +289,7 @@ class Category {
         sqlDAL::close($res);
         if ($result) {
             $result['name'] = xss_esc_back($result['name']);
+            $result['description_html'] = textToLink(htmlentities($result['description']));
         }
         return ($res) ? $result : false;
     }
@@ -347,7 +337,7 @@ class Category {
         return $id;
     }
 
-    static function getAllCategories($filterCanAddVideoOnly = false, $onlyWithVideos = false) {
+    static function getAllCategories($filterCanAddVideoOnly = false, $onlyWithVideos = false, $onlySuggested = false) {
         global $global, $config;
         if ($config->currentVersionLowerThen('8.4')) {
             return false;
@@ -355,6 +345,9 @@ class Category {
         $sql = "SELECT * FROM categories c WHERE 1=1 ";
         if (!empty($_GET['parentsOnly'])) {
             $sql .= "AND parentId = 0 ";
+        }
+        if ($onlySuggested) {
+            $sql .= "AND suggested = 1 ";
         }
         if ($filterCanAddVideoOnly && !User::isAdmin()) {
             if (is_int($filterCanAddVideoOnly)) {
@@ -386,11 +379,18 @@ class Category {
             }
             $sql .= ")";
         }
-        if (isset($_POST['sort']['title'])) {
-            unset($_POST['sort']['title']);
+
+        $sortWhitelist = array('id', 'name', 'clean_name', 'description', 'iconClass', 'nextVideoOrder', 'parentId', 'type', 'users_id', 'private', 'allow_download', 'order', 'suggested');
+
+        if (!empty($_POST['sort']) && is_array($_POST['sort'])) {
+            foreach ($_POST['sort'] as $key => $value) {
+                if (!in_array($key, $sortWhitelist)) {
+                    unset($_POST['sort'][$key]);
+                }
+            }
         }
         $sql .= BootGrid::getSqlFromPost(array('name'), "", " ORDER BY `order`, name ASC ");
-
+        //echo $sql;exit;
         $cacheName = md5($sql);
         if (empty($_SESSION['user']['sessionCache']['getAllCategoriesClearCache'])) {
             $category = object_to_array(ObjectYPT::getCache($cacheName, 36000));
@@ -409,7 +409,7 @@ class Category {
                     $totals = self::getTotalFromCategory($row['id']);
                     $fullTotals = self::getTotalFromCategory($row['id'], false, true, true);
 
-                    $row['name'] = xss_esc_back($row['name']);
+                    $row['name'] = $row['name'];
                     $row['total'] = $totals['total'];
                     $row['fullTotal'] = $fullTotals['total'];
                     $row['fullTotal_videos'] = $fullTotals['videos'];
@@ -420,6 +420,7 @@ class Category {
                     $row['canAddVideo'] = self::userCanAddInCategory($row['id']);
                     $row['hierarchy'] = self::getHierarchyString($row['parentId']);
                     $row['hierarchyAndName'] = $row['hierarchy'] . $row['name'];
+                    $row['description_html'] = textToLink(htmlentities($row['description']));
                     $category[] = $row;
                 }
                 //$category = $res->fetch_all(MYSQLI_ASSOC);
@@ -633,8 +634,7 @@ class Category {
         sqlDAL::close($res);
         return $result;
     }
-    
-    
+
     static function getLatestLiveFromCategory($categories_id) {
         if (!AVideoPlugin::isEnabledByName("Live")) {
             return array();
@@ -737,13 +737,16 @@ class Category {
         //session_write_close();
     }
 
-    static function getTotalCategories($filterCanAddVideoOnly = false) {
+    static function getTotalCategories($filterCanAddVideoOnly = false, $onlyWithVideos = false, $onlySuggested = false) {
         global $global, $config;
 
         if ($config->currentVersionLowerThen('5.01')) {
             return false;
         }
-        $sql = "SELECT id, parentId FROM categories WHERE 1=1 ";
+        $sql = "SELECT id, parentId FROM categories c WHERE 1=1 ";
+        if ($onlySuggested) {
+            $sql .= "AND suggested = 1 ";
+        }
         if ($filterCanAddVideoOnly && !User::isAdmin()) {
             if (is_int($filterCanAddVideoOnly)) {
                 $users_id = $filterCanAddVideoOnly;
@@ -758,7 +761,27 @@ class Category {
         if (!empty($_GET['parentsOnly'])) {
             $sql .= "AND parentId = 0 OR parentId = -1 ";
         }
+        if ($onlyWithVideos) {
+            $sql .= " AND ((SELECT count(*) FROM videos v where v.categories_id = c.id OR categories_id IN (SELECT id from categories where parentId = c.id)) > 0  ";
+            if (AVideoPlugin::isEnabledByName("Live")) {
+                $sql .= " OR "
+                        . " ("
+                        . " SELECT count(*) FROM live_transmitions lt where "
+                        . " (lt.categories_id = c.id OR lt.categories_id IN (SELECT id from categories where parentId = c.id))"
+                        //. " AND lt.id = (select id FROM live_transmitions lt2 WHERE lt.users_id = lt2.users_id ORDER BY CREATED DESC LIMIT 1 )"
+                        . " ) > 0  ";
+            }
+            if (AVideoPlugin::isEnabledByName("LiveLinks")) {
+                $sql .= " OR "
+                        . " ("
+                        . " SELECT count(*) FROM LiveLinks ll where "
+                        . " (ll.categories_id = c.id OR ll.categories_id IN (SELECT id from categories where parentId = c.id))"
+                        . " ) > 0  ";
+            }
+            $sql .= ")";
+        }
         $sql .= BootGrid::getSqlSearchFromPost(array('name'));
+        //echo $sql;exit;
         $res = sqlDAL::readSql($sql);
         $numRows = sqlDal::num_rows($res);
         sqlDAL::close($res);
@@ -808,25 +831,75 @@ class Category {
         $path['dir'] = "{$global['systemRootPath']}{$dir}";
         make_path($path['dir']);
         $path['path'] = "{$global['systemRootPath']}{$dir}";
-        $path['url'] = "{$global['webSiteRootURL']}{$dir}";
+        $path['url'] = getCDN() . "{$dir}";
         return $path;
     }
 
     static function isAssetsValids($categories_id) {
         $photo = Category::getCategoryPhotoPath($categories_id);
         $background = Category::getCategoryBackgroundPath($categories_id);
+        //var_dump(filesize($background['path']), $background['path'], filesize($photo['path']), $photo['path'] );
         if (!file_exists($photo['path']) || !file_exists($background['path'])) {
+            return false;
+        }
+        if (filesize($photo['path']) <= 190) { // transparent image
+            return false;
+        }
+        if (filesize($background['path']) <= 980 || filesize($background['path']) == 4480) { // transparent image
             return false;
         }
         return true;
     }
 
+    public static function getOGImagePaths($categories_id) {
+        $name = "og_200X200.jpg";
+        $dirPaths = self::getCategoryDirPath($categories_id);
+        $path = array();
+        $path['dir'] = $dirPaths['url'];
+        $path['path'] = "{$dirPaths['path']}{$name}";
+        $path['url'] = "{$dirPaths['url']}{$name}";
+        if (file_exists($path['path'])) {
+            $path['url+timestamp'] = "{$path['url']}?" . filectime($path['path']);
+        } else {
+            $path['url+timestamp'] = $path['url'];
+        }
+        return $path;
+    }
+
+    public static function deleteOGImage($categories_id) {
+        $ogPaths = self::getOGImagePaths($categories_id);
+        $destination = $ogPaths['path'];
+        if (file_exists($destination)) {
+            unlink($destination);
+        }
+    }
+
+    public static function getOGImage($categories_id) {
+        global $global;
+        $isAssetsValids = self::isAssetsValids($categories_id);
+        if ($isAssetsValids) {
+            $ogPaths = self::getOGImagePaths($categories_id);
+            $destination = $ogPaths['path'];
+            if (!file_exists($destination)) {
+                $photo = self::getCategoryPhotoPath($categories_id);
+                $source = $photo['path'];
+                convertImageToOG($source, $destination);
+            }
+
+            return $ogPaths['url+timestamp'];
+        } else {
+            return Configuration::getOGImage();
+        }
+    }
+
     static function getCategoryPhotoPath($categories_id) {
-        return self::getCategoryAssetPath("photo.png", $categories_id);
+        $path = self::getCategoryAssetPath("photo.png", $categories_id);
+        return $path;
     }
 
     static function getCategoryBackgroundPath($categories_id) {
-        return self::getCategoryAssetPath("background.png", $categories_id);
+        $path = self::getCategoryAssetPath("background.png", $categories_id);
+        return $path;
     }
 
     private static function getCategoryAssetPath($name, $categories_id) {

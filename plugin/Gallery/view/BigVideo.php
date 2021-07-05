@@ -14,6 +14,12 @@ if ($obj->BigVideo && empty($_GET['showOnly'])) {
     if (empty($videoRows)) {
         $videoRows = array($video);
     }
+    $class = '';
+    $classInner = '';
+    if (count($videoRows) > 1) {
+        $class = 'carousel slide';
+        $classInner = 'carousel-inner';
+    }
     ?>
     <style>
         #bigVideoCarousel .carousel-indicators .active {
@@ -22,7 +28,7 @@ if ($obj->BigVideo && empty($_GET['showOnly'])) {
     </style>
     <div class="row">
         <div class="col-sm-12 fixPadding">
-            <div id="bigVideoCarousel" class="carousel slide" data-ride="carousel">
+            <div id="bigVideoCarousel" class="<?php echo $class; ?> " data-ride="carousel">
                 <?php
                 if (count($videoRows) > 1) {
                     ?>
@@ -38,7 +44,7 @@ if ($obj->BigVideo && empty($_GET['showOnly'])) {
                 }
                 ?>
                 <!-- Wrapper for slides -->
-                <div class="carousel-inner">
+                <div class="<?php echo $classInner; ?>">
                     <?php
                     $count = 0;
                     $program = AVideoPlugin::loadPluginIfEnabled('PlayLists');
@@ -83,9 +89,9 @@ if ($obj->BigVideo && empty($_GET['showOnly'])) {
                                                $poster = isMobile() ? $images->thumbsJpg : $images->poster;
                                                ?>
                                             <div class="aspectRatio16_9">
-                                                <img src="<?php echo $images->thumbsJpgSmall; ?>" data-src="<?php echo $poster; ?>" alt="<?php echo $videoRow['title']; ?>" class="thumbsJPG img img-responsive <?php echo ($poster != $images->thumbsJpgSmall) ? "blur" : ""; ?>" style="height: auto; width: 100%;" id="thumbsJPG<?php echo $videoRow['id']; ?>" />
+                                                <img src="<?php echo $images->thumbsJpgSmall; ?>" data-src="<?php echo $poster; ?>" alt="<?php echo $videoRow['title']; ?>" class="thumbsJPG img img-responsive <?php echo ($poster != $images->thumbsJpgSmall && !empty($advancedCustom->usePreloadLowResolutionImages)) ? "blur" : ""; ?>" style="height: auto; width: 100%;" id="thumbsJPG<?php echo $videoRow['id']; ?>" />
                                                 <?php if (!empty($obj->GifOnBigVideo) && !empty($imgGif)) { ?>
-                                                    <img src="<?php echo $global['webSiteRootURL']; ?>view/img/loading-gif.png" data-src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $videoRow['title']; ?>" id="thumbsGIF<?php echo $videoRow['id']; ?>" class="thumbsGIF img-responsive <?php echo @$img_portrait; ?>  rotate<?php echo $videoRow['rotation']; ?>" height="130" />
+                                                    <img src="<?php echo getCDN(); ?>view/img/loading-gif.png" data-src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo $videoRow['title']; ?>" id="thumbsGIF<?php echo $videoRow['id']; ?>" class="thumbsGIF img-responsive <?php echo @$img_portrait; ?>  rotate<?php echo $videoRow['rotation']; ?>" height="130" />
                                                 <?php } ?>
                                             </div>
                                             <?php
@@ -221,7 +227,7 @@ if ($obj->BigVideo && empty($_GET['showOnly'])) {
                                                 </div>
                                                 <?php if (Video::canEdit($videoRow['id'])) { ?>
                                                     <div>
-                                                        <a href="<?php echo $global['webSiteRootURL']; ?>mvideos?video_id=<?php echo $videoRow['id']; ?>" class="text-primary"><i class="fa fa-edit"></i> <?php echo __("Edit Video"); ?></a>
+                                                        <a href="#" onclick="avideoModalIframe('<?php echo $global['webSiteRootURL']; ?>mvideos?video_id=<?php echo $videoRow['id']; ?>');return false;" class="text-primary"><i class="fa fa-edit"></i> <?php echo __("Edit Video"); ?></a>
                                                     </div>
                                                 <?php } ?>
                                                 <?php if (!empty($videoRow['trailer1'])) { ?>

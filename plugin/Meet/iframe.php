@@ -32,6 +32,12 @@ if (Meet::isModerator($meet_schedule_id)) {
 }
 
 $domain = Meet::getDomainURL();
+
+$nameIdentification = '';
+if(User::isLogged()){
+    $nameIdentification = User::getNameIdentification();
+}
+
 ?>
 <!DOCTYPE html>
 <html>
@@ -41,8 +47,10 @@ $domain = Meet::getDomainURL();
         <link rel="icon" type="image/png" href="<?php echo $config->getFavicon(true); ?>">
         <link rel="shortcut icon" href="<?php echo $config->getFavicon(); ?>" sizes="16x16,24x24,32x32,48x48,144x144">
         <meta name="msapplication-TileImage" content="<?php echo $config->getFavicon(true); ?>">
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/jquery-3.5.1.min.js"></script>
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/script.js"></script>
+        <script src="<?php echo getCDN(); ?>view/js/jquery-3.5.1.min.js"></script>
+        <script src="<?php echo getCDN(); ?>view/js/js-cookie/js.cookie.js" type="text/javascript"></script>
+        <script src="<?php echo getCDN(); ?>view/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+        <script src="<?php echo getCDN(); ?>view/js/script.js"></script>
         <script>
             var getRTMPLink = '<?php echo Live::getRTMPLink($meet->getUsers_id()); ?>';
         </script>
@@ -101,7 +109,7 @@ $domain = Meet::getDomainURL();
     <body>
         <div id="divMeetToIFrame"></div>
         <script>
-            aVideoMeetStart('<?php echo $domain; ?>', '<?php echo preg_replace('/[^\00-\255]+/u', '', $meet->getCleanName()); ?>', '<?php echo Meet::getToken($meet_schedule_id); ?>', '<?php echo User::getEmail_(); ?>', '<?php echo User::getNameIdentification(); ?>', <?php echo json_encode(Meet::getButtons($meet_schedule_id)); ?>);
+            aVideoMeetStart('<?php echo $domain; ?>', '<?php echo preg_replace('/[^\00-\255]+/u', '', $meet->getCleanName()); ?>', '<?php echo Meet::getToken($meet_schedule_id, User::getId()); ?>', '<?php echo User::getEmail_(); ?>', '<?php echo $nameIdentification; ?>', <?php echo json_encode(Meet::getButtons($meet_schedule_id)); ?>);
 
 <?php
 echo implode(PHP_EOL, $apiExecute);

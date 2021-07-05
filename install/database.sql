@@ -77,11 +77,13 @@ CREATE TABLE IF NOT EXISTS `categories` (
   `private` TINYINT(1) NULL DEFAULT 0,
   `allow_download` TINYINT(1) NULL DEFAULT 1,
   `order` INT(11) NULL DEFAULT NULL,
+  `suggested` TINYINT(1) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_categories_users1_idx` (`users_id` ASC),
   INDEX `clean_name_INDEX2` (`clean_name` ASC),
   INDEX `sortcategoryOrderIndex` (`order` ASC),
   INDEX `category_name_idx` (`name` ASC),
+  INDEX `categoriesindex9suggested` (`suggested` ASC),
   FULLTEXT INDEX `index7cname` (`name`),
   FULLTEXT INDEX `index8cdescr` (`description`),
   UNIQUE INDEX `clean_name_UNIQUE` (`clean_name` ASC), 
@@ -116,7 +118,7 @@ CREATE TABLE IF NOT EXISTS `videos` (
   `views_count_50` INT(11) NULL DEFAULT 0,
   `views_count_75` INT(11) NULL DEFAULT 0,
   `views_count_100` INT(11) NULL DEFAULT 0,
-  `status` ENUM('a', 'k', 'i', 'e', 'x', 'd', 'xmp4', 'xwebm', 'xmp3', 'xogg', 'ximg', 'u', 'p', 't') NOT NULL DEFAULT 'e' COMMENT 'a = active\nk = active and encoding\ni = inactive\ne = encoding\nx = encoding error\nd = downloading\nu = Unlisted\np = private\nxmp4 = encoding mp4 error \nxwebm = encoding webm error \nxmp3 = encoding mp3 error \nxogg = encoding ogg error \nximg = get image error\nt = Transfering' ,
+  `status` VARCHAR(16) NOT NULL DEFAULT 'e' ,
   `created` DATETIME NOT NULL,
   `modified` DATETIME NOT NULL,
   `users_id` INT NOT NULL,
@@ -147,6 +149,7 @@ CREATE TABLE IF NOT EXISTS `videos` (
   `encoderURL` VARCHAR(255) NULL DEFAULT NULL,
   `filepath` VARCHAR(255) NULL DEFAULT NULL,
   `filesize` BIGINT(19) UNSIGNED NULL DEFAULT 0,
+  `live_transmitions_history_id` INT(11) NULL DEFAULT NULL,
   PRIMARY KEY (`id`),
   INDEX `fk_videos_users_idx` (`users_id` ASC),
   INDEX `fk_videos_categories1_idx` (`categories_id` ASC),
@@ -158,6 +161,7 @@ CREATE TABLE IF NOT EXISTS `videos` (
   INDEX `video_filename_INDEX` (`filename` ASC),
   INDEX `video_status_idx` (`status` ASC),
   INDEX `video_type_idx` (`type` ASC) ,
+  INDEX `fk_videos_live_transmitions_history1_idx` (`live_transmitions_history_id` ASC),
   FULLTEXT INDEX `index17vname` (`title`),
   FULLTEXT INDEX `index18vdesc` (`description`),
   CONSTRAINT `fk_videos_sites1`
@@ -187,6 +191,23 @@ CONSTRAINT `fk_videos_playlists1`
   ON UPDATE CASCADE)
 ENGINE = InnoDB;
 
+CREATE TABLE IF NOT EXISTS `videos_metadata` (
+  `id` INT NOT NULL AUTO_INCREMENT,
+  `videos_id` INT NOT NULL,
+  `resolution` VARCHAR(12) NOT NULL,
+  `format` VARCHAR(12) NOT NULL,
+  `stream_id` INT NOT NULL,
+  `name` VARCHAR(128) NOT NULL,
+  `value` VARCHAR(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE (`videos_id`, `resolution`, `format`, `stream_id`, `name`),
+  INDEX `fk_videos_metadata_videos1_idx` (`videos_id` ASC),
+  CONSTRAINT `fk_videos_metadata_videos1`
+    FOREIGN KEY (`videos_id`)
+    REFERENCES `videos` (`id`)
+    ON DELETE CASCADE
+    ON UPDATE CASCADE
+) ENGINE = InnoDB;
 
 -- -----------------------------------------------------
 -- Table `comments`
@@ -545,7 +566,9 @@ CREATE TABLE IF NOT EXISTS `users_extra_info` (
   `created` DATETIME NULL,
   `modified` DATETIME NULL,
   `status` CHAR(1) NOT NULL DEFAULT 'a',
-  PRIMARY KEY (`id`))
+  `order` INT NOT NULL DEFAULT 0,
+  PRIMARY KEY (`id`),
+  INDEX `ordersortusers_extra_info` USING BTREE (`order`))
 ENGINE = InnoDB;
 
 ALTER TABLE `category_type_cache`

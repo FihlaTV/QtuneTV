@@ -4,8 +4,8 @@ if (!isset($global['systemRootPath'])) {
 }
 
 header('HTTP/1.0 404 Not Found', true, 404);
-$img = "{$global['webSiteRootURL']}view/img/this-video-is-not-available.jpg";
-$poster = "{$global['webSiteRootURL']}view/img/this-video-is-not-available.jpg";
+$img = "".getCDN()."view/img/this-video-is-not-available.jpg";
+$poster = "".getCDN()."view/img/this-video-is-not-available.jpg";
 $imgw = 1280;
 $imgh = 720;
 unset($_SESSION['type']);
@@ -30,7 +30,7 @@ $video['filename'] = "";
 <html lang="<?php echo $_SESSION['language']; ?>">
     <head>
         <title><?php echo __('Video Not Found'); ?></title>
-        <link href="<?php echo $global['webSiteRootURL']; ?>plugin/Gallery/style.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>plugin/Gallery/style.css" rel="stylesheet" type="text/css"/>
         <?php
         include $global['systemRootPath'] . 'view/include/head.php';
         ?>

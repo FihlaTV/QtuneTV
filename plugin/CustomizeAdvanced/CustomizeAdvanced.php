@@ -69,6 +69,8 @@ class CustomizeAdvanced extends PluginAbstract {
         $obj->doNotShowEncoderAutomaticMP4 = false;
         $obj->doNotShowEncoderAutomaticWebm = false;
         $obj->doNotShowEncoderAutomaticAudio = false;
+        $obj->saveOriginalVideoResolution = false;
+        self::addDataObjectHelper('saveOriginalVideoResolution', 'Do not save original video', 'This option will make your encoder at the end trancode the video into the original format resolution');
         $obj->doNotShowExtractAudio = false;
         $obj->doNotShowCreateVideoSpectrum = false;
         $obj->doNotShowLeftMenuAudioAndVideoButtons = false;
@@ -80,7 +82,6 @@ class CustomizeAdvanced extends PluginAbstract {
         $obj->useVideoIDOnSEOLinks = true;
         $obj->disableAnimatedGif = false;
         $obj->removeBrowserChannelLinkFromMenu = false;
-        $obj->EnableWavesurfer = false;
         $obj->EnableMinifyJS = false;
         $obj->disableShareAndPlaylist = false;
         $obj->disableShareOnly = false;
@@ -135,6 +136,7 @@ class CustomizeAdvanced extends PluginAbstract {
         $obj->thumbsHeightPortrait = 250;
         $obj->thumbsWidthLandscape = 640;
         $obj->thumbsHeightLandscape = 360;
+        $obj->usePreloadLowResolutionImages = false;
         $obj->showImageDownloadOption = false;
         $obj->doNotDisplayViews = false;
         $obj->doNotDisplayLikes = false;
@@ -192,6 +194,11 @@ class CustomizeAdvanced extends PluginAbstract {
         $obj->twitter_summary_large_image = false;
         $obj->footerStyle = "position: fixed;bottom: 0;width: 100%;";
         $obj->disableVideoTags = false;
+        $obj->doNotAllowEncoderOverwriteStatus = false;
+        $obj->doNotAllowUpdateVideoId = false;
+        $obj->makeVideosIDHarderToGuess = false;
+        self::addDataObjectHelper('makeVideosIDHarderToGuess', 'Make the videos ID harder to guess', 'This will change the videos_id on the URL to a crypted value. this crypt user your $global[salt] (configuration.php), so make sure you keep it save in case you need to restore your site, otherwise all the shared links will be lost');
+        
         
         
         $o = new stdClass();
@@ -202,12 +209,63 @@ class CustomizeAdvanced extends PluginAbstract {
         
         $obj->keywords = "AVideo, videos, live, movies";
         
+        
+        $o = new stdClass();
+        $o->type = "textarea";
+        $o->value = "Allow: /plugin/Live/?*
+Allow: /plugin/PlayLists/*.css
+Allow: /plugin/PlayLists/*.js
+Allow: /plugin/TopMenu/*.css
+Allow: /plugin/TopMenu/*.js
+Allow: /plugin/SubtitleSwitcher/*.css
+Allow: /plugin/SubtitleSwitcher/*.js
+Allow: /plugin/Gallery/*.css
+Allow: /plugin/Gallery/*.js
+Allow: /plugin/YouPHPFlix2/*.png
+Allow: /plugin/Live/*.css
+Allow: /plugin/Live/*.js
+Allow: /plugin/*.css
+Allow: /plugin/*.js
+Allow: .js
+Allow: .css
+Disallow: /user
+Disallow: /plugin
+Disallow: /mvideos
+Disallow: /usersGroups
+Disallow: /charts
+Disallow: /upload
+Disallow: /comments
+Disallow: /subscribes
+Disallow: /update
+Disallow: /locale
+Disallow: /objects/*
+Allow: /plugin/Live/?*
+Allow: /plugin/LiveLink/?*
+Allow: /plugin/PlayLists/*.css
+Allow: /plugin/PlayLists/*.js
+Allow: /plugin/TopMenu/*.css
+Allow: /plugin/TopMenu/*.js
+Allow: /plugin/SubtitleSwitcher/*.css
+Allow: /plugin/SubtitleSwitcher/*.js
+Allow: /plugin/Gallery/*.css
+Allow: /plugin/Gallery/*.js
+Allow: /plugin/YouPHPFlix2/*.png
+Allow: /plugin/Live/*.css
+Allow: /plugin/Live/*.js
+Allow: /plugin/*.css
+Allow: /plugin/*.js
+Allow: .js
+Allow: .css";
+        $obj->robotsTXT = $o;
+        self::addDataObjectHelper('robotsTXT', 'robots.txt file content', 'robots.txt is a plain text file that follows the Robots Exclusion Standard. A robots.txt file consists of one or more rules. Each rule blocks (or allows) access for a given crawler to a specified file path in that website.');
+        
+        
         return $obj;
     }
 
     public function getHelp() {
         if (User::isAdmin()) {
-            return "<h2 id='CustomizeAdvanced help'>CustomizeAdvanced (admin)</h2><p>" . $this->getDescription() . "</p><table class='table'><tbody><tr><td>EnableWavesurfer</td><td>Enables the visualisation for audio. This will always download full audio first, so with big audio-files, you might better disable it.</td></tr><tr><td>commentsMaxLength</td><td>Maximum lenght for comments in videos</td></tr><tr><td>disableYoutubePlayerIntegration</td> <td>Disables the integrating of youtube-videos and just embed them.</td></tr><tr><td>EnableMinifyJS</td><td>Minify your JS. Clear videos/cache after changing this option.</td></tr></tbody></table>";
+            return "<h2 id='CustomizeAdvanced help'>CustomizeAdvanced (admin)</h2><p>" . $this->getDescription() . "</p>";
         }
         return "";
     }
@@ -225,15 +283,16 @@ class CustomizeAdvanced extends PluginAbstract {
             }
         }
     }
+    
+    public function getEmbed($videos_id) {
+        return $this->getModeYouTube($videos_id);
+    }
 
     public function getFooterCode() {
         global $global;
 
         $obj = $this->getDataObject();
         $content = '';
-        if ($obj->disableNavBarInsideIframe) {
-            $content .= '<script>$(function () {if(inIframe()){$("#mainNavBar").fadeOut();}});</script>';
-        }
         if ($obj->autoHideNavbar && !isEmbed()) {
             $content .= '<script>$(function () {setTimeout(function(){$("#mainNavBar").autoHidingNavbar();},5000);});</script>';
             $content .= '<script>'. file_get_contents($global['systemRootPath'] . 'plugin/CustomizeAdvanced/autoHideNavbar.js').'</script>';
@@ -288,7 +347,18 @@ class CustomizeAdvanced extends PluginAbstract {
     public function getHeadCode() {
         global $global;
         $obj = $this->getDataObject();
+        
+        if($obj->makeVideosIDHarderToGuess){
+            if(isVideo()){
+                if(!empty($global['makeVideosIDHarderToGuessNotDecrypted'])){
+                    unset($global['makeVideosIDHarderToGuessNotDecrypted']);
+                    forbiddenPage(__('Invalid ID'));
+                }
+            }
+        }
+        
         $baseName = basename($_SERVER['REQUEST_URI']);
+        
         $js = "";
         if(empty($obj->autoPlayAjax)){
             $js .= "<script>var autoPlayAjax=false;</script>";
@@ -343,6 +413,11 @@ class CustomizeAdvanced extends PluginAbstract {
                                     });}</script>";
         }
         return $js;
+    }
+    
+    public function afterNewVideo($videos_id) {
+        Video::updateFilesize($videos_id);
+        return true;
     }
 
 }

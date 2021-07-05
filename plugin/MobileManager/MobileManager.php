@@ -46,6 +46,7 @@ class MobileManager extends PluginAbstract {
         $obj->hideTabTrending = false;
         $obj->hideTabLive = false;
         $obj->hideTabSubscription = false;
+        $obj->hideTabChat2 = false;
         $obj->hideTabPlayLists = false;
         $obj->hideViewsCounter = false;
         $obj->hideLikes = false;
@@ -72,10 +73,21 @@ class MobileManager extends PluginAbstract {
         //$obj->netflixSortByName = false;
         $obj->netflixBigVideo = true;
         $obj->disableWhitelabel = false;
+        $obj->disableComments = false;
         $obj->approvalMode = false;
         $obj->showMeet = true;
         $obj->goLiveWithMeet = true;
         $obj->doNotAutoSearch = false;
+        $obj->playStoreApp = 'https://play.google.com/store/apps/details?id=mobile.youphptube.com';
+        $obj->appleStoreApp = 'https://apps.apple.com/us/app/youphptube/id1337322357';
+        
+        $obj->pwa_background_color = "#000000";
+        $o = new stdClass();
+        $o->type = array('fullscreen', 'standalone', 'minimal-ui');
+        $o->value = "standalone";
+        
+        $obj->pwa_display = $o;
+        $obj->pwa_scope = "/";
 
         return $obj;
     }

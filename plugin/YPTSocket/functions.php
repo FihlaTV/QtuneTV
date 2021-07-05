@@ -14,8 +14,7 @@ function getEncryptedInfo($timeOut = 0, $send_to_uri_pattern = "") {
     $msgObj->time = time();
     $msgObj->ip = getRealIpAddr();
     $msgObj->send_to_uri_pattern = $send_to_uri_pattern;
-    $msgObj->autoEvalCodeOnHTML = array();
-
+    //var_dump($msgObj);exit;
     if (!empty($_REQUEST['webSocketSelfURI'])) {
         $msgObj->selfURI = $_REQUEST['webSocketSelfURI'];
     } else {
@@ -30,7 +29,7 @@ function getEncryptedInfo($timeOut = 0, $send_to_uri_pattern = "") {
     }
     if (empty($msgObj->live_key)) {
         if (!empty($_REQUEST['webSocketLiveKey'])) {
-            $msgObj->live_key = json_decode($_REQUEST['webSocketLiveKey']);
+            $msgObj->live_key = _json_decode($_REQUEST['webSocketLiveKey']);
         } else {
             $msgObj->live_key = isLive();
         }
@@ -41,28 +40,14 @@ function getEncryptedInfo($timeOut = 0, $send_to_uri_pattern = "") {
     } else {
         $msgObj->location = false;
     }
-
-    /*
-      if (!empty($msgObj->live_key)) {
-      $msgObj->is_live = Live::isLiveAndIsReadyFromKey($msgObj->live_key['key'], $msgObj->live_key['live_servers_id'], true);
-      if($msgObj->is_live){
-      $code = "onlineLabelOnline('.liveOnlineLabel');";
-      }else{
-      $code = "onlineLabelOffline('.liveOnlineLabel');";
-      }
-      $msgObj->autoEvalCodeOnHTML[] = $code;
-      }
-     * 
-     */
-
     return encryptString(json_encode($msgObj));
 }
 
 function getDecryptedInfo($string) {
     $decriptedString = decryptString($string);
-    $json = json_decode($decriptedString);
+    $json = _json_decode($decriptedString);
     if (!empty($json) && !empty($json->token)) {
-        if (isTokenValid($json->token)) {
+        if (verifyTokenSocket($json->token)) {
             return $json;
         } else {
             _error_log("socket:getDecryptedInfo: token is invalid ");
@@ -73,6 +58,25 @@ function getDecryptedInfo($string) {
     return false;
 }
 
+function verifyTokenSocket($token) {
+    global $global;
+    $obj = _json_decode(decryptString($token));
+    if (empty($obj)) {
+        _error_log("verifyToken invalid token");
+        return false;
+    }
+    if ($obj->salt !== $global['salt']) {
+        _error_log("verifyToken salt fail");
+        return false;
+    }
+    $time = time();
+    if (!($time >= $obj->time && $time <= $obj->timeout)) {
+        _error_log("verifyToken token timout time = $time; obj->time = $obj->time;  obj->timeout = $obj->timeout");
+        //return false;
+    }
+    return true;
+}
+
 class SocketMessageType {
 
     const NEW_CONNECTION = "NEW_CONNECTION";
@@ -80,6 +84,7 @@ class SocketMessageType {
     const DEFAULT_MESSAGE = "DEFAULT_MESSAGE";
     const ON_VIDEO_MSG = "ON_VIDEO_MSG";
     const ON_LIVE_MSG = "ON_LIVE_MSG";
+    const TESTING = "TESTING";
 
 }
 
@@ -117,4 +122,12 @@ function killProcessOnPort() {
             echo 'No Need to kill, port NOT found' . PHP_EOL;
         }
     }
+}
+
+function restartServer(){
+    global $global;
+    killProcessOnPort();
+    sleep(1);
+    $cmd = "nohup php {$global['systemRootPath']}plugin/YPTSocket/server.php &";
+    return exec($cmd);
 }

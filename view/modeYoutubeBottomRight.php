@@ -50,22 +50,11 @@ if (!empty($playlist_id)) {
         <a href="<?php echo Video::getLink($autoPlayVideo['id'], $autoPlayVideo['clean_title'], "", $get); ?>" title="<?php echo str_replace('"', '', $autoPlayVideo['title']); ?>" class="videoLink h6">
             <div class="col-lg-5 col-sm-5 col-xs-5 nopadding thumbsImage">
                 <?php
-                $imgGif = "";
-                if (file_exists(Video::getStoragePath()."{$autoPlayVideo['filename']}.gif")) {
-                    $imgGif = "{$global['webSiteRootURL']}videos/{$autoPlayVideo['filename']}.gif";
-                }
-                if ($autoPlayVideo['type'] === "pdf") {
-                    $img = "{$global['webSiteRootURL']}videos/{$autoPlayVideo['filename']}.png";
-                    $img_portrait = ($autoPlayVideo['rotation'] === "90" || $autoPlayVideo['rotation'] === "270") ? "img-portrait" : "";
-                } else if (($autoPlayVideo['type'] !== "audio") && ($autoPlayVideo['type'] !== "linkAudio")) {
-                    $img = "{$global['webSiteRootURL']}videos/{$autoPlayVideo['filename']}.jpg";
-                    $img_portrait = ($autoPlayVideo['rotation'] === "90" || $autoPlayVideo['rotation'] === "270") ? "img-portrait" : "";
-                } else {
-                    $img = "{$global['webSiteRootURL']}view/img/audio_wave.jpg";
-                    $img_portrait = "";
-                }
+                $images = Video::getImageFromFilename($autoPlayVideo['filename'], true);
+                $img = $img_portrait = $images->poster;
+                $imgGif = $images->thumbsGif;
                 ?>
-                <img src="<?php echo $img; ?>" alt="<?php echo str_replace('"', '', $autoPlayVideo['title']); ?>" class="img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $autoPlayVideo['rotation']; ?>" height="130" />
+                <img src="<?php echo $img; ?>" alt="<?php echo str_replace('"', '', $autoPlayVideo['title']); ?>" class="img img-responsive " height="130" />
                 <?php if (!empty($imgGif)) { ?>
                     <img src="<?php echo $imgGif; ?>" style="position: absolute; top: 0; display: none;" alt="<?php echo str_replace('"', '', $autoPlayVideo['title']); ?>" id="thumbsGIF<?php echo $autoPlayVideo['id']; ?>" class="thumbsGIF img-responsive <?php echo $img_portrait; ?>  rotate<?php echo $autoPlayVideo['rotation']; ?>" height="130" />
                 <?php } ?>
@@ -140,36 +129,9 @@ $modeYouTubeTime = microtime(true);
     var autoPlayPoster = '<?php echo @$autoPlayPoster; ?>';
     var autoPlayThumbsSprit = '<?php echo @$autoPlayThumbsSprit; ?>';
 
-    function showAutoPlayVideoDiv() {
-        var auto = $("#autoplay").prop('checked');
-        if (!auto) {
-            $('#autoPlayVideoDiv').slideUp();
-        } else {
-            $('#autoPlayVideoDiv').slideDown();
-        }
-    }
     $(document).ready(function () {
-        $("input.saveCookie").each(function () {
-            var mycookie = Cookies.get($(this).attr('name'));
-            if (mycookie && mycookie == "true") {
-                $(this).prop('checked', mycookie);
-            }
-        });
-        $("input.saveCookie").change(function () {
-            var auto = $(this).prop('checked');
-            Cookies.set($(this).attr("name"), auto, {
-                path: '/',
-                expires: 365
-            });
-        });
 
-        if (isAutoplayEnabled()) {
-            $("#autoplay").prop('checked', true);
-        }
-
-        $("#autoplay").change(function () {
-            showAutoPlayVideoDiv();
-        });
-        showAutoPlayVideoDiv();
+        
+        
     });
 </script>

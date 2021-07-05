@@ -26,6 +26,9 @@ $sig_header = $_SERVER['HTTP_STRIPE_SIGNATURE'];
 $event = null;
 
 $payloadObj = json_decode($payload);
+
+//$payloadObj = object_to_array($payloadObj);
+
 //_error_log("StripeIPN: WEBHOOK: ".json_encode($webhook));
 //_error_log("StripeIPN: payload ".json_encode($payloadObj));
 //_error_log("StripeIPN: sig_header ".json_encode($sig_header));

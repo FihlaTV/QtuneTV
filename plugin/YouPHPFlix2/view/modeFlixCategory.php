@@ -14,10 +14,12 @@ if (empty($_GET['current'])) {
     $_REQUEST['current'] = intval($_GET['current']);
 }
 
+$uid = '{serie_uid}';
+
 $cacheName = "modeFlixCategory" . md5(json_encode($_GET)) . User::getId();
 $cache = ObjectYPT::getCache($cacheName, 600);
 if (!empty($cache)) {
-    echo $cache;
+    echo str_replace('{serie_uid}', uniqid(), $cache);
     return false;
 }
 ob_start();
@@ -70,7 +72,7 @@ $videosCounter = 0;
         $_POST['searchPhrase'] = $searchPhrase;
         foreach ($categories as $value) {
             echo "<!-- {$value['clean_name']} --> ";
-            $obj = AVideoPlugin::getObjectData("YouPHPFlix2");
+            $obj2 = AVideoPlugin::getObjectData("YouPHPFlix2");
             $timeLog2 = __FILE__ . " - Category {$value['clean_name']}";
             TimeLogStart($timeLog2);
             $oldCatName = @$_GET['catName'];
@@ -84,7 +86,7 @@ $videosCounter = 0;
             $_POST['sort']['likes'] = "DESC";
 
             TimeLogStart("modeFlixCategory.php getAllVideos");
-            $videos = Video::getAllVideos("viewableNotUnlisted", false, true);
+            $videos = Video::getAllVideos("viewableNotUnlisted", false, !$obj2->hidePrivateVideos);
             TimeLogEnd("modeFlixCategory.php getAllVideos", __LINE__);
 
             TimeLogEnd($timeLog2, __LINE__);
@@ -141,5 +143,5 @@ $cache = ob_get_clean();
 
 ObjectYPT::setCache($cacheName, $cache);
 
-echo $cache;
+echo str_replace('{serie_uid}', uniqid(), $cache);
 ?>

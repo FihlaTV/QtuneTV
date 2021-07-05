@@ -18,3 +18,16 @@
 #sidebar {
     margin-top: 65px  !important;
 }
+
+#myNavbar .select2-container{
+    margin-top: 12.5px;
+    margin-bottom: 12.5px;
+}
+#myNavbar .select2-selection{
+    height: 40px;
+}
+#rightProfileButton > img{
+    width: 40px !important;
+    height: 40px !important;
+    max-width: 40px !important;
+}

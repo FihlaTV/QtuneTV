@@ -6,7 +6,9 @@ $extraPluginFile = $global['systemRootPath'] . 'plugin/Customize/Objects/ExtraCo
 if(empty($advancedCustom)){
     $advancedCustom = AVideoPlugin::getObjectData("CustomizeAdvanced");
 }
-
+if(is_object($video)){
+    $video = Video::getVideoLight($video->getId());
+}
 $custom = array();
 
 if (file_exists($extraPluginFile) && AVideoPlugin::isEnabled("c4fe1b83-8f5a-4d1b-b912-172c608bf9e3")) {
@@ -56,7 +58,7 @@ if(empty($config)){
 <meta name="description" content="<?php echo $metaDescription; ?>">
 <meta name="device_id" content="<?php echo getDeviceID(); ?>">
 <meta name="keywords" content="<?php echo str_replace('"', "", strip_tags($advancedCustom->keywords)); ?>">
-
+<link rel="manifest" href="<?php echo $global['webSiteRootURL']; ?>manifest.json">
 <link rel="apple-touch-icon" sizes="180x180" href="<?php echo $config->getFavicon(true); ?>">
 <link rel="icon" type="image/png" href="<?php echo $config->getFavicon(true); ?>">
 <link rel="shortcut icon" href="<?php echo $config->getFavicon(); ?>" sizes="16x16,24x24,32x32,48x48,144x144">
@@ -69,28 +71,29 @@ if(empty($config)){
 echo $dif, " Seconds "; ?>">
 -->
 <!-- <link rel="stylesheet" type="text/css" media="only screen and (max-device-width: 768px)" href="view/css/mobile.css" /> -->
-<link href="<?php echo $global['webSiteRootURL']; ?>view/js/jquery-ui/jquery-ui.min.css" rel="stylesheet" type="text/css"/>
-<link href="<?php echo $global['webSiteRootURL']; ?>view/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
-<link href="<?php echo $global['webSiteRootURL']; ?>view/js/webui-popover/jquery.webui-popover.min.css" rel="stylesheet" type="text/css"/>
-<link href="<?php echo $global['webSiteRootURL']; ?>view/css/fontawesome-free-5.5.0-web/css/all.min.css" rel="stylesheet" type="text/css"/>
-<link href="<?php echo $global['webSiteRootURL']; ?>view/css/font-awesome-animation.min.css" rel="stylesheet" type="text/css"/>
-<link href="<?php echo $global['webSiteRootURL']; ?>view/css/flagstrap/css/flags.css" rel="stylesheet" type="text/css"/>
+<link href="<?php echo getCDN(); ?>view/js/jquery-ui/jquery-ui.min.css" rel="stylesheet" type="text/css"/>
+<link href="<?php echo getCDN(); ?>view/bootstrap/css/bootstrap.min.css" rel="stylesheet" type="text/css"/>
+<link href="<?php echo getCDN(); ?>view/js/webui-popover/jquery.webui-popover.min.css" rel="stylesheet" type="text/css"/>
+<link href="<?php echo getCDN(); ?>view/css/fontawesome-free-5.5.0-web/css/all.min.css" rel="stylesheet" type="text/css"/>
+<link href="<?php echo getCDN(); ?>view/css/font-awesome-animation.min.css" rel="stylesheet" type="text/css"/>
+<link href="<?php echo getCDN(); ?>view/css/flagstrap/css/flags.css" rel="stylesheet" type="text/css"/>
 <?php
 $cssFiles = array();
 //$cssFiles[] = "view/js/seetalert/sweetalert.css";
 $cssFiles[] = "view/bootstrap/bootstrapSelectPicker/css/bootstrap-select.min.css";
 $cssFiles[] = "view/js/bootgrid/jquery.bootgrid.css";
 $cssFiles[] = "view/js/jquery-toast/jquery.toast.min.css";
+$cssFiles[] = "view/bootstrap/jquery-bootstrap-scrolling-tabs/jquery.scrolling-tabs.min.css";
 //$cssFiles[] = "view/css/custom/{$theme}.css";
 $cssFiles = array_merge($cssFiles);
 $cssURL = combineFiles($cssFiles, "css");
 ?>
 <link href="<?php echo $cssURL; ?>" rel="stylesheet" type="text/css"/>
-<link href="<?php echo $global['webSiteRootURL']; ?>view/css/custom/<?php echo $theme; ?>.css" rel="stylesheet" type="text/css" id="customCSS"/>
+<link href="<?php echo getCDN(); ?>view/css/custom/<?php echo $theme; ?>.css" rel="stylesheet" type="text/css" id="customCSS"/>
 <?php
 $filename = Video::getStoragePath()."cache/custom.css";
 if($theme === "default" && !empty($customizePlugin->showCustomCSS) && file_exists($filename)){
-    echo '<link href="'.$global['webSiteRootURL'].'videos/cache/custom.css?'.  filectime($filename) .'" rel="stylesheet" type="text/css" id="pluginCustomCss" />';
+    echo '<link href="'.getCDN().'videos/cache/custom.css?'.  filectime($filename) .'" rel="stylesheet" type="text/css" id="pluginCustomCss" />';
 }else{
     if($theme !== "default"){
         echo "<!-- theme is not default -->";
@@ -137,10 +140,15 @@ if (isRTL()) {
     <?php
 }
 ?>
-<script src="<?php echo $global['webSiteRootURL']; ?>view/js/jquery-3.5.1.min.js"></script>
+<script src="<?php echo getCDN(); ?>view/js/jquery-3.5.1.min.js"></script>
 <script>
     var webSiteRootURL = '<?php echo $global['webSiteRootURL']; ?>';
     var player;
+    var _serverTime = "<?php echo time(); ?>";
+    var _serverDBTime = "<?php echo getDatabaseTime(); ?>";
+    var _serverTimeString = "<?php echo date('Y-m-d H:i:s'); ?>";
+    var _serverDBTimeString = "<?php echo date('Y-m-d H:i:s', getDatabaseTime()); ?>";
+    var _serverTimezone = "<?php echo date_default_timezone_get(); ?>";
 </script>
 <?php
 if (!$config->getDisable_analytics()) {

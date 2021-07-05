@@ -75,7 +75,8 @@ if (isset($_FILES['upl']) && $_FILES['upl']['error'] == 0) {
     }
 
     $mainName = preg_replace("/[^A-Za-z0-9]/", "", cleanString($path_parts['filename']));
-    $filename = uniqid($mainName . "_YPTuniqid_", true);
+    $paths = Video::getNewVideoFilename();
+    $filename = $paths['filename'];
     $originalFilePath =  Video::getStoragePath()."original_" . $filename;
 
     $video = new Video(preg_replace("/_+/", " ", $path_parts['filename']), $filename, @$_FILES['upl']['videoId']);
@@ -85,7 +86,7 @@ if (isset($_FILES['upl']) && $_FILES['upl']['error'] == 0) {
     } else {
         $video->setType("video");
     }
-    $video->setStatus('e');
+    $video->setStatus(Video::$statusEncoding);
 
     /*
      * set visibility for private videos
@@ -150,11 +151,20 @@ if (isset($_FILES['upl']) && $_FILES['upl']['error'] == 0) {
             $postFields['inputLow'] = 1;
             $postFields['inputSD'] = 1;
             $postFields['inputHD'] = 1;
+            if (!empty($_FILES['upl']['webm']))
+                $postFields['webm'] = 1;
         }
     } else {
         $postFields['audioOnly'] = 1;
         $postFields['spectrum'] = 1;
     }
+
+    if (!empty($_FILES['upl']['override_status']))
+        $postFields['override_status'] = $_FILES['upl']['override_status'];
+
+    if (!empty($_FILES['upl']['update_video_id']))
+        $postFields['update_video_id'] = $_FILES['upl']['update_video_id'];
+
     $queue[] = $video->queue($postFields);
 
     //exec("/usr/bin/php -f videoEncoder.php {$_FILES['upl']['tmp_name']} {$filename}  1> Video::getStoragePath()."{$filename}_progress.txt  2>&1", $output, $return_val);

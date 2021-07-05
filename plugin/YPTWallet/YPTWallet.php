@@ -37,7 +37,7 @@ class YPTWallet extends PluginAbstract
 
     public function getPluginVersion()
     {
-        return "3.2";
+        return "4.0";
     }
 
     public function getEmptyDataObject()
@@ -74,6 +74,7 @@ class YPTWallet extends PluginAbstract
         $obj->manualAddFundsTransferFromUserId = 1;
         // sell funds
         $obj->enableManualWithdrawFundsPage = true;
+        $obj->enableAutoWithdrawFundsPage = false;
         $obj->withdrawFundsOptions = "[5,10,20,50,100,1000]";
         $obj->manualWithdrawFundsMenuTitle = "Withdraw Funds";
         $obj->manualWithdrawFundsPageButton = "Request Withdraw";
@@ -93,6 +94,18 @@ class YPTWallet extends PluginAbstract
         return $obj;
     }
 
+    public function updateScript() {
+        global $global;
+        if (AVideoPlugin::compareVersion($this->getName(), "4.0") < 0) {
+            $sqls = file_get_contents($global['systemRootPath'] . 'plugin/YPTWallet/install/updateV4.0.sql');
+            $sqlParts = explode(";", $sqls);
+            foreach ($sqlParts as $value) {
+                sqlDal::writeSql(trim($value));
+            }
+        }
+        return true;
+    }
+    
     public function getBalance($users_id)
     {
         $wallet = self::getWallet($users_id);
@@ -338,8 +351,7 @@ class YPTWallet extends PluginAbstract
         return self::transferBalanceFromSiteOwner(User::getId(), $value);
     }
 
-    public static function transferBalance($users_id_from, $users_id_to, $value, $forceDescription = "", $forceTransfer = false)
-    {
+    public static function transferBalance($users_id_from, $users_id_to, $value, $forceDescription = "", $forceTransfer = false) {
         global $global;
         _error_log("transferBalance: $users_id_from, $users_id_to, $value, $forceDescription, $forceTransfer");
         if (!User::isAdmin()) {
@@ -388,6 +400,20 @@ class YPTWallet extends PluginAbstract
         ObjectYPT::clearSessionCache();
         WalletLog::addLog($wallet_id, $value, $description, "{}", "success", "transferBalance from");
         return true;
+    }
+    
+    public static function transferAndSplitBalanceWithSiteOwner($users_id_from, $users_id_to, $value, $siteowner_percentage, $forceDescription = "") {
+        
+        $response1 = self::transferBalance($users_id_from, $users_id_to, $value, $forceDescription, true);
+        $response2 = true;
+        if(!empty($siteowner_percentage)){
+            $siteowner_value = ($value/100)*$siteowner_percentage;
+            if($response1){
+                $response2 = self::transferBalanceToSiteOwner($users_id_to, $siteowner_value, $forceDescription." {$siteowner_percentage}% fee",true);
+            }
+        }
+        
+        return $response1 && $response2;
     }
 
     public function getHTMLMenuRight()
@@ -629,8 +655,21 @@ class YPTWallet extends PluginAbstract
         global $global;
         $obj = $this->getDataObject();
         $js = "";
-        $js .= "<script src=\"{$global['webSiteRootURL']}plugin/YPTWallet/script.js\"></script>";
+        $js .= "<script src=\"".getCDN()."plugin/YPTWallet/script.js\"></script>";
 
         return $js;
+    }
+    
+    static function setAddFundsSuccessRedirectURL($url){
+        _session_start();
+        $_SESSION['addFunds_Success'] = $url;
+    }   
+    
+    static function getAddFundsSuccessRedirectURL(){
+        return $_SESSION['addFunds_Success'];
+    }
+    
+    static function setAddFundsSuccessRedirectToVideo($videos_id){
+        self::setAddFundsSuccessRedirectURL(getRedirectToVideo($videos_id));
     }
 }

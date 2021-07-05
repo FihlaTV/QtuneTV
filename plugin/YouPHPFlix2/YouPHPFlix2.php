@@ -37,6 +37,8 @@ class YouPHPFlix2 extends PluginAbstract {
         $obj->SuggestedAutoPlay = true;
         $obj->PlayList = true;
         $obj->PlayListAutoPlay = true;
+        $obj->Channels = true;
+        $obj->ChannelsAutoPlay = true;
         $obj->Trending = true;
         $obj->TrendingAutoPlay = true;
         $obj->DateAdded = true;
@@ -63,6 +65,7 @@ class YouPHPFlix2 extends PluginAbstract {
         $obj->titleLabel = true;
         $obj->titleLabelOverPoster = false;
         $obj->titleLabelCSS = "";
+        $obj->hidePlayButtonIfCannotWatch = false;
         return $obj;
     }
 
@@ -89,22 +92,22 @@ class YouPHPFlix2 extends PluginAbstract {
             return "";
         }
         $css = "";
-        //$css .= "<link href=\"{$global['webSiteRootURL']}view/css/custom/".$obj->theme.".css\" rel=\"stylesheet\" type=\"text/css\"/>";
-        $css .= "<link href=\"{$global['webSiteRootURL']}plugin/YouPHPFlix2/view/css/style.css?".  filectime("{$global['systemRootPath']}plugin/YouPHPFlix2/view/css/style.css")."\" rel=\"stylesheet\" type=\"text/css\"/>";
+        //$css .= "<link href=\"".getCDN()."view/css/custom/".$obj->theme.".css\" rel=\"stylesheet\" type=\"text/css\"/>";
+        $css .= "<link href=\"".getCDN()."plugin/YouPHPFlix2/view/css/style.css?".  filectime("{$global['systemRootPath']}plugin/YouPHPFlix2/view/css/style.css")."\" rel=\"stylesheet\" type=\"text/css\"/>";
         if(!empty($obj->youtubeModeOnFullscreen) && canFullScreen()){
             $isEmbed = 1;
-            $css .= '<link href="' . $global['webSiteRootURL'] . 'plugin/YouPHPFlix2/view/css/fullscreen.css" rel="stylesheet" type="text/css"/>';
+            $css .= '<link href="' .getCDN() . 'plugin/YouPHPFlix2/view/css/fullscreen.css" rel="stylesheet" type="text/css"/>';
             $css .= '<style>.container-fluid {overflow: visible;padding: 0;}#mvideo{padding: 0 !important; position: absolute; top: 0;}</style>';
             $css .= '<style>body.fullScreen{overflow: hidden;}</style>';
         }
         return $css;
     }
 
-    static function getLinkToVideo($videos_id){
+    static function getLinkToVideo($videos_id, $ignoreEmbed = false){
         $obj = AVideoPlugin::getObjectData("YouPHPFlix2");
         $link = Video::getLinkToVideo($videos_id);
         if(!empty($obj->playVideoOnFullscreen)){
-            if(!Video::isSerie($videos_id)){
+            if(!Video::isSerie($videos_id) && empty($ignoreEmbed)){
                 $link = parseVideos($link, 1, 0, 0, 0, 1);
             }
         }
@@ -127,7 +130,7 @@ class YouPHPFlix2 extends PluginAbstract {
         } else{
             $js .= '<script>var playVideoOnFullscreen = false</script>';
         }
-        $js .= '<script src="' . $global['webSiteRootURL'] . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
+        $js .= '<script src="' .getCDN() . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
         return $js;
     }
 

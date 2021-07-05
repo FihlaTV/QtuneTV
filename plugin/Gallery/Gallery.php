@@ -34,18 +34,18 @@ class Gallery extends PluginAbstract {
         global $global;
         $obj = $this->getDataObject();
         // preload image
-        $js = "<script>var img1 = new Image();img1.src=\"{$global['webSiteRootURL']}view/img/video-placeholder-gray.png\";</script>";
-        $css = '<link href="' . $global['webSiteRootURL'] . 'plugin/Gallery/style.css?' . (filemtime($global['systemRootPath'] . 'plugin/Gallery/style.css')) . '" rel="stylesheet" type="text/css"/>';
+        $js = "<script>var img1 = new Image();img1.src=\"".getCDN()."view/img/video-placeholder-gray.png\";</script>";
+        $css = '<link href="' . getCDN() . 'plugin/Gallery/style.css?' . (filemtime($global['systemRootPath'] . 'plugin/Gallery/style.css')) . '" rel="stylesheet" type="text/css"/>';
 
         if (!empty($obj->playVideoOnFullscreenOnIframe)) {
             if (canFullScreen()) {
-                $css .= '<link href="' . $global['webSiteRootURL'] . 'plugin/YouPHPFlix2/view/css/fullscreen.css" rel="stylesheet" type="text/css"/>';
+                $css .= '<link href="' . getCDN() . 'plugin/YouPHPFlix2/view/css/fullscreen.css" rel="stylesheet" type="text/css"/>';
                 $css .= '<style>.container-fluid {overflow: visible;padding: 0;}#mvideo{padding: 0 !important; position: absolute; top: 0;}</style>';
                 $css .= '<style>body.fullScreen{overflow: hidden;}</style>';
             }
             $js .= '<script>var playVideoOnFullscreen = true</script>';
         } else if (!empty($obj->playVideoOnFullscreen) && canFullScreen()) {
-            $css .= '<link href="' . $global['webSiteRootURL'] . 'plugin/Gallery/fullscreen.css" rel="stylesheet" type="text/css"/>';
+            $css .= '<link href="' . getCDN() . 'plugin/Gallery/fullscreen.css" rel="stylesheet" type="text/css"/>';
         }
         if (!empty($obj->playVideoOnFullscreen)) {
             $css .= '<style>body.fullScreen{overflow: hidden;}</style>';
@@ -67,28 +67,43 @@ class Gallery extends PluginAbstract {
         $obj->Suggested = true;
         $obj->SuggestedCustomTitle = "";
         $obj->SuggestedRowCount = 12;
+        $obj->SuggestedOrder = 1;
 
         $obj->Trending = true;
         $obj->TrendingCustomTitle = "";
         $obj->TrendingRowCount = 12;
+        $obj->TrendingOrder = 2;
 
         $obj->DateAdded = true;
         $obj->DateAddedCustomTitle = "";
         $obj->DateAddedRowCount = 12;
+        $obj->DateAddedOrder = 3;
+        
         $obj->MostWatched = true;
         $obj->MostWatchedCustomTitle = "";
         $obj->MostWatchedRowCount = 12;
+        $obj->MostWatchedOrder = 4;
+        
         $obj->MostPopular = true;
         $obj->MostPopularCustomTitle = "";
         $obj->MostPopularRowCount = 12;
+        $obj->MostPopularOrder = 5;
+        
         $obj->SortByName = false;
         $obj->SortByNameCustomTitle = "";
         $obj->SortByNameRowCount = 12;
+        $obj->SortByNameOrder = 6;
+        
         $obj->SubscribedChannels = true;
         $obj->SubscribedChannelsRowCount = 12;
+        $obj->SubscribedChannelsOrder = 7;
+        
         $obj->Categories = true;
         $obj->CategoriesCustomTitle = "";
         $obj->CategoriesRowCount = 12;
+        $obj->CategoriesOrder = 7;
+        $obj->CategoriesShowOnlySuggested = false;
+        
         $obj->sortReverseable = false;
         $obj->SubCategorys = false;
         $obj->showTags = true;
@@ -156,17 +171,17 @@ class Gallery extends PluginAbstract {
 
         $js = '';
         if (!empty($obj->playVideoOnFullscreenOnIframe)) {
-            $js = '<script src="' . $global['webSiteRootURL'] . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
+            $js = '<script src="' . getCDN() . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
             $js .= '<script>$(function () { if(typeof linksToFullscreen === \'function\'){ linksToFullscreen(\'a.galleryLink\'); } });</script>';
         } else
         if (!empty($obj->playVideoOnFullscreen)) {
-            $js = '<script src="' . $global['webSiteRootURL'] . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
+            $js = '<script src="' . getCDN() . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
             $js .= '<script>$(function () { if(typeof linksToEmbed === \'function\'){ linksToEmbed(\'a.galleryLink\'); } });</script>';
         } else
         if (!empty($obj->playVideoOnBrowserFullscreen)) {
-            $js = '<script src="' . $global['webSiteRootURL'] . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
+            $js = '<script src="' . getCDN() . 'plugin/YouPHPFlix2/view/js/fullscreen.js"></script>';
             $js .= '<script>$(function () { if(typeof linksToEmbed === \'function\'){ linksToEmbed(\'a.galleryLink\'); } });</script>';
-            $js .= '<script src="' . $global['webSiteRootURL'] . 'plugin/Gallery/fullscreen.js"></script>';
+            $js .= '<script src="' . getCDN() . 'plugin/Gallery/fullscreen.js"></script>';
             $js .= '<script>var playVideoOnBrowserFullscreen = 1;</script>';
         }
         return $js;
@@ -188,6 +203,28 @@ class Gallery extends PluginAbstract {
             }
         }
         return $selectedThemes;
+    }
+    
+    static function getSectionsOrder(){
+        $obj = AVideoPlugin::getObjectData('Gallery');
+        $sections = array();
+        foreach ($obj as $key => $value) {
+            if(preg_match('/(.*)Order$/', $key, $matches)){
+                $index = $value;
+                while(isset($sections[$index])){
+                    $index++;
+                }
+                $sections[$index] = array('name'=>$matches[1], 'active'=>$obj->{$matches[1]});
+            }
+        }
+        ksort($sections);
+        return $sections;
+        
+    }
+    
+    public function getPluginMenu() {
+        global $global;
+        return '<button onclick="avideoModalIframeSmall(webSiteRootURL+\'plugin/Gallery/view/sections.php\')" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fas fa-sort-numeric-down"></i> ' . __('Sort Sections') . '</button>';
     }
 
 }

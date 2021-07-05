@@ -5,6 +5,23 @@ require_once dirname(__FILE__) . '/../../../objects/bootGrid.php';
 require_once dirname(__FILE__) . '/../../../objects/user.php';
 
 class Menu extends ObjectYPT {
+    
+    static $typeLeftMenu = 1;
+    static $typeTopMenu = 2;
+    static $typeActionMenu = 3;
+    static $typeActionMenuCustomURL = 4;
+    static $typeActionMenuCustomURLForLoggedUsers = 5;
+    static $typeActionMenuCustomURLForUsersThatCanWatchVideo = 6;
+    static $typeActionMenuCustomURLForUsersThatCanNotWatchVideo = 7;
+    
+    static $typeName = array(
+        1=>'Left', 
+        2=>'Top', 
+        3=>'Action', 
+        4=>'Action Per Video', 
+        5=>'Action Per Video For Logged Users Only', 
+        6=>'Action Per Video For Users That can Watch Video', 
+        7=>'Action Per Video For Users That can NOT Watch Video');
 
     protected $id, $menuName, $categories_id, $users_groups_id, $menu_order, $status, $position, $type, $icon, $menuSeoUrl;
 
@@ -59,7 +76,7 @@ class Menu extends ObjectYPT {
             $sql .= " AND type = $type ";
         }
         $sql .= " ORDER BY menu_order ";
-        
+        _mysql_connect();
         $res = $global['mysqli']->query($sql);
         $rows = array();
         if ($res) {

@@ -4,8 +4,8 @@ if (!isset($global['systemRootPath'])) {
     require_once '../videos/configuration.php';
 }
 _session_start();
-unset($_SESSION['user']['thereIsAnyRemoteUpdate']);
-unset($_SESSION['user']['thereIsAnyUpdate']);
+unset($_SESSION['sessionCache']['thereIsAnyRemoteUpdate']);
+unset($_SESSION['sessionCache']['thereIsAnyUpdate']);
 session_write_close();
 require_once $global['systemRootPath'] . 'objects/user.php';
 //check if there is a update
@@ -192,7 +192,7 @@ if (!empty($_POST['updateFile'])) {
         <?php
         include $global['systemRootPath'] . 'view/include/footer.php';
         ?>
-        <script src="<?php echo $global['webSiteRootURL']; ?>js/three.js" type="text/javascript"></script>
+        <script src="<?php echo getCDN(); ?>js/three.js" type="text/javascript"></script>
     </body>
 </html>
 <?php

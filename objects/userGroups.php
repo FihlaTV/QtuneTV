@@ -199,25 +199,42 @@ class UserGroups {
 
     // for users
 
-    static function updateUserGroups($users_id, $array_groups_id, $byPassAdmin=false){
+    static function updateUserGroups($users_id, $array_groups_id, $byPassAdmin=false, $mergeWithCurrentUserGroups=false){
         if (!$byPassAdmin && !Permissions::canAdminUsers()) {
             return false;
         }
         if (!is_array($array_groups_id)) {
             return false;
         }
+        
+        if($mergeWithCurrentUserGroups){
+            $current_user_groups = self::getUserGroups($users_id);
+            foreach ($current_user_groups as $value) {
+                if(!in_array($value['id'], $array_groups_id)){
+                    $array_groups_id[] = $value['id'];
+                }
+            }
+        }
+        
         self::deleteGroupsFromUser($users_id, true);
         global $global;
         $array_groups_id = array_unique($array_groups_id);
         $sql = "INSERT INTO users_has_users_groups ( users_id, users_groups_id) VALUES (?,?)";
         foreach ($array_groups_id as $value) {
             $value = intval($value);
+            if(empty($value)){
+                continue;
+            }
             sqlDAL::writeSql($sql,"ii",array($users_id,$value));
         }
 
         return true;
     }
 
+     static function getAlUserGroupsFromUser($users_id) {
+         return self::getUserGroups($users_id);
+     }
+    
     static function getUserGroups($users_id) {
         global $global;
         $res = sqlDAL::readSql("SHOW TABLES LIKE 'users_has_users_groups'");
@@ -329,13 +346,23 @@ class UserGroups {
         return $response;
     }
 
-    static function updateVideoGroups($videos_id, $array_groups_id) {
+    static function updateVideoGroups($videos_id, $array_groups_id, $mergeWithCurrentUserGroups=false) {
         if (!User::canUpload()) {
             return false;
         }
         if (!is_array($array_groups_id)) {
             return false;
         }
+        
+        if($mergeWithCurrentUserGroups){
+            $current_user_groups = self::getVideoGroups($videos_id);
+            foreach ($current_user_groups as $value) {
+                if(!in_array($value['id'], $array_groups_id)){
+                    $array_groups_id[] = $value['id'];
+                }
+            }
+        }
+        
         self::deleteGroupsFromVideo($videos_id);
         global $global;
 

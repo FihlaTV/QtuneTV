@@ -1,9 +1,10 @@
 <?php
 global $advancedCustom;
 $uid = uniqid();
-$video = Video::getVideo("", "viewableNotUnlisted", true, false, true);
+$obj2 = AVideoPlugin::getObjectData("YouPHPFlix2");
+$video = Video::getVideo("", "viewableNotUnlisted", !$obj2->hidePrivateVideos, false, true);
 if (empty($video)) {
-    $video = Video::getVideo("", "viewableNotUnlisted", true, true);
+    $video = Video::getVideo("", "viewableNotUnlisted", !$obj2->hidePrivateVideos, true);
 }
 if ($obj->BigVideo && empty($_GET['showOnly'])) {
     if (empty($video)) {
@@ -19,8 +20,10 @@ if ($obj->BigVideo && empty($_GET['showOnly'])) {
         $poster = $images->poster;
         $canWatchPlayButton = "";
         $get = $_GET;
-        if (User::canWatchVideoWithAds($video['id']) && !Video::isSerie($video['id'])) {
+        if (User::canWatchVideoWithAds($video['id'])) {
             $canWatchPlayButton = "canWatchPlayButton";
+        }else if($obj->hidePlayButtonIfCannotWatch){
+            $canWatchPlayButton = "hidden";
         }
         $_GET = $get;
         ?>
@@ -40,7 +43,7 @@ if ($obj->BigVideo && empty($_GET['showOnly'])) {
              if (!isMobile() && !empty($video['trailer1'])) {
                  $percent = 2;
                  ?>
-            <div id="bg_container" class="" style="height: 100%;" >
+                <div id="bg_container" class="" style="height: 100%;" >
                     <iframe src="<?php echo parseVideos($video['trailer1'], 1, 1, 1, 0, 0, 0, 'cover'); ?>"
                             frameborder="0"  allowtransparency="true"
                             allow="autoplay"></iframe>
@@ -59,9 +62,9 @@ if ($obj->BigVideo && empty($_GET['showOnly'])) {
                  background: linear-gradient(right, rgba(<?php echo $obj->backgroundRGB; ?>,1) <?php echo $percent; ?>%, rgba(<?php echo $obj->backgroundRGB; ?>,0) 100%);
                  background: -moz-linear-gradient(to right, rgba(<?php echo $obj->backgroundRGB; ?>,1) <?php echo $percent; ?>%, rgba(<?php echo $obj->backgroundRGB; ?>,0) 100%);
                  ">
-                 <?php
-                 include $global['systemRootPath'] . 'plugin/YouPHPFlix2/view/BigVideoInfoDetails.php';
-                 ?>
+                     <?php
+                     include $global['systemRootPath'] . 'plugin/YouPHPFlix2/view/BigVideoInfoDetails.php';
+                     ?>
                 <div class="row hidden-xs">
                     <?php
                     include $global['systemRootPath'] . 'plugin/YouPHPFlix2/view/BigVideoPosterDescription.php';
@@ -80,4 +83,14 @@ if ($obj->BigVideo && empty($_GET['showOnly'])) {
     ?>
     <a href="<?php echo $global['webSiteRootURL']; ?>" class="btn btn-default"><i class="fa fa-arrow-left"></i> <?php echo __("Go Back"); ?></a>
     <?php
+} else {
+    $ads1 = getAdsLeaderBoardTop();
+    if (!empty($ads1)) {
+        ?>
+        <div class="row text-center" style="padding: 10px;">
+            <?php echo $ads1; ?>
+        </div>
+        <?php
+    }
 }
+?>

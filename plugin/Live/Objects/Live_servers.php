@@ -126,13 +126,13 @@ class Live_servers extends ObjectYPT {
         $this->controlURL = $controlURL;
     }
         
-    static function getStatsFromId($live_servers_id) {
+    static function getStatsFromId($live_servers_id, $force_recreate = false) {
         $ls = new Live_servers($live_servers_id);
         if (empty($ls->getStatus()) || $ls->getStatus()=='i') {
             _error_log("Live_servers:: getStatsFromId ERROR ".json_encode($ls));
             return false;
         }
-        return Live::_getStats($live_servers_id);
+        return Live::_getStats($live_servers_id, $force_recreate);
     }
 
     static function getAllActive() {
@@ -162,12 +162,16 @@ class Live_servers extends ObjectYPT {
     }
 
     static function getServerFromRTMPHost($rtmpHostURI) {
+        $obj = AVideoPlugin::getObjectData('Live');
+        if(empty($obj->useLiveServers)){
+            return 0;
+        }
         global $global;
         $host = trim($rtmpHostURI);
         $parts = parse_url($host);
         $host = "rtmp://{$parts["host"]}{$parts["path"]}";
         $host = $global['mysqli']->real_escape_string($host);
-        $sql = "SELECT * FROM  " . static::getTableName() . " WHERE rtmp_server LIKE '%{$host}%' ";
+        $sql = "SELECT * FROM  " . static::getTableName() . " WHERE rtmp_server LIKE '%{$host}%' AND status = 'a' ";
         $res = sqlDAL::readSql($sql);
         $data = sqlDAL::fetchAssoc($res);
         sqlDAL::close($res);

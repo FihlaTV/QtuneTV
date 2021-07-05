@@ -1,4 +1,28 @@
 <?php
+
+//$global['stopBotsList'] = array('bot','spider','rouwler','Nuclei','MegaIndex','NetSystemsResearch','CensysInspect','slurp','crawler','curl','fetch','loader');
+//$global['stopBotsWhiteList'] = array('google','bing','yahoo','yandex','twitter');
+if (!empty($global['stopBotsList']) && is_array($global['stopBotsList'])) {
+    foreach ($global['stopBotsList'] as $value) {
+        if(empty($_SERVER['HTTP_USER_AGENT'])){
+            continue;
+        }
+        if (stripos($_SERVER['HTTP_USER_AGENT'], $value) !== false) {
+            if (!empty($global['stopBotsWhiteList']) && is_array($global['stopBotsWhiteList'])) {
+                // check if it is whitelisted
+                foreach ($global['stopBotsWhiteList'] as $key => $value2) {
+                    if (stripos($_SERVER['HTTP_USER_AGENT'], $value2) !== false) {
+                        break 2;
+                    }
+                }
+            }
+            die('Bot Found ' . $_SERVER['HTTP_USER_AGENT']);
+        }
+    }
+}
+
+$global['avideoStartMicrotime'] = microtime(true);
+
 require_once __DIR__ . DIRECTORY_SEPARATOR . 'autoload.php';
 
 $global['webSiteRootURL'] .= (substr($global['webSiteRootURL'], -1) == '/' ? '' : '/');
@@ -17,6 +41,7 @@ global $global, $config, $advancedCustom, $advancedCustomUser;
 $global['mysqli'] = new mysqli($mysqlHost, $mysqlUser, $mysqlPass, $mysqlDatabase, @$mysqlPort);
 
 if ($global['mysqli'] === false || !empty($global['mysqli']->connect_errno)) {
+    error_log("MySQL connect_errno[{$global['mysqli']->connect_errno}] {$global['mysqli']->connect_error}");
     include $global['systemRootPath'] . 'view/include/offlinePage.php';
     exit;
 }
@@ -66,8 +91,8 @@ $url1['host'] = '';
 $global['HTTP_REFERER'] = '';
 if (!empty($_SERVER['HTTP_REFERER'])) {
     if ((
-        strpos($_SERVER['HTTP_REFERER'], '/video/') !== false || strpos($_SERVER['HTTP_REFERER'], '/v/') !== false
-    ) &&
+            strpos($_SERVER['HTTP_REFERER'], '/video/') !== false || strpos($_SERVER['HTTP_REFERER'], '/v/') !== false
+            ) &&
             !empty($_SESSION['LAST_HTTP_REFERER'])) {
         if (strpos($_SESSION['LAST_HTTP_REFERER'], 'cache/css/') !== false ||
                 strpos($_SESSION['LAST_HTTP_REFERER'], 'cache/js/') !== false ||
@@ -111,6 +136,7 @@ require_once $global['systemRootPath'] . 'objects/plugin.php';
 require_once $global['systemRootPath'] . 'objects/user.php';
 require_once $global['systemRootPath'] . 'objects/video.php';
 require_once $global['systemRootPath'] . 'plugin/AVideoPlugin.php';
+fixSystemPath();
 ObjectYPT::checkSessionCacheBasedOnLastDeleteALLCacheTime();
 getDeviceID();
 allowOrigin();
@@ -125,18 +151,25 @@ if (empty($global['bodyClass'])) {
     $global['bodyClass'] = '';
 }
 $global['allowedExtension'] = array('gif', 'jpg', 'mp4', 'webm', 'mp3', 'm4a', 'ogg', 'zip', 'm3u8');
+
+if (empty($global['avideo_resolutions'])) {
+    $global['avideo_resolutions'] = array(240, 360, 480, 540, 720, 1080, 1440, 2160);
+}
+
+sort($global['avideo_resolutions']);
+
 $advancedCustom = AVideoPlugin::getObjectData('CustomizeAdvanced');
 
 if (empty($global['disableTimeFix'])) {
     /*
-    $now = new DateTime();
-    $mins = $now->getOffset() / 60;
-    $sgn = ($mins < 0 ? -1 : 1);
-    $mins = abs($mins);
-    $hrs = floor($mins / 60);
-    $mins -= $hrs * 60;
-    $offset = sprintf('%+d:%02d', $hrs * $sgn, $mins);
-    $global['mysqli']->query("SET time_zone='$offset';");
+      $now = new DateTime();
+      $mins = $now->getOffset() / 60;
+      $sgn = ($mins < 0 ? -1 : 1);
+      $mins = abs($mins);
+      $hrs = floor($mins / 60);
+      $mins -= $hrs * 60;
+      $offset = sprintf('%+d:%02d', $hrs * $sgn, $mins);
+      $global['mysqli']->query("SET time_zone='$offset';");
      */
     ObjectYPT::setTimeZone();
 }

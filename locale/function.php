@@ -53,6 +53,11 @@ function getAllFlags() {
     return $flags;
 }
 
+/**
+ * Deprecated replaced by Layout::getAvilableFlags()
+ * @global type $global
+ * @return type
+ */
 function getEnabledLangs() {
     global $global;
     $dir = "{$global['systemRootPath']}locale";
@@ -77,7 +82,7 @@ function textToLink($string, $targetBlank = false) {
     if ($targetBlank) {
         $target = "target=\"_blank\"";
     }
-    
+
     return preg_replace(
         "~[[:alpha:]]+://[^<>[:space:]'\"]+[[:alnum:]/]~",
         "<a href=\"\\0\" {$target} >\\0</a>",

@@ -1,5 +1,4 @@
 <?php
-
 global $global, $config;
 if (!isset($global['systemRootPath'])) {
     require_once '../videos/configuration.php';
@@ -16,7 +15,7 @@ if (empty($_GET['file'])) {
 
 $path_parts = pathinfo($_GET['file']);
 $file = $path_parts['basename'];
-$path = Video::getStoragePath()."{$file}";
+
 
 if ($file == "X-Sendfile.mp4") {
     $path = "{$global['systemRootPath']}plugin/SecureVideosDirectory/test.json";
@@ -32,15 +31,16 @@ if ($file == "X-Sendfile.mp4") {
 }
 
 if ($file == "configuration.php") {
-    _error_log("XSENDFILE Cant read this configuration ");
-    forbiddenPage("Cant read this");
+    _error_log("XSENDFILE Can't read this configuration ");
+    forbiddenPage("Can't read this");
 }
 
+$path = Video::getPathToFile($file);
 if (file_exists($path)) {
     if (!empty($_GET['download'])) {
         if(!CustomizeUser::canDownloadVideos()){
             _error_log("downloadHLS: CustomizeUser::canDownloadVideos said NO");
-            forbiddenPage("Cant download this");
+            forbiddenPage("Can't download this");
         }
         if (!empty($_GET['title'])) {
             $quoted = sprintf('"%s"', addcslashes(basename($_GET['title']), '"\\'));
@@ -62,6 +62,8 @@ if (file_exists($path)) {
         if (empty($advancedCustom->doNotUseXsendFile)) {
             //_error_log("X-Sendfile: {$path}");
             header("X-Sendfile: {$path}");
+        }else{
+            _error_log("Careful, we recommend you to use the X-Sendfile and it is disabled on AdvancedCustom plugin -> doNotUseXsendFile. You may have an error 'Allowed Memory Size Exhausted' if your video file is too big", AVideoLog::$WARNING);
         }
     } else {
         $advancedCustom->doNotUseXsendFile = true;
@@ -70,7 +72,7 @@ if (file_exists($path)) {
     header('Content-Length: ' . filesize($path));
     if (!empty($advancedCustom->doNotUseXsendFile)) {
         ini_set('memory_limit', filesize($path) * 1.5);
-        _error_log("Your XSEND File is not enabled, it may slowdown your site, file = $path", AVideoLog::$WARNING);
+        _error_log("Your XSEND File is not enabled, it may slow down your site, file = $path", AVideoLog::$WARNING);
         //echo url_get_contents($path);
         // stream the file
         $fp = fopen($path, 'rb');

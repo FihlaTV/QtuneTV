@@ -3,9 +3,8 @@ global $global, $config;
 if (!isset($global['systemRootPath'])) {
     require_once '../videos/configuration.php';
 }
+User::loginFromRequest();
 session_write_close();
-require_once $global['systemRootPath'] . 'objects/video.php';
-require_once $global['systemRootPath'] . 'objects/functions.php';
 header('Content-Type: application/json');
 $showOnlyLoggedUserVideos = true;
 if (Permissions::canModerateVideos()) {
@@ -27,8 +26,7 @@ if (empty($_REQUEST['current'])) {
 $videos = Video::getAllVideos('', $showOnlyLoggedUserVideos, true, array(), false, $showUnlisted, $activeUsersOnly);
 $total = Video::getTotalVideos('', $showOnlyLoggedUserVideos, true, $showUnlisted, $activeUsersOnly);
 foreach ($videos as $key => $value) {
-    unset($value['password']);
-    unset($value['recoverPass']);
+    unset($value['password'], $value['recoverPass']);
     $name = empty($value['name'])?$value['user']:$value['name'];
     //$categories[$key]['comment'] = " <div class=\"commenterName\"><strong>{$name}</strong><div class=\"date sub-text\">{$value['created']}</div></div><div class=\"commentText\">". nl2br($value['comment'])."</div>";
     $videos[$key]['creator'] = '<div class="pull-left"><img src="'.User::getPhoto($value['users_id']).'" alt="User Photo" class="img img-responsive img-circle" style="max-width: 50px;"/></div><div class="commentDetails"><div class="commenterName"><strong>'.$name.'</strong>' . User::getEmailVerifiedIcon($value['users_id']) . ' <small>'.humanTiming(strtotime($value['videoCreation'])).'</small></div></div>';
@@ -55,8 +53,15 @@ foreach ($videos as $key => $value) {
     } else {
         $videos[$key]['videosURL'] = getVideosURL($videos[$key]['filename']);
     }
-    unset($videos[$key]['password']);
-    unset($videos[$key]['recoverPass']);
+    unset($videos[$key]['password'], $videos[$key]['recoverPass']);
 }
 
-echo '{  "current": '.$_REQUEST['current'].',"rowCount": '.$_REQUEST['rowCount'].', "total": '.$total.', "rows":'. json_encode($videos).'}';
+$obj = new stdClass();
+$obj->users_id = User::getId();
+$obj->current = getCurrentPage();
+$obj->rowCount = getRowCount();
+$obj->total = $total;
+$obj->rows = $videos;
+
+die(json_encode($obj));
+exit;

@@ -15,9 +15,12 @@ class YPTSocket extends PluginAbstract {
 
     public function getDescription() {
         global $global;
-        $desc = getSocketConnectionLabel();
+        $desc = '<span class="socket_info" style="float: right; margin:0 10px;">'.getSocketConnectionLabel().'</span><script>if(isSocketActive()){setSocketIconStatus(\'connected\');}</script> ';
         $desc .= "Socket Plugin, WebSockets allow for a higher amount of efficiency compared to REST because they do not require the HTTP request/response overhead for each message sent and received<br>";
-        $desc .= "<code>sudo nohup php {$global['systemRootPath']}plugin/YPTSocket/server.php &</code>";
+        $desc .= "<br>To start it on server now <code>sudo nohup php {$global['systemRootPath']}plugin/YPTSocket/server.php &</code>";
+        $desc .= "<br>To test use <code>php {$global['systemRootPath']}plugin/YPTSocket/test.php</code>";
+        $desc .= "<br>To start it on server reboot add it on your crontab (Ubuntu 18+) <code>sudo crontab -eu root</code> than add this code on the last line <code>@reboot sleep 60;nohup php {$global['systemRootPath']}plugin/YPTSocket/server.php &</code>";
+        $desc .= "<br>If you use Certbot to renew your SSL use (Ubuntu 18+) <code>sudo crontab -eu root</code> than add this code on the last line <code>0 1 * * * nohup php {$global['systemRootPath']}plugin/YPTSocket/serverCertbot.php &</code>";
         $help = "<br>run this command start the server <small><a href='https://github.com/WWBN/AVideo/wiki/Socket-Plugin' target='__blank'><i class='fas fa-question-circle'></i> Help</a></small>";
 
         //$desc .= $this->isReadyLabel(array('YPTWallet'));
@@ -33,11 +36,11 @@ class YPTSocket extends PluginAbstract {
     }
 
     public function getPluginVersion() {
-        return "1.0";
+        return "1.1";
     }
     
     public static function getServerVersion() {
-        return "2.3";
+        return "2.6";
     }
 
     public function updateScript() {
@@ -61,11 +64,13 @@ class YPTSocket extends PluginAbstract {
         
         $host = parse_url($global['webSiteRootURL'], PHP_URL_HOST);
         
+        $obj->forceNonSecure = false;
+        self::addDataObjectHelper('forceNonSecure', 'Force not to use wss (non secure)', 'This is good if a reverse proxy is giving you a SSL');
         $obj->port = "2053";
         self::addDataObjectHelper('port', 'Server Port', 'You also MUST open this port on the firewall');
         $obj->host = $host;
         self::addDataObjectHelper('host', 'Server host', 'If your site is HTTPS make sure this host also handle the SSL connection');
-        $obj->debugSocket = false;
+        $obj->debugSocket = true;
         self::addDataObjectHelper('debugSocket', 'Show server debugger to admin', 'This will show a panel with some socket informations to the ADMIN user only');
         $obj->debugAllUsersSocket = false;
         self::addDataObjectHelper('debugAllUsersSocket', 'Show server debugger to all', 'Same as above but will show the panel to all users');
@@ -115,24 +120,25 @@ class YPTSocket extends PluginAbstract {
         }
         
         $SocketSendObj = new stdClass();
-        $SocketSendObj->webSocketToken = getEncryptedInfo(0,$send_to_uri_pattern);
         $SocketSendObj->msg = $msg;
-        $SocketSendObj->json = json_decode($msg);
+        $SocketSendObj->json = _json_decode($msg);
+        
+        $SocketSendObj->webSocketToken = getEncryptedInfo(0,$send_to_uri_pattern);
         $SocketSendObj->callback = $callbackJSFunction;
         
         $SocketSendResponseObj = new stdClass();
         $SocketSendResponseObj->error = true;
         $SocketSendResponseObj->msg = "";
         $SocketSendResponseObj->msgObj = $SocketSendObj;
-        $SocketSendResponseObj->callbackJSFunction = $callbackJSFunction;        
+        $SocketSendResponseObj->callbackJSFunction = $callbackJSFunction;  
         
         require_once $global['systemRootPath'] . 'objects/autoload.php';
 
-        $SocketURL = self::getWebSocketURL(true);
+        $SocketURL = self::getWebSocketURL(true, $SocketSendObj->webSocketToken);
         _error_log("Socket Send: {$SocketURL}");
         \Ratchet\Client\connect($SocketURL)->then(function($conn) {
             global $SocketSendObj, $SocketSendUsers_id, $SocketSendResponseObj;
-            $conn->on('message', function($msg) use ($conn) {
+            $conn->on('message', function($msg) use ($conn, $SocketSendResponseObj) {
                 //echo "Received: {$msg}\n";
                 //$conn->close();
                 $SocketSendResponseObj->error = false;
@@ -155,7 +161,7 @@ class YPTSocket extends PluginAbstract {
         return $SocketSendResponseObj;
     }
 
-    public static function getWebSocketURL($isCommandLine=false) {
+    public static function getWebSocketURL($isCommandLine=false, $webSocketToken='') {
         global $global;
         $socketobj = AVideoPlugin::getDataObject("YPTSocket");
         $address = $socketobj->host;
@@ -165,7 +171,10 @@ class YPTSocket extends PluginAbstract {
         if(strtolower($scheme)==='https'){
             $protocol = "wss";
         }
-        return "{$protocol}://{$address}:{$port}?webSocketToken=".getEncryptedInfo(0)."&isCommandLine=".intval($isCommandLine);
+        if(empty($webSocketToken)){
+            $webSocketToken = getEncryptedInfo(0);
+        }
+        return "{$protocol}://{$address}:{$port}?webSocketToken={$webSocketToken}&isCommandLine=".intval($isCommandLine);
     }
 
 }

@@ -200,8 +200,10 @@ class Plugin extends ObjectYPT {
         if ($comparePluginVersion) {
             $pluginsMarketplace = ObjectYPT::getSessionCache('getAvailablePlugins', 600); // 10 min cache
             if (empty($pluginsMarketplace)) {
-                $pluginsMarketplace = json_decode(url_get_contents("https://tutorials.avideo.com/info?version=1", "", 2));
-                ObjectYPT::setSessionCache('getAvailablePlugins', $pluginsMarketplace);
+                $pluginsMarketplace = _json_decode(url_get_contents("https://tutorials.avideo.com/info?version=1", "", 2));
+                if(!empty($pluginsMarketplace)){
+                    ObjectYPT::setSessionCache('getAvailablePlugins', $pluginsMarketplace);
+                }
             }
         }
         if (empty($getAvailablePlugins)) {
@@ -235,7 +237,7 @@ class Plugin extends ObjectYPT {
                         $obj->pluginversionMarketPlace = (!empty($pluginsMarketplace->plugins->{$obj->uuid}) ? $pluginsMarketplace->plugins->{$obj->uuid}->pluginversion : 0);
                         $obj->pluginversionCompare = (!empty($obj->pluginversionMarketPlace) ? version_compare($obj->pluginversion, $obj->pluginversionMarketPlace) : 0);
                         $obj->permissions = $obj->enabled ? Permissions::getPluginPermissions($obj->id) : array();
-                        if(User::isAdmin()){
+                        if (User::isAdmin()) {
                             $obj->isPluginTablesInstalled = AVideoPlugin::isPluginTablesInstalled($obj->name, false);
                         }
                         if ($obj->pluginversionCompare < 0) {
@@ -316,8 +318,7 @@ class Plugin extends ObjectYPT {
                 foreach ($fullData as $row) {
                     $getAllEnabledRows[] = $row;
                     if (($key = array_search($row['uuid'], $defaultEnabledUUIDs)) !== false) {
-                        unset($defaultEnabledUUIDs[$key]);
-                        unset($defaultEnabledNames[$key]);
+                        unset($defaultEnabledUUIDs[$key], $defaultEnabledNames[$key]);
                     }
                 }
 
@@ -451,7 +452,7 @@ class Plugin extends ObjectYPT {
         return parent::save();
     }
 
-    static function deletePluginCache($uuid){
+    static function deletePluginCache($uuid) {
         $name = "plugin{$uuid}";
         ObjectYPT::deleteCache($name);
         ObjectYPT::deleteCache("plugin::getAllEnabled");
@@ -460,7 +461,7 @@ class Plugin extends ObjectYPT {
     static function encryptIfNeed($object_data) {
         $isString = false;
         if (!is_object($object_data)) {
-            $object_data = json_decode($object_data);
+            $object_data = _json_decode($object_data);
             $isString = true;
         }
         if (!empty($object_data)) {
@@ -486,7 +487,7 @@ class Plugin extends ObjectYPT {
     static function decryptIfNeed($object_data) {
         $isString = false;
         if (!is_object($object_data)) {
-            $object_data = json_decode($object_data);
+            $object_data = _json_decode($object_data);
             $isString = true;
         }
         if (!empty($object_data)) {
@@ -510,7 +511,7 @@ class Plugin extends ObjectYPT {
     static function isEncrypted($object_data_element_value) {
         if (!empty($object_data_element_value)) {
             $object_data_element_value_json = decryptString($object_data_element_value);
-            $object_data_element_value_json = json_decode($object_data_element_value_json);
+            $object_data_element_value_json = _json_decode($object_data_element_value_json);
             if (!empty($object_data_element_value_json) && !empty($object_data_element_value_json->dateEncrypted)) {
                 return $object_data_element_value_json->value;
             }

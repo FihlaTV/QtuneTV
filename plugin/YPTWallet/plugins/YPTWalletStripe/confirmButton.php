@@ -122,8 +122,7 @@ $uid = uniqid();
                 if (!response.error) {
                     console.log(response);
                     stripe<?php echo $uid; ?>.confirmCardPayment(
-                            response.client_secret,
-                            {
+                            response.client_secret,{
                                 payment_method: {card: card<?php echo $uid; ?>}
                             }
                     ).then(function (result) {
@@ -138,7 +137,12 @@ $uid = uniqid();
                             // Send the token to your server.
                             avideoToast("<?php echo __("Payment Success"); ?>");
                             updateYPTWallet();
-                            setTimeout(function(){location.reload();}, 3000);
+                            setTimeout(function(){
+                                <?php
+                                $url = YPTWallet::getAddFundsSuccessRedirectURL();
+                                echo empty($url)?'location.reload();':"window.top.location.href='{$url}'";
+                                ?>
+                            }, 3000);
                         }
                     });
                 } else {

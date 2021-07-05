@@ -4,7 +4,7 @@ if (file_exists("../videos/configuration.php")) {
     exit;
 }
 
-$installationVersion = "10.2";
+$installationVersion = "11.1";
 
 error_log("Installation: ".__LINE__." ". json_encode($_POST));
 header('Content-Type: application/json');
@@ -207,6 +207,9 @@ if(empty(\$global['webSiteRootPath'])){
 \$mysqlUser = '{$_POST['databaseUser']}';
 \$mysqlPass = '{$_POST['databasePass']}';
 \$mysqlDatabase = '{$_POST['databaseName']}';
+    
+//\$global['stopBotsList'] = array('bot','spider','rouwler','Nuclei','MegaIndex','NetSystemsResearch','CensysInspect','slurp','crawler','curl','fetch','loader');
+//\$global['stopBotsWhiteList'] = array('google','bing','yahoo','yandex','twitter');
 
 /**
  * Do NOT change from here

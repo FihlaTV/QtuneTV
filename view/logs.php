@@ -130,7 +130,7 @@ $outputText .= $collapsibleClose;
 <html>
     <head>
         <title><?php echo __("Logs") . " " . date("Y-M-d H:i:s") . $config->getPageTitleSeparator() . $config->getWebSiteTitle(); ?></title>
-        <link rel="stylesheet" href="<?php echo $global['webSiteRootURL']; ?>view/css/terminal.min.css" />
+        <link rel="stylesheet" href="<?php echo getCDN(); ?>view/css/terminal.min.css" />
         <style>
             html {
                 scroll-behavior: smooth;
@@ -208,7 +208,7 @@ $outputText .= $collapsibleClose;
                 font-size: 0.8em;
             }
         </style>
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/jquery-3.5.1.min.js"></script>
+        <script src="<?php echo getCDN(); ?>view/js/jquery-3.5.1.min.js"></script>
     </head>
 
     <body  class="terminal">
@@ -220,8 +220,8 @@ $outputText .= $collapsibleClose;
                     </div>
                 </header>
             </div>
-            If you have a problem with your installation, feel free to share this log information on GitHub, 
-            on this log we hide all the sensitive information from your log. but it still very helpfull to find issues.
+            If you have a problem with your installation, feel free to share this log information on GitHub.
+            In this log, we hide all the sensitive information from your log, but it still very helpful for finding issues.
             <?php
             if (count($outputTextErrors)) {
                 ?>

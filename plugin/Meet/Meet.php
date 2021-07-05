@@ -171,7 +171,7 @@ Passcode: {password}
     public function getPluginMenu() {
         global $global;
         //return '<a href="plugin/Meet/View/editor.php" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fa fa-edit"></i> Edit</a>';
-        return '<a href="'.$global['webSiteRootURL'].'plugin/Meet/checkServers.php" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fas fa-network-wired"></i> Check Servers</a>';
+        return '<button onclick="avideoModalIframe(webSiteRootURL +\'plugin/Meet/checkServers.php\');" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fas fa-network-wired"></i> Check Servers</button>';
     }
 
     static function getMeetServerStatus($cache = 30) {
@@ -194,12 +194,12 @@ Passcode: {password}
         $json = new stdClass();
         $json->content = ObjectYPT::getCache($name, $cache);
         if (!empty($json->content) && !empty($json->time)) {
-            $json = json_decode($json->content);
+            $json = _json_decode($json->content);
             $json->msg = "From Cache";
         } else {
             $url = $meetServer . "api/checkMeet.json.php?webSiteRootURL=" . urlencode($global['webSiteRootURL']) . "&secret=" . $secret;
             $content = url_get_contents($url);
-            $json = json_decode($content);
+            $json = _json_decode($content);
             if (!empty($json)) {
                 $json->time = time();
                 $json->url = $url;
@@ -380,7 +380,7 @@ Passcode: {password}
          * Specific User Groups = 0
          * @return type
          */
-        if (empty($meet->getStarts()) || strtotime($meet->getStarts()) <= time()) {
+        if (empty($meet->getStarts()) || strtotime($meet->getStarts()) >= strtotime()) {
             // means public
             if ($meet->getPublic() == "2") {
                 $obj->canJoin = true;
@@ -396,7 +396,7 @@ Passcode: {password}
                 return $obj;
             }
         } else {
-            $obj->reason = "The meet does not start yet";
+            $obj->reason = "The meet does not start yet {$meet->getStarts()} ". humanTimingAfterwards($meet->getStarts());
             return $obj;
         }
     }
@@ -529,8 +529,9 @@ Passcode: {password}
         $ms = new Meet_schedule($meet_schedule_id);
         $invitation = $objM->invitation->value;
         $topic = $ms->getTopic();
-        $pass = $ms->getPassword();
-
+        if(User::isAdmin() || User::getId() == $ms->getUsers_id()){
+            $pass = $ms->getPassword();
+        }
         if (empty($topic)) {
             $invitation = preg_replace("/(\n|\r)[^\n\r]*{topic}[^\n\r]*(\n|\r)/i", "", $invitation);
         } else {

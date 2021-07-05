@@ -11,6 +11,7 @@ class API extends PluginAbstract {
             PluginTags::$MOBILE
         );
     }
+
     public function getDescription() {
         return "Handle APIs for third party Applications";
     }
@@ -38,7 +39,7 @@ class API extends PluginAbstract {
 
     public function set($parameters) {
         if (empty($parameters['APIName'])) {
-            $object = new ApiObject("Parameter APIName can not be empty");
+            $object = new ApiObject("Parameter APIName can not be empty (set)");
         } else {
             if (!empty($parameters['pass'])) {
                 $parameters['password'] = $parameters['pass'];
@@ -63,7 +64,7 @@ class API extends PluginAbstract {
 
     public function get($parameters) {
         if (empty($parameters['APIName'])) {
-            $object = new ApiObject("Parameter APIName can not be empty");
+            $object = new ApiObject("Parameter APIName can not be empty (get)");
         } else {
             if (!empty($parameters['pass'])) {
                 $parameters['password'] = $parameters['pass'];
@@ -139,6 +140,33 @@ class API extends PluginAbstract {
 
     /**
      * @param type $parameters 
+     * This will check if the provided UserAgent/Headers comes from a mobile
+     * Returns true if any type of mobile device detected, including special ones
+     * PHP Sample code: "plugin/API/{getOrSet}.json.php?APIName={APIName}&userAgent=".urlencode($_SERVER["HTTP_USER_AGENT"])."&httpHeaders=".urlencode(json_encode(getallheaders()))
+     * ['userAgent' usually is the variable $_SERVER["HTTP_USER_AGENT"]]
+     * ['httpHeaders' usually is the variable $_SERVER['HTTP_X_REQUESTED_WITH']]
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&userAgent=Mozilla%2F5.0+%28Windows+NT+10.0%3B+Win64%3B+x64%29+AppleWebKit%2F537.36+%28KHTML%2C+like+Gecko%29+Chrome%2F89.0.4389.82+Safari%2F537.36
+     * @return \ApiObject
+     */
+    public function get_api_is_mobile($parameters) {
+        global $global;
+        $obj = $this->startResponseObject($parameters);
+        if (!empty($_REQUEST['httpHeaders'])) {
+            $json = _json_decode($_REQUEST['httpHeaders']);
+            if (!empty($json)) {
+                $_REQUEST['httpHeaders'] = $json;
+            } else {
+                $_REQUEST['httpHeaders'] = array($_REQUEST['httpHeaders']);
+            }
+        }
+        $obj->userAgent = @$_REQUEST['userAgent'];
+        $obj->httpHeaders = @$_REQUEST['httpHeaders'];
+        $obj->isMobile = isMobile(@$obj->userAgent, @$obj->httpHeaders);
+        return new ApiObject("", false, $obj);
+    }
+
+    /**
+     * @param type $parameters 
      * ['sort' database sort column]
      * ['rowCount' max numbers of rows]
      * ['current' current page]
@@ -194,10 +222,10 @@ class API extends PluginAbstract {
         if (empty($videos[$parameters['nextIndex']])) {
             $parameters['nextIndex'] = 0;
         }
-        
+
         $playlist = new PlayList($parameters['playlists_id']);
         $user = new User($playlist->getUsers_id());
-        
+
         $videoPath = Video::getHigherVideoPathFromID($video['id']);
         $parameters['videos'] = $videos;
         $parameters['playlist_name'] = $playlist->getName();
@@ -211,20 +239,20 @@ class API extends PluginAbstract {
         $parameters['totalPlaylistDuration'] = 0;
         $parameters['currentPlaylistTime'] = 0;
         foreach ($parameters['videos'] as $key => $value) {
-            
+
             $parameters['videos'][$key]['path'] = Video::getHigherVideoPathFromID($value['id']);
-            if($key && $key<=$parameters['index']){
-                $parameters['currentPlaylistTime'] += durationToSeconds($parameters['videos'][$key-1]['duration']);
+            if ($key && $key <= $parameters['index']) {
+                $parameters['currentPlaylistTime'] += durationToSeconds($parameters['videos'][$key - 1]['duration']);
             }
             $parameters['totalPlaylistDuration'] += durationToSeconds($parameters['videos'][$key]['duration']);
-            
+
             $parameters['videos'][$key]['info'] = Video::getTags($value['id']);
             $parameters['videos'][$key]['category'] = Category::getCategory($value['categories_id']);
         }
-        if(empty($parameters['totalPlaylistDuration'])){
+        if (empty($parameters['totalPlaylistDuration'])) {
             $parameters['percentage_progress'] = 0;
-        }else{
-            $parameters['percentage_progress'] = ($parameters['currentPlaylistTime']/$parameters['totalPlaylistDuration'])*100;
+        } else {
+            $parameters['percentage_progress'] = ($parameters['currentPlaylistTime'] / $parameters['totalPlaylistDuration']) * 100;
         }
         $parameters['title'] = $video['title'];
         $parameters['videos_id'] = $video['id'];
@@ -245,7 +273,18 @@ class API extends PluginAbstract {
     public function get_api_video_file($parameters) {
         global $global;
         $obj = $this->startResponseObject($parameters);
-        $obj->video_file = Video::getHigherVideosPathsFromID($videos_id);
+        $obj->videos_id = $parameters['videos_id'];
+        $dataObj = $this->getDataObject();
+        if ($dataObj->APISecret !== @$parameters['APISecret']) {
+            if (!User::canWatchVideoWithAds($obj->videos_id)) {
+                return new ApiObject("You cannot watch this video");
+            }
+        }
+        $video = new Video('', '', $obj->videos_id);
+        $obj->filename = $video->getFilename();
+        $obj->video_file = Video::getHigherVideoPathFromID($obj->videos_id);
+        $obj->sources = getSources($obj->filename, true);
+        $obj->images = Video::getImageFromFilename($obj->filename);
         return new ApiObject("", false, $obj);
     }
 
@@ -261,10 +300,22 @@ class API extends PluginAbstract {
      * ['tags_id' the ID of the tag you want to filter]
      * ['catName' the clean_APIName of the category you want to filter]
      * ['channelName' the channelName of the videos you want to filter]
+     * ['is_serie' if is 0 return only videos, if is 1 return only series, if is not set, return all]
      * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&catName=default&rowCount=10
      * @return \ApiObject
      */
     public function get_api_video($parameters) {
+
+        $rowCount = getRowCount();
+        if ($rowCount > 100) {
+            // use 1 hour cache
+            $cacheName = 'get_api_video' . md5(json_encode($parameters) . json_encode($_GET));
+            $obj = ObjectYPT::getCache($cacheName, 3600);
+            if (!empty($obj)) {
+                return new ApiObject("Cached response", false, $obj);
+            }
+        }
+
         global $global;
         require_once $global['systemRootPath'] . 'objects/video.php';
         $obj = $this->startResponseObject($parameters);
@@ -316,7 +367,7 @@ class API extends PluginAbstract {
             $rows[$key]['embedUrl'] = Video::getLink($rows[$key]['id'], $rows[$key]['clean_title'], true);
             $rows[$key]['UserPhoto'] = User::getPhoto($rows[$key]['users_id']);
             $rows[$key]['isSubscribed'] = false;
-            if(User::isLogged()){
+            if (User::isLogged()) {
                 require_once $global['systemRootPath'] . 'objects/subscribe.php';
                 $rows[$key]['isSubscribed'] = Subscribe::isSubscribed($rows[$key]['users_id']);
             }
@@ -327,8 +378,6 @@ class API extends PluginAbstract {
                     $rows[$key]['subtitlesSRT'][] = convertSRTTrack($value);
                 }
             }
-
-            
             require_once $global['systemRootPath'] . 'objects/comment.php';
             require_once $global['systemRootPath'] . 'objects/subscribe.php';
             unset($_POST['sort']);
@@ -344,7 +393,7 @@ class API extends PluginAbstract {
                 $rows[$key]['comments'][$key2]['userName'] = $user->getNameIdentificationBd();
             }
             $rows[$key]['subscribers'] = Subscribe::getTotalSubscribes($rows[$key]['users_id']);
-            
+
             //wwbn elements
             $rows[$key]['wwbnURL'] = $rows[$key]['pageUrl'];
             $rows[$key]['wwbnEmbedURL'] = $rows[$key]['embedUrl'];
@@ -360,9 +409,11 @@ class API extends PluginAbstract {
             //$rows[$key]['wwbnProgram'] = $rows[$key]['pageUrl'];
             //$rows[$key]['wwbnProgramURL'] = $rows[$key]['pageUrl'];
             $rows[$key]['wwbnType'] = $rows[$key]['type'];
+            $rows[$key]['relatedVideos'] = Video::getRelatedMovies($rows[$key]['id']);
         }
         $obj->totalRows = $totalRows;
         $obj->rows = $rows;
+        ObjectYPT::setCache($cacheName, $obj);
         return new ApiObject("", false, $obj);
     }
 
@@ -604,6 +655,40 @@ class API extends PluginAbstract {
             $obj->livestream["joinURL"] = Live::getLinkToLiveFromUsers_idAndLiveServer($user->getBdId(), $obj->livestream["live_servers_id"]);
 
             return new ApiObject("", false, $obj);
+        } else {
+            return new ApiObject("API Secret is not valid");
+        }
+    }
+
+    /**
+     * Return a users list
+     * @param type $parameters 
+     * 'APISecret' is required for this call
+     * ['rowCount' max numbers of rows]
+     * ['current' current page]
+     * ['searchPhrase' to search on the user and name columns]
+     * ['status' if passed will filter active or inactive users]
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&APISecret={APISecret}&status=a&rowCount=3&searchPhrase=test
+     * @return \ApiObject
+     */
+    public function get_api_users_list($parameters) {
+        global $global;
+        $obj = $this->startResponseObject($parameters);
+        $dataObj = $this->getDataObject();
+        if ($dataObj->APISecret === $_GET['APISecret']) {
+
+            $status = '';
+            if (!empty($_GET['status'])) {
+                if ($_GET['status'] === 'i') {
+                    $status = 'i';
+                } else {
+                    $status = 'a';
+                }
+            }
+
+            $rows = User::getAllUsers(true, array('user', 'name'), $status);
+
+            return new ApiObject("", false, $rows);
         } else {
             return new ApiObject("API Secret is not valid");
         }
@@ -944,19 +1029,14 @@ class API extends PluginAbstract {
         }
         $row = PlayList::getAllFromUser(User::getId(), false, 'favorite');
         foreach ($row as $key => $value) {
-            unset($row[$key]['password']);
-            unset($row[$key]['recoverPass']);
+            $row[$key] = cleanUpRowFromDatabase($row[$key]);
             foreach ($value['videos'] as $key2 => $value2) {
-                //$row[$key]['videos'][$key2] = Video::getVideo($value2['id']);
-                unset($row[$key]['videos'][$key2]['password']);
-                unset($row[$key]['videos'][$key2]['recoverPass']);
                 if (!empty($row[$key]['videos'][$key2]['next_videos_id'])) {
                     unset($_POST['searchPhrase']);
                     $row[$key]['videos'][$key2]['next_video'] = Video::getVideo($row[$key]['videos'][$key2]['next_videos_id']);
                 }
                 $row[$key]['videos'][$key2]['videosURL'] = getVideosURL($row[$key]['videos'][$key2]['filename']);
-                unset($row[$key]['videos'][$key2]['password']);
-                unset($row[$key]['videos'][$key2]['recoverPass']);
+                $row[$key]['videos'][$key2] = cleanUpRowFromDatabase($row[$key]['videos'][$key2]);
             }
         }
         echo json_encode($row);
@@ -1002,6 +1082,87 @@ class API extends PluginAbstract {
         $_POST['videos_id'] = $parameters['videos_id'];
         $_POST['add'] = $add;
         $_POST['playlists_id'] = PlayLists::getFavoriteIdFromUser(User::getId());
+        require_once $global['systemRootPath'] . 'objects/playListAddVideo.json.php';
+        exit;
+    }
+
+    /**
+     * Return all watch_later from a user
+     * @param type $parameters
+     * 'user' usename of the user
+     * 'pass' password  of the user
+     * 'encodedPass' tell the script id the password submited is raw or encrypted
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
+     * @return type
+     */
+    public function get_api_watch_later($parameters) {
+        $plugin = AVideoPlugin::loadPluginIfEnabled("PlayLists");
+        if (empty($plugin)) {
+            return new ApiObject("Plugin disabled");
+        }
+        if (!User::isLogged()) {
+            return new ApiObject("User must be logged");
+        }
+        $row = PlayList::getAllFromUser(User::getId(), false, 'watch_later');
+        foreach ($row as $key => $value) {
+            unset($row[$key]['password']);
+            unset($row[$key]['recoverPass']);
+            foreach ($value['videos'] as $key2 => $value2) {
+                //$row[$key]['videos'][$key2] = Video::getVideo($value2['id']);
+                unset($row[$key]['videos'][$key2]['password']);
+                unset($row[$key]['videos'][$key2]['recoverPass']);
+                if (!empty($row[$key]['videos'][$key2]['next_videos_id'])) {
+                    unset($_POST['searchPhrase']);
+                    $row[$key]['videos'][$key2]['next_video'] = Video::getVideo($row[$key]['videos'][$key2]['next_videos_id']);
+                }
+                $row[$key]['videos'][$key2]['videosURL'] = getVideosURL($row[$key]['videos'][$key2]['filename']);
+                unset($row[$key]['videos'][$key2]['password']);
+                unset($row[$key]['videos'][$key2]['recoverPass']);
+            }
+        }
+        echo json_encode($row);
+        exit;
+    }
+
+    /**
+     * add a video into a user watch_later play list
+     * @param type $parameters
+     * 'videos_id' the video id that you want to add
+     * 'user' usename of the user
+     * 'pass' password  of the user
+     * 'encodedPass' tell the script id the password submited is raw or encrypted
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=3&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
+     * @return type
+     */
+    public function set_api_watch_later($parameters) {
+        $this->watch_later($parameters, true);
+    }
+
+    /**
+     * @param type $parameters
+     * 'videos_id' the video id that you want to remove
+     * 'user' usename of the user
+     * 'pass' password  of the user
+     * 'encodedPass' tell the script id the password submited is raw or encrypted
+     * @example {webSiteRootURL}plugin/API/{getOrSet}.json.php?APIName={APIName}&videos_id=3&user=admin&pass=f321d14cdeeb7cded7489f504fa8862b&encodedPass=true
+     * @return type
+     */
+    public function set_api_removeWatch_later($parameters) {
+        $this->watch_later($parameters, false);
+    }
+
+    private function watch_later($parameters, $add) {
+        global $global;
+        $plugin = AVideoPlugin::loadPluginIfEnabled("PlayLists");
+        if (empty($plugin)) {
+            return new ApiObject("Plugin disabled");
+        }
+        if (!User::isLogged()) {
+            return new ApiObject("Wrong user or password");
+        }
+        $_POST['videos_id'] = $parameters['videos_id'];
+        $_POST['add'] = $add;
+        $_POST['playlists_id'] = PlayLists::getWatchLaterIdFromUser(User::getId());
         require_once $global['systemRootPath'] . 'objects/playListAddVideo.json.php';
         exit;
     }

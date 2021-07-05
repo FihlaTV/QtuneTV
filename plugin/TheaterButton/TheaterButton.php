@@ -47,7 +47,7 @@ class TheaterButton extends PluginAbstract {
                 $tmp = "mainVideo";
             }
         }
-        $css = '<link href="' . $global['webSiteRootURL'] . 'plugin/TheaterButton/style.css?' . filemtime($global['systemRootPath'] . 'plugin/TheaterButton/style.css') . '" rel="stylesheet" type="text/css"/>';
+        $css = '<link href="' .getCDN() . 'plugin/TheaterButton/style.css?' . filemtime($global['systemRootPath'] . 'plugin/TheaterButton/style.css') . '" rel="stylesheet" type="text/css"/>';
         $css .= '<script>var videoJsId = "' . $tmp . '";</script>';
         $css .= '<script>var isCompressed = ' . (self::isCompressed()?"true":"false") . ';</script>';
         return $css;
@@ -86,7 +86,7 @@ class TheaterButton extends PluginAbstract {
         if (isMobile() || isEmbed()) {
             return false;
         }
-        if (isVideo() || isLive()) {
+        if (isVideo() || isLive() || isAudio()) {
             return true;
         }
         return false;

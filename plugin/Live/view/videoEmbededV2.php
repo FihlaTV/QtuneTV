@@ -20,7 +20,7 @@ if (!empty($_GET['c'])) {
 $customizedAdvanced = AVideoPlugin::getObjectDataIfEnabled('CustomizeAdvanced');
 
 $livet =  LiveTransmition::getFromDbByUserName($_GET['u']);
-$getLiveKey = array('key'=>$livet['key'], 'live_servers_id'=> Live::getLiveServersIdRequest());
+setLiveKey($livet['key'], Live::getLiveServersIdRequest(), @$_REQUEST['live_index']);
 $uuid = LiveTransmition::keyNameFix($livet['key']);
 $p = AVideoPlugin::loadPlugin("Live");
 
@@ -41,12 +41,12 @@ $poster = Live::getPosterImage($livet['users_id'], $_REQUEST['live_servers_id'])
         <meta charset="utf-8">
         <meta http-equiv="X-UA-Compatible" content="IE=edge">
         <meta name="viewport" content="width=device-width, initial-scale=1">
-        <link rel="icon" href="<?php echo $global['webSiteRootURL']; ?>view/img/favicon.ico">
+        <link rel="icon" href="<?php echo getCDN(); ?>view/img/favicon.ico">
         <title><?php echo $config->getWebSiteTitle(); ?> </title>
-        <link href="<?php echo $global['webSiteRootURL']; ?>bootstrap/css/bootstrap.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo $global['webSiteRootURL']; ?>css/player.css" rel="stylesheet" type="text/css"/>
-        <script src="<?php echo $global['webSiteRootURL']; ?>js/jquery-3.5.1.min.js" type="text/javascript"></script>
-        <link href="<?php echo $global['webSiteRootURL']; ?>view/js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>bootstrap/css/bootstrap.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>css/player.css" rel="stylesheet" type="text/css"/>
+        <script src="<?php echo getCDN(); ?>js/jquery-3.5.1.min.js" type="text/javascript"></script>
+        <link href="<?php echo getCDN(); ?>view/js/video.js/video-js.min.css" rel="stylesheet" type="text/css"/>
         <?php
         echo AVideoPlugin::afterVideoJS();
         ?>
@@ -100,18 +100,8 @@ $poster = Live::getPosterImage($livet['users_id'], $_REQUEST['live_servers_id'])
                            id="mainVideo" data-setup='{ "aspectRatio": "16:9",  "techorder" : ["flash", "html5"] }'>
                         <source src="<?php echo Live::getM3U8File($uuid); ?>" type='application/x-mpegURL'>
                     </video>
-                    <?php
-                    if (AVideoPlugin::isEnabled("0e225f8e-15e2-43d4-8ff7-0cb07c2a2b3b")) {
-                        require_once $global['systemRootPath'] . 'plugin/VideoLogoOverlay/VideoLogoOverlay.php';
-                        $style = VideoLogoOverlay::getStyle();
-                        $url = VideoLogoOverlay::getLink();
-                        ?>
-                        <div style="<?php echo $style; ?>">
-                            <a href="<?php echo $url; ?>" target="_blank"> <img src="<?php echo $global['webSiteRootURL']; ?>videos/logoOverlay.png" alt="Logo" class="img-responsive col-lg-12 col-md-8 col-sm-7 col-xs-6"></a>
-                        </div>
-                    <?php } ?>
 
-                    <div style="z-index: 999; position: absolute; top:5px; left: 5px; opacity: 0.8; filter: alpha(opacity=80);">
+                    <div style="z-index: 999; position: absolute; top:5px; left: 5px; opacity: 0.8; filter: alpha(opacity=80);" class="LiveEmbed2">
                         <?php
                         $streamName = $uuid;
                         include $global['systemRootPath'] . 'plugin/Live/view/onlineLabel.php';
@@ -141,7 +131,7 @@ $poster = Live::getPosterImage($livet['users_id'], $_REQUEST['live_servers_id'])
         <?php
         include $global['systemRootPath'] . 'view/include/video.min.js.php';
         ?>
-        <script src="<?php echo $global['webSiteRootURL']; ?>view/js/script.js" type="text/javascript"></script>
+        <script src="<?php echo getCDN(); ?>view/js/script.js" type="text/javascript"></script>
         <script>
 
 <?php

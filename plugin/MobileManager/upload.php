@@ -66,7 +66,9 @@ if (isset($_FILES['upl']) && $_FILES['upl']['error'] == 0) {
     }
 
     $mainName = preg_replace("/[^A-Za-z0-9]/", "", cleanString($_FILES['upl']['name']));
-    $filename = uniqid($mainName . "_YPTuniqid_", true);
+    
+    $paths = Video::getNewVideoFilename();
+    $filename = $paths['filename'];
 
     $video = new Video(preg_replace("/_+/", " ", $_FILES['upl']['name']), $filename, 0);
     $video->setDuration($duration);
@@ -89,7 +91,7 @@ if (isset($_FILES['upl']) && $_FILES['upl']['error'] == 0) {
         $video->setCan_share($_REQUEST['can_share']);
     }
 
-    $video->setStatus('e');
+    $video->setStatus(Video::$statusEncoding);
 
     if (!move_uploaded_file($_FILES['upl']['tmp_name'], Video::getStoragePath()."original_" . $filename)) {
         $object->msg = "Error on move_uploaded_file(" . $_FILES['upl']['tmp_name'] . ", " . Video::getStoragePath()."original_" . $filename . ")";

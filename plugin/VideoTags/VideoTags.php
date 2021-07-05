@@ -53,6 +53,7 @@ class VideoTags extends PluginAbstract {
                     continue;
                 }
                 foreach ($value['items'] as $value2) {
+                    $value2 = trim(preg_replace("/[^[:alnum:][:space:]_-]/u", '', $value2));
                     // check if exists
                     // create case do not exists
                     $tag = self::getOrCreateTagFromName($value2, $value['id']);
@@ -70,6 +71,7 @@ class VideoTags extends PluginAbstract {
 
     static function getTagFromName($name, $tags_types_id) {
         $tag = new Tags(0);
+        $name = trim(preg_replace("/[^[:alnum:][:space:]_-]/u", '', $name));
         $tag->loadFromName($name, $tags_types_id);
         return $tag;
     }
@@ -79,6 +81,7 @@ class VideoTags extends PluginAbstract {
     }
 
     static function getOrCreateTagFromName($name, $tags_types_id) {
+        $name = trim(preg_replace("/[^[:alnum:][:space:]_-]/u", '', $name));
         $tag = self::getTagFromName($name, $tags_types_id);
         $id = $tag->getId();
         if (empty($id) && self::canCreateTag()) {
@@ -103,7 +106,7 @@ class VideoTags extends PluginAbstract {
         $str = "";
         foreach ($types as $value) {
             $input = self::getTagsInput($value['id']);
-            $str .= "<label for=\"tagTypesId{$value['id']}\">{$value['name']}</label><div class=\"clear clearfix\">{$input}</div> ";
+            $str .= "<label for=\"tagTypesId{$value['id']}\">".__($value['name'])."</label><div class=\"clear clearfix\">{$input}</div> ";
         }
         return $str;
     }
@@ -194,13 +197,13 @@ $(\'#inputTags' . $tagTypesId . '\').tagsinput({
                 if ($value['total'] > 1) {
                     $tooltip = "{$value['total']} " . __("Videos");
                 }
-                $strT .= '<a data-toggle="tooltip" title="' . $tooltip . '" href="' . $global['webSiteRootURL'] . 'tag/' . $value['tags_id'] . '/' . urlencode($value['name']) . '" class="label label-primary">' . $value['name'] . '</a> ';
+                $strT .= '<a data-toggle="tooltip" title="' . $tooltip . '" href="' . $global['webSiteRootURL'] . 'tag/' . $value['tags_id'] . '/' . urlencode($value['name']) . '" class="label label-primary">' . __($value['name']) . '</a> ';
             }
             if (!empty($strT)) {
                 $label = "";
                 if($showType){
                     $name = str_replace("_", " ", $type['name']);
-                    $label = "<strong class='label text-muted'>{$name}: </strong> ";
+                    $label = "<strong class='label text-muted'>".__($name).": </strong> ";
                 }
                 $tagsStrList[] = "{$label}{$strT}";
             }
@@ -243,7 +246,7 @@ $(\'#inputTags' . $tagTypesId . '\').tagsinput({
     
     public static function getManagerVideosJavaScripts(){
         global $global;
-        return "<script src=\"{$global['webSiteRootURL']}plugin/VideoTags/bootstrap-tagsinput/bootstrap-tagsinput.min.js\" type=\"text/javascript\"></script><script src=\"{$global['webSiteRootURL']}plugin/VideoTags/bootstrap-tagsinput/typeahead.bundle.js\" type=\"text/javascript\"></script>";
+        return "<script src=\"".getCDN()."plugin/VideoTags/bootstrap-tagsinput/bootstrap-tagsinput.min.js\" type=\"text/javascript\"></script><script src=\"".getCDN()."plugin/VideoTags/bootstrap-tagsinput/typeahead.bundle.js\" type=\"text/javascript\"></script>";
     }
     
     public static function saveVideosAddNew($post, $videos_id){

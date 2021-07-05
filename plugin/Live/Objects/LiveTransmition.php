@@ -152,6 +152,7 @@ class LiveTransmition extends ObjectYPT {
 
     static function getFromDbByUserName($userName) {
         global $global;
+        _mysql_connect();
         $userName = $global['mysqli']->real_escape_string($userName);
         $sql = "SELECT * FROM users WHERE user = ? LIMIT 1";
         $res = sqlDAL::readSql($sql, "s", array($userName), true);
@@ -173,15 +174,10 @@ class LiveTransmition extends ObjectYPT {
         if (!is_string($key)) {
             return false;
         }
-        $parts = explode("_", $key);
-        if(!empty($parts[1])){
-            $adaptive = array('hi', 'low', 'mid');
-            if(in_array($parts[1], $adaptive)){
-                return false;
-            }
+        if(Live::isAdaptiveTransmition($key)){
+            return false;
         }
-        $key = $parts[0];
-        $key = preg_replace("/[^A-Za-z0-9]/", '', $key);
+        $key = Live::cleanUpKey($key);
         $sql = "SELECT u.*, lt.* FROM " . static::getTableName() . " lt "
                 . " LEFT JOIN users u ON u.id = users_id AND u.status='a' WHERE  `key` = '$key' LIMIT 1";
         $res = sqlDAL::readSql($sql);
@@ -194,7 +190,7 @@ class LiveTransmition extends ObjectYPT {
             $row = false;
         }
         return $row;
-    }
+    }    
 
     function save() {
         $this->public = intval($this->public);
@@ -202,6 +198,10 @@ class LiveTransmition extends ObjectYPT {
         $this->showOnTV = intval($this->showOnTV);
         $id = parent::save();
         Category::clearCacheCount();
+        Live::deleteStatsCache(true);
+        
+        $socketObj = sendSocketMessageToAll(array('stats'=>getStatsNotifications()), "socketLiveONCallback");
+        
         return $id;
     }
 
@@ -279,8 +279,10 @@ class LiveTransmition extends ObjectYPT {
 
     static function getFromKey($key) {
         global $global;
+        $key = Live::cleanUpKey($key);
         $sql = "SELECT * FROM " . static::getTableName() . " WHERE  `key` = ? LIMIT 1";
         $res = sqlDAL::readSql($sql, "s", array($key), true);
+        //var_dump($sql, $key);
         $data = sqlDAL::fetchAssoc($res);
         sqlDAL::close($res);
         if ($res != false) {
@@ -292,6 +294,12 @@ class LiveTransmition extends ObjectYPT {
     }
     
     static function keyNameFix($key){
+        $key = str_replace('/', '', $key);
+        if(!empty($_REQUEST['live_index']) && !preg_match("/.*-([0-9a-zA-Z]+)/", $key)){
+            if(!empty($_REQUEST['live_index']) && $_REQUEST['live_index']!=='false'){
+                $key .= "-{$_REQUEST['live_index']}";
+            }
+        }
         if(!empty($_REQUEST['playlists_id_live']) && !preg_match("/.*_([0-9]+)/", $key)){
             $key .= "_{$_REQUEST['playlists_id_live']}";
         }
@@ -306,6 +314,9 @@ class LiveTransmition extends ObjectYPT {
         $this->showOnTV = $showOnTV;
     }
 
-
+    static function canSaveTransmition($users_id){
+        $lt = self::getFromDbByUser($users_id);
+        return !empty($lt['saveTransmition']);
+    }
 
 }

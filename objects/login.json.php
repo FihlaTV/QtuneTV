@@ -14,7 +14,7 @@ TimeLogStart($timeLog);
 
 // gettig the mobile submited value
 $inputJSON = url_get_contents('php://input');
-$input = json_decode($inputJSON, true); //convert JSON into array
+$input = _json_decode($inputJSON, true); //convert JSON into array
 if (!empty($input)) {
     foreach ($input as $key => $value) {
         $_POST[$key] = $value;
@@ -50,8 +50,8 @@ if (!empty($_GET['type'])) {
     }
     if ($_GET['type'] === "Apple") {
         $obj = AVideoPlugin::getDataObjectIfEnabled('LoginApple');
-        if(empty($obj)){
-           die('Apple Login is disabled'); 
+        if (empty($obj)) {
+            die('Apple Login is disabled');
         }
         $config = [
             'callback' => HttpClient\Util::getCurrentUrl() . "?type={$_GET['type']}",
@@ -191,7 +191,10 @@ if (empty($_POST['user']) || empty($_POST['pass'])) {
     die(json_encode($object));
 }
 $user = new User(0, $_POST['user'], $_POST['pass']);
+
+_error_log("login.json.php trying to login");
 $resp = $user->login(false, @$_POST['encodedPass']);
+_error_log("login.json.php login respond something");
 TimeLogEnd($timeLog, __LINE__);
 $object->isCaptchaNeed = User::isCaptchaNeed();
 if ($resp === User::USER_NOT_VERIFIED) {
@@ -230,8 +233,18 @@ $object->isLogged = User::isLogged();
 $object->isAdmin = User::isAdmin();
 $object->canUpload = User::canUpload();
 $object->canComment = User::canComment();
+$object->canCreateCategory = Category::canCreateCategory();
+$object->theme = getCurrentTheme();
 $object->canStream = User::canStream();
 $object->redirectUri = @$_POST['redirectUri'];
+$object->embedChatUrl = '';
+$object->embedChatUrlMobile = '';
+if (AVideoPlugin::isEnabledByName('Chat2') && method_exists('Chat2', 'getChatRoomLink')) {
+    $object->embedChatUrl = Chat2::getChatRoomLink(User::getId(), 1, 1, 0, true);
+    $object->embedChatUrlMobile = addQueryStringParameter($object->embedChatUrl, 'mobileMode', 1);
+    $object->embedChatUrlMobile = addQueryStringParameter($object->embedChatUrlMobile, 'user', $object->user);
+    $object->embedChatUrlMobile = addQueryStringParameter($object->embedChatUrlMobile, 'pass', $object->pass);
+}
 //_error_log("login.json.php setup object done");
 
 if ((empty($object->redirectUri) || $object->redirectUri === $global['webSiteRootURL'])) {
@@ -269,13 +282,17 @@ if ($object->isLogged) {
         if (!empty($trasnmition)) {
             $object->streamServerURL = $p->getServer() . "?p=" . User::getUserPass();
             $object->streamKey = $trasnmition['key'];
+        } else {
+            _error_log('login.json.php transmissionKey is empty [' . User::getId() . ']');
         }
+    } else {
+        _error_log('login.json.php live plugin is disabled');
     }
     TimeLogEnd($timeLog2, __LINE__);
     //_error_log("login.json.php get MobileManager");
     $p = AVideoPlugin::loadPluginIfEnabled("MobileManager");
     if (!empty($p)) {
-        $object->streamer = json_decode(url_get_contents($global['webSiteRootURL'] . "objects/status.json.php"));
+        $object->streamer = _json_decode(url_get_contents($global['webSiteRootURL'] . "objects/status.json.php"));
         $object->plugin = $p->getDataObject();
         $object->encoder = $config->getEncoderURL();
     }
@@ -298,10 +315,13 @@ if ($object->isLogged) {
         $object->PayPerView = PayPerView::getAllPPVFromUser($object->id);
     }
     TimeLogEnd($timeLog2, __LINE__);
+} else {
+    _error_log('login.json.php is not logged');
 }
 TimeLogEnd($timeLog, __LINE__);
 //_error_log("login.json.php almost complete");
 $json = _json_encode($object);
 //_error_log("login.json.php complete");
 //header("Content-length: " . strlen($json));
+_error_log('login.json.php is done');
 echo $json;
