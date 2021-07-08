@@ -30,7 +30,7 @@ private static $installed = array (
     'aliases' => 
     array (
     ),
-    'reference' => '58aabfc7d43dc4cd19df6b44128269ef86dd8772',
+    'reference' => 'd116dcc1af39989517515475992c30fae8dd9dc5',
     'name' => 'wwbn/avideo',
   ),
   'versions' => 
@@ -61,6 +61,24 @@ private static $installed = array (
       array (
       ),
       'reference' => 'ccd5c0d56554f3ddcd7a823e695be83e0d1e43b6',
+    ),
+    'emojione/assets' => 
+    array (
+      'pretty_version' => '4.5',
+      'version' => '4.5.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '88478c659a64af0176c7b0cd0778f1f9cb8f916f',
+    ),
+    'emojione/emojione' => 
+    array (
+      'pretty_version' => '4.5.0',
+      'version' => '4.5.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '79e685356877cbb6128074a71b7f88f435b58412',
     ),
     'evenement/evenement' => 
     array (
@@ -170,6 +188,15 @@ private static $installed = array (
       ),
       'reference' => '3c15e353b9bb1252201c73394bb8390b573a751d',
     ),
+    'mervick/emojionearea' => 
+    array (
+      'pretty_version' => 'v3.4.2',
+      'version' => '3.4.2.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '99129f789f2e7619ce553c038783a13f47cbc846',
+    ),
     'monolog/monolog' => 
     array (
       'pretty_version' => '1.26.1',
@@ -196,6 +223,42 @@ private static $installed = array (
       array (
       ),
       'reference' => '0f1f60250fccffeaf5dda91eea1c018aed1adc2a',
+    ),
+    'paypal/paypal-checkout-sdk' => 
+    array (
+      'pretty_version' => '1.0.1',
+      'version' => '1.0.1.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => 'ed6a55075448308b87a8b59dcb7fedf04a048cb1',
+    ),
+    'paypal/paypal-payouts-sdk' => 
+    array (
+      'pretty_version' => 'v1.0.0',
+      'version' => '1.0.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '45558e007569bd5b1967c07abc6505a58b8d9672',
+    ),
+    'paypal/paypalhttp' => 
+    array (
+      'pretty_version' => '1.0.0',
+      'version' => '1.0.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '1ad9b846a046f09d6135cbf2cbaa7701bbc630a3',
+    ),
+    'paypal/rest-api-sdk-php' => 
+    array (
+      'pretty_version' => '1.14.0',
+      'version' => '1.14.0.0',
+      'aliases' => 
+      array (
+      ),
+      'reference' => '72e2f2466975bf128a31e02b15110180f059fc04',
     ),
     'phpmailer/phpmailer' => 
     array (
@@ -425,7 +488,7 @@ private static $installed = array (
       'aliases' => 
       array (
       ),
-      'reference' => '58aabfc7d43dc4cd19df6b44128269ef86dd8772',
+      'reference' => 'd116dcc1af39989517515475992c30fae8dd9dc5',
     ),
   ),
 );

@@ -6027,7 +6027,7 @@ function pathToRemoteURL($filename, $forceHTTP = false) {
 
 function getFilenameFromPath($path) {
     global $global;
-    $fileName = Video::getCleanFilenameFromFile($fileName);
+    $fileName = Video::getCleanFilenameFromFile($path);
     return $fileName;
 }
 
@@ -6901,4 +6901,24 @@ function optimizeJS($html) {
         _file_put_contents($filename, $js);
     }
     return str_replace('</body>', '<!-- optimized JS -->' . PHP_EOL . $HTMLTag . PHP_EOL . '</body>', $html);
+}
+
+function mysqlBeginTransaction(){
+    global $global;
+    _error_log('Begin transaction '. getSelfURI());
+    $global['mysqli']->autocommit(false);
+}
+
+function mysqlRollback(){
+    global $global;
+    _error_log('Rollback transaction '. getSelfURI(), AVideoLog::$ERROR);
+    $global['mysqli']->rollback();
+    $global['mysqli']->autocommit(true);
+}
+
+function mysqlCommit(){
+    global $global;
+    _error_log('Commit transaction '. getSelfURI());
+    $global['mysqli']->commit();
+    $global['mysqli']->autocommit(true);
 }
