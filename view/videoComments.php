@@ -62,12 +62,12 @@ if (User::canSeeCommentTextarea()) {
                 <?php
             }
             ?>
-            <button class="btn btn-default no-outline btn-xs replyLikeBtn"> 
-                <span class="fa fa-thumbs-up"></span>
+            <button class="faa-parent animated-hover btn btn-default no-outline btn-xs replyLikeBtn"> 
+                <span class="fa fa-thumbs-up faa-bounce"></span>
                 <small>0</small>
             </button> 
-            <button class="btn btn-default no-outline btn-xs replyDislikeBtn"> 
-                <span class="fa fa-thumbs-down"></span>
+            <button class="faa-parent animated-hover btn btn-default no-outline btn-xs replyDislikeBtn"> 
+                <span class="fa fa-thumbs-down faa-bounce faa-reverse"></span>
                 <small>0</small>
             </button>           
             <button class="btn btn-default no-outline allReplies btn-xs viewAllReplies">  
@@ -232,7 +232,7 @@ if (User::canSeeCommentTextarea()) {
                                 method: 'POST',
                                 data: {'comment': comment, 'video': video, 'comments_id': comments_id, 'id': id},
                                 success: function (response) {
-                                    if (response.status === "1") {
+                                    if (response.status > 0) {
                                         avideoToast("<?php echo __("Your comment has been saved!"); ?>");
                                         if (comments_id) {
                                             if ($('.grid' + comments_id).hasClass('bootgrid-table')) {

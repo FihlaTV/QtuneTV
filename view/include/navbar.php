@@ -278,6 +278,12 @@ if(!empty($_GET['avideoIframe'])){ // comes from avideoModalIframe(url) javascri
     ?>
 </style>
 <?php
+if(!empty($customizePluginDescription)){
+    echo "<h1 class='hidden metaDescription'>{$customizePluginDescription}</h1>";
+}else 
+if(!empty($metaDescription)){
+    echo "<h1 class='hidden metaDescription'>{$metaDescription}</h1>";
+}
 if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !empty($advancedCustomUser->userMustBeLoggedInCloseButtonURL)) {
     ?>
     <nav class="navbar navbar-default navbar-fixed-top " id="mainNavBar">
@@ -396,8 +402,8 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
             <li class="nav-item" style="margin-right: 0px; ">
 
                 <div class="navbar-header">
-                    <button type="button" id="buttonSearch" class="visible-xs navbar-toggle btn btn-default navbar-btn" data-toggle="collapse" data-target="#mysearch" style="padding: 6px 12px;">
-                        <span class="fa fa-search"></span>
+                    <button type="button" id="buttonSearch" class="visible-xs navbar-toggle btn btn-default navbar-btn faa-parent animated-hover" data-toggle="collapse" data-target="#mysearch" style="padding: 6px 12px;">
+                        <span class="fa fa-search faa-shake"></span>
                     </button>
                 </div>
                 <div class="input-group hidden-xs"  id="mysearch">
@@ -408,8 +414,8 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                         }
                         ?>" name="search" placeholder="<?php echo __("Search"); ?>" id="searchFormInput">
                         <span class="input-group-append">
-                            <button class="btn btn-default btn-outline-secondary border-left-0 border  py-2" type="submit">
-                                <i class="fas fa-search"></i>
+                            <button class="btn btn-default btn-outline-secondary border-left-0 border  py-2 faa-parent animated-hover" type="submit">
+                                <i class="fas fa-search faa-shake"></i>
                             </button>
                         </span>
                     </form>
@@ -432,12 +438,13 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                         if (User::canUpload() && empty($advancedCustom->doNotShowUploadButton)) {
                             ?>
                             <li>
-                                <div class="btn-group" data-toggle="tooltip" title="<?php echo __("Submit your videos"); ?>" data-placement="left" >
+                                <div class="btn-group" data-toggle="tooltip" title="<?php echo __("Submit your videos"); ?>" data-placement="left"  class="faa-parent animated-hover">
                                     <button type="button" class="btn btn-default  dropdown-toggle navbar-btn pull-left"  data-toggle="dropdown">
                                         <i class="<?php echo isset($advancedCustom->uploadButtonDropdownIcon) ? $advancedCustom->uploadButtonDropdownIcon : "fas fa-video"; ?>"></i> <?php echo!empty($advancedCustom->uploadButtonDropdownText) ? __($advancedCustom->uploadButtonDropdownText) : ""; ?> <span class="caret"></span>
                                     </button>
                                     <?php
                                     if ((isset($advancedCustomUser->onlyVerifiedEmailCanUpload) && $advancedCustomUser->onlyVerifiedEmailCanUpload && User::isVerified()) || (isset($advancedCustomUser->onlyVerifiedEmailCanUpload) && !$advancedCustomUser->onlyVerifiedEmailCanUpload) || !isset($advancedCustomUser->onlyVerifiedEmailCanUpload)) {
+                                        echo '<!-- navbar line '.__LINE__.'-->';
                                         ?>
                                         <ul class="dropdown-menu dropdown-menu-right" role="menu" style="">
                                             <?php
@@ -445,8 +452,9 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                                             if (empty($advancedCustom->doNotShowUploadMP4Button)) {
                                                 ?>
                                                 <li>
-                                                    <a  href="<?php echo $global['webSiteRootURL']; ?>mvideos?upload=1"  data-toggle="tooltip" title="<?php echo __("Upload files without encode"); ?>" data-placement="left"  >
-                                                        <span class="fa fa-upload"></span> <?php echo empty($advancedCustom->uploadMP4ButtonLabel) ? __("Direct upload") : __($advancedCustom->uploadMP4ButtonLabel); ?>
+                                                    <a  href="<?php echo $global['webSiteRootURL']; ?>mvideos?upload=1"  data-toggle="tooltip" title="<?php echo __("Upload files without encode"); ?>" 
+                                                        data-placement="left" class="faa-parent animated-hover" >
+                                                        <span class="fas fa-upload faa-bounce"></span> <?php echo empty($advancedCustom->uploadMP4ButtonLabel) ? __("Direct upload") : __($advancedCustom->uploadMP4ButtonLabel); ?>
                                                     </a>
                                                 </li>
                                                 <?php
@@ -454,8 +462,8 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                                             if (empty($advancedCustom->doNotShowImportMP4Button)) {
                                                 ?>
                                                 <li>
-                                                    <a  href="<?php echo $global['webSiteRootURL']; ?>view/import.php"  data-toggle="tooltip" title="<?php echo __("Search for videos in your local disk"); ?>" data-placement="left" >
-                                                        <span class="fas fa-hdd"></span> <?php echo empty($advancedCustom->importMP4ButtonLabel) ? __("Direct Import Local Videos") : __($advancedCustom->importMP4ButtonLabel); ?>
+                                                    <a  href="<?php echo $global['webSiteRootURL']; ?>view/import.php"  data-toggle="tooltip" title="<?php echo __("Search for videos in your local disk"); ?>" data-placement="left" class="faa-parent animated-hover" >
+                                                        <span class="fas fa-hdd faa-ring"></span> <?php echo empty($advancedCustom->importMP4ButtonLabel) ? __("Direct Import Local Videos") : __($advancedCustom->importMP4ButtonLabel); ?>
                                                     </a>
                                                 </li>
                                                 <?php
@@ -463,8 +471,8 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                                             if (empty($advancedCustom->doNotShowEmbedButton)) {
                                                 ?>
                                                 <li>
-                                                    <a  href="<?php echo $global['webSiteRootURL']; ?>mvideos?link=1"  data-toggle="tooltip" title="<?php echo __("Embed videos/files in your site"); ?>" data-placement="left" >
-                                                        <span class="fa fa-link"></span> <?php echo empty($advancedCustom->embedButtonLabel) ? __("Embed a video link") : __($advancedCustom->embedButtonLabel); ?>
+                                                    <a  href="<?php echo $global['webSiteRootURL']; ?>mvideos?link=1"  data-toggle="tooltip" title="<?php echo __("Embed videos/files in your site"); ?>" data-placement="left" class="faa-parent animated-hover" >
+                                                        <span class="fa fa-link faa-burst"></span> <?php echo empty($advancedCustom->embedButtonLabel) ? __("Embed a video link") : __($advancedCustom->embedButtonLabel); ?>
                                                     </a>
                                                 </li>
                                                 <?php
@@ -472,8 +480,8 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                                             if (AVideoPlugin::isEnabledByName("Articles")) {
                                                 ?>
                                                 <li>
-                                                    <a  href="<?php echo $global['webSiteRootURL']; ?>mvideos?article=1"  data-toggle="tooltip" title="<?php echo __("Write an article"); ?>" data-placement="left" >
-                                                        <i class="far fa-newspaper"></i> <?php echo __("Add Article"); ?>
+                                                    <a  href="<?php echo $global['webSiteRootURL']; ?>mvideos?article=1"  data-toggle="tooltip" title="<?php echo __("Write an article"); ?>" data-placement="left"  class="faa-parent animated-hover">
+                                                        <i class="far fa-newspaper faa-horizontal"></i> <?php echo __("Add Article"); ?>
                                                     </a>
                                                 </li>
                                                 <?php
@@ -483,11 +491,12 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                                         </ul>     
                                         <?php
                                     } else {
+                                        echo '<!-- navbar line '.__LINE__.'-->';
                                         ?>
                                         <ul class="dropdown-menu dropdown-menu-right" role="menu" style="">
                                             <li>
                                                 <a  href="" >
-                                                    <span class="fa fa-exclamation"></span> <?php echo __("Only verified users can upload"); ?>
+                                                    <span class="fa fa-exclamation faa-flash animated"></span> <?php echo __("Only verified users can upload"); ?>
                                                 </a>
                                             </li>
                                             <?php
@@ -504,15 +513,18 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                             <?php
                         } else {
                             $output = ob_get_clean();
+                            ob_start();
                             echo AVideoPlugin::getUploadMenuButton();
                             $getUploadMenuButton = ob_get_clean();
+                            ob_start();
                             if (!empty($getUploadMenuButton)) {
                                 ?>
                                 <li>
-                                    <div class="btn-group" data-toggle="tooltip" title="<?php echo __("Submit your videos"); ?>" data-placement="left" >
+                                    <div class="btn-group" data-toggle="tooltip" title="<?php echo __("Submit your videos"); ?>" data-placement="left"  class="faa-parent animated-hover">
                                         <button type="button" class="btn btn-default  dropdown-toggle navbar-btn pull-left"  data-toggle="dropdown">
                                             <i class="<?php echo isset($advancedCustom->uploadButtonDropdownIcon) ? $advancedCustom->uploadButtonDropdownIcon : "fas fa-video"; ?>"></i> <?php echo!empty($advancedCustom->uploadButtonDropdownText) ? __($advancedCustom->uploadButtonDropdownText) : ""; ?> <span class="caret"></span>
                                         </button>
+                                        <?php echo '<!-- navbar line '.__LINE__.'-->'; ?>
                                         <ul class="dropdown-menu dropdown-menu-right" role="menu" style="">
                                             <?php
                                             echo $getUploadMenuButton;
@@ -521,9 +533,10 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                                     </div>
                                 </li>
                                 <?php
+                                $getUploadMenuButton = ob_get_clean();
+                                ob_start();
                             }
-                            ob_start();
-                            echo $output;
+                            echo $output.$getUploadMenuButton;
                         }
                         ?>
                         <li>
@@ -611,7 +624,7 @@ if (!User::isLogged() && !empty($advancedCustomUser->userMustBeLoggedIn) && !emp
                                                  class="img img-responsive img-circle" alt="User Photo"
                                                  />
                                         </button>
-
+                                        <?php echo '<!-- navbar line '.__LINE__.'-->'; ?>
                                         <ul class="dropdown-menu dropdown-menu-right" role="menu" style="">
                                             <li>
                                                 <div class="pull-left" style="margin-left: 10px;">

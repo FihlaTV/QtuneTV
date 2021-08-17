@@ -293,8 +293,12 @@ if (!empty($advancedCustomUser->forceLoginToBeTheEmail)) {
                         }
                         loginFormReset();
                     } else {
-
-                        document.location = response.redirectUri;
+                        var url = response.redirectUri;
+                        if(inIframe()){
+                            url = addGetParam(url, 'PHPSESSID', response.PHPSESSID);
+                        }
+                        console.log('Login success', url);
+                        document.location = url;
                     }
                 }
             });

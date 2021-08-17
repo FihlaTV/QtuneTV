@@ -20,6 +20,8 @@ var _serverDBTime;
 var _serverTimeString;
 var _serverDBTimeString;
 let deferredPrompt;
+var playerCurrentTime;
+var mediaId;
 
 $(document).mousemove(function (e) {
     mouseX = e.pageX;
@@ -170,6 +172,9 @@ lazyImage();
 
 var pleaseWaitIsINUse = false;
 var pauseIfIsPlayinAdsInterval;
+var seconds_watching_video = 0;
+var _startCountPlayingTime;
+
 function setPlayerListners() {
     if (typeof player !== 'undefined') {
         player.on('pause', function () {
@@ -177,6 +182,7 @@ function setPlayerListners() {
             console.log("setPlayerListners: pause");
             //userIsControling = true;
             clearInterval(pauseIfIsPlayinAdsInterval);
+            clearInterval(_startCountPlayingTime);
         });
 
         player.on('play', function () {
@@ -187,6 +193,10 @@ function setPlayerListners() {
             pauseIfIsPlayinAdsInterval = setInterval(function () {
                 pauseIfIsPlayinAds();
             }, 500);
+            clearInterval(_startCountPlayingTime);
+            _startCountPlayingTime = setInterval(function () {
+                seconds_watching_video++;
+            }, 1000);
         });
 
         $("#mainVideo .vjs-mute-control").click(function () {
@@ -342,6 +352,7 @@ function isEmailValid(email) {
 }
 
 function subscribe(email, user_id) {
+    modal.showPleaseWait();
     $.ajax({
         url: webSiteRootURL + 'objects/subscribe.json.php',
         method: 'POST',
@@ -350,22 +361,27 @@ function subscribe(email, user_id) {
             'user_id': user_id
         },
         success: function (response) {
+            var totalElement = $('.notificationButton' + user_id + ' .badge');
             if (response.subscribe == "i") {
-                $('.subs' + user_id).removeClass("subscribed");
-                $('.subs' + user_id + ' b.text').text("Subscribe");
-                $('b.textTotal' + user_id).text(parseInt($('b.textTotal' + user_id).first().text()) - 1);
+                $('.notificationButton' + user_id).removeClass("subscribed");
+                totalElement.text(parseInt(totalElement.first().text()) - 1);
             } else {
-                $('.subs' + user_id).addClass("subscribed");
-                $('.subs' + user_id + ' b.text').text("Subscribed");
-                $('b.textTotal' + user_id).text(parseInt($('b.textTotal' + user_id).first().text()) + 1);
+                $('.notificationButton' + user_id).addClass("subscribed");
+                totalElement.text(parseInt(totalElement.first().text()) + 1);
             }
             $('#popover-content #subscribeEmail').val(email);
             $('.subscribeButton' + user_id).popover('hide');
+            modal.hidePleaseWait();
         }
     });
 }
 
+function toogleNotify(user_id) {
+    email = $('#subscribeEmail' + user_id).val();
+    subscribeNotify(email, user_id);
+}
 function subscribeNotify(email, user_id) {
+    modal.showPleaseWait();
     $.ajax({
         url: webSiteRootURL + 'objects/subscribeNotify.json.php',
         method: 'POST',
@@ -375,12 +391,11 @@ function subscribeNotify(email, user_id) {
         },
         success: function (response) {
             if (response.notify) {
-                $('.notNotify' + user_id).addClass("hidden");
-                $('.notify' + user_id).removeClass("hidden");
+                $('.notificationButton' + user_id).addClass("notify");
             } else {
-                $('.notNotify' + user_id).removeClass("hidden");
-                $('.notify' + user_id).addClass("hidden");
+                $('.notificationButton' + user_id).removeClass("notify");
             }
+            modal.hidePleaseWait();
         }
     });
 }
@@ -417,6 +432,10 @@ function isMobile() {
 
 var last_videos_id = 0;
 var last_currentTime = -1;
+var videoViewAdded = false;
+
+var addViewBeaconTimeout;
+
 function addView(videos_id, currentTime) {
     if (last_videos_id == videos_id && last_currentTime == currentTime) {
         return false;
@@ -424,21 +443,90 @@ function addView(videos_id, currentTime) {
     if (currentTime > 5 && currentTime % 30 !== 0) { // only update each 30 seconds
         return false;
     }
-    last_videos_id = videos_id;
-    last_currentTime = currentTime;
-    _addView(videos_id, currentTime);
+
+    if (videoViewAdded && videoViewAdded == videos_id) {
+        clearTimeout(addViewBeaconTimeout);
+        addViewBeaconTimeout = setTimeout(function () {
+            addViewBeacon();
+        } // update the time watched
+        , 500);
+
+    } else {
+        videoViewAdded = videos_id;
+        last_videos_id = videos_id;
+        last_currentTime = currentTime;
+        _addView(videos_id, currentTime);
+    }
+    return true;
+}
+
+function addViewBeacon() {
+    console.log('addViewBeacon');
+    if (typeof mediaId !== 'undefined' && typeof playerCurrentTime !== 'undefined' && typeof seconds_watching_video !== 'undefined') {
+        if (seconds_watching_video <= 0) {
+            console.log('addViewBeacon seconds_watching_video <= 0 ', seconds_watching_video);
+            return false;
+        }
+        var url = webSiteRootURL + 'objects/videoAddViewCount.json.php?PHPSESSID=' + PHPSESSID;
+        url = addGetParam(url, 'id', mediaId);
+        url = addGetParam(url, 'currentTime', playerCurrentTime);
+        url = addGetParam(url, 'seconds_watching_video', seconds_watching_video);
+        console.log('addViewBeacon will be sent', mediaId, playerCurrentTime, seconds_watching_video, beacon);
+        seconds_watching_video = 0;
+        var beacon = new Image();
+        beacon.src = url;
+    } else {
+        if (typeof mediaId !== 'undefined') {
+            console.log('addViewBeacon mediaId is undefined');
+        }
+        if (typeof playerCurrentTime !== 'undefined') {
+            console.log('addViewBeacon playerCurrentTime is undefined');
+        }
+        if (typeof seconds_watching_video !== 'undefined') {
+            console.log('addViewBeacon seconds_watching_video is undefined');
+        }
+    }
+    return '';
 }
 
 function _addView(videos_id, currentTime) {
+    if(typeof PHPSESSID == 'undefined'){
+        PHPSESSID = '';
+    }
     $.ajax({
-        url: webSiteRootURL + 'objects/videoAddViewCount.json.php',
+        url: webSiteRootURL + 'objects/videoAddViewCount.json.php?PHPSESSID=' + PHPSESSID,
         method: 'POST',
         data: {
             'id': videos_id,
             'currentTime': currentTime
         },
         success: function (response) {
-            $('.view-count' + videos_id).text(response.count);
+            $('.view-count' + videos_id).text(response.countHTML);
+        }
+    });
+}
+
+var _addViewAsyncSent = false;
+function _addViewAsync() {
+    if(_addViewAsyncSent){
+        return false;
+    }
+    if(typeof PHPSESSID == 'undefined'){
+        PHPSESSID = '';
+    }
+    _addViewAsyncSent = true;
+    $.ajax({
+        url: webSiteRootURL + 'objects/videoAddViewCount.json.php?PHPSESSID=' + PHPSESSID,
+        method: 'POST',
+        data: {
+            'id': mediaId,
+            'currentTime': playerCurrentTime,
+            'seconds_watching_video': seconds_watching_video
+        },
+        async: false,
+        success: function (response) {
+            console.log('_addViewAsync', response);
+            setTimeout(function(){_addViewAsyncSent=false;},2000);
         }
     });
 }
@@ -484,12 +572,14 @@ function playerIsReady() {
 }
 
 var promisePlaytry = 20;
+var promisePlaytryNetworkFail = 0;
 var promisePlayTimeoutTime = 500;
 var promisePlayTimeout;
 var promisePlay;
 var browserPreventShowed = false;
 var playerPlayTimeout;
 var isTryingToPlay = false;
+var promisePlaytryNetworkFailTimeout;
 function playerPlay(currentTime) {
     isTryingToPlay = true;
     clearTimeout(playerPlayTimeout);
@@ -547,14 +637,22 @@ function playerPlay(currentTime) {
                         }
                     }
                 }).catch(function (error) {
-                    if (player.networkState() === 3) {
+                    if (player.networkState() === 3 && promisePlaytryNetworkFail<5) {
                         promisePlaytry = 20;
-                        console.log("playerPlay: Network error detected, trying again");
-                        player.src(player.currentSources());
-                        userIsControling = false;
-                        tryToPlay(currentTime);
+                        promisePlaytryNetworkFail++;
+                        console.log("playerPlay: Network error detected, trying again", promisePlaytryNetworkFail);
+                        clearTimeout(promisePlaytryNetworkFailTimeout);
+                        promisePlaytryNetworkFailTimeout = setTimeout(function(){
+                            player.src(player.currentSources());
+                            userIsControling = false;
+                            tryToPlay(currentTime);
+                        },promisePlaytryNetworkFail*1000);
                     } else {
-                        if (promisePlaytry <= 10) {
+                        if (promisePlaytryNetworkFail>=5) {
+                            userIsControling = true;
+                            console.log("playerPlay: (promisePlaytryNetworkFail) Autoplay was prevented");
+                            player.pause();
+                        }else if (promisePlaytry <= 10) {
                             console.log("playerPlay: (" + promisePlaytry + ") Autoplay was prevented, trying to mute and play ***");
                             tryToPlayMuted(currentTime);
                         } else {
@@ -694,6 +792,9 @@ function showMuteTooltip() {
 }
 
 function playerPlayIfAutoPlay(currentTime) {
+    if (isWebRTC()) {
+        return false;
+    }
     if (isAutoplayEnabled()) {
         playerPlayTimeout = setTimeout(function () {
             console.log('playerPlayIfAutoPlay true', currentTime);
@@ -893,15 +994,27 @@ function setCurrentTime(currentTime) {
 }
 
 function isALiveContent() {
-    if (typeof isLive !== 'undefined' && isLive && (typeof isOnlineLabel === 'undefined' || isOnlineLabel === true)) {
+    if (typeof isLive !== 'undefined' && isLive && (typeof isOnlineLabel === 'undefined' || isOnlineLabel === true || $('.liveOnlineLabel').hasClass('label-success'))) {
         return true;
+    }
+    return false;
+}
+
+function isWebRTC() {
+    if (typeof _isWebRTC !== 'undefined') {
+        return _isWebRTC;
     }
     return false;
 }
 
 function isAutoplayEnabled() {
     //console.log("Cookies.get('autoplay')", Cookies.get('autoplay'));
-    if (isALiveContent()) {
+    if (typeof forceautoplay !== 'undefined' && forceautoplay) {
+        return true;
+    }else if (isWebRTC()) {
+        console.log("isAutoplayEnabled said No because is WebRTC ");
+        return false;
+    } else if (isALiveContent()) {
         //console.log("isAutoplayEnabled always autoplay live contents");
         return true;
     } else
@@ -984,7 +1097,7 @@ function isPlayNextEnabled() {
 }
 
 function avideoAlert(title, msg, type) {
-    if (typeof msg == 'undefined') {
+    if (typeof msg !== 'string') {
         return false;
     }
     if (msg !== msg.replace(/<\/?[^>]+(>|$)/g, "")) {//it has HTML
@@ -1095,6 +1208,20 @@ function avideoModalIframeRemove() {
     }
 }
 
+function avideoResponse(response) {
+    if (response.error) {
+        if (!response.msg) {
+            response.msg = 'Error';
+        }
+        avideoAlertError(response.msg);
+    } else {
+        if (!response.msg) {
+            response.msg = 'Success';
+        }
+        avideoToastSuccess(response.msg);
+    }
+}
+
 function avideoAlertText(msg) {
     avideoAlert("", msg, '');
 }
@@ -1180,7 +1307,21 @@ function tabsCategoryDocumentHeightChanged() {
     return false;
 }
 
+function checkDescriptionArea() {
+    $(".descriptionArea").each(function (index) {
+        if ($(this).height() < $(this).find('.descriptionAreaContent').height()) {
+            $(this).find('.descriptionAreaShowMoreBtn').show();
+        }
+    });
+}
 $(document).ready(function () {
+
+    checkDescriptionArea();
+    setInterval(function () {// check for the carousel
+        checkDescriptionArea();
+    }, 3000);
+
+
     Cookies.set('timezone', Intl.DateTimeFormat().resolvedOptions().timeZone, {
         path: '/',
         expires: 365
@@ -1373,8 +1514,6 @@ $(document).ready(function () {
     });
     checkAutoPlay();
 
-
-    serviceWorkerRegister();
     // Code to handle install prompt on desktop
     window.addEventListener('beforeinstallprompt', (e) => {
         // Prevent Chrome 67 and earlier from automatically showing the prompt
@@ -1714,33 +1853,13 @@ function avideoAjax(url, data) {
     });
 }
 
-// Register service worker to control making site work offline
-function serviceWorkerRegister() {
-    if (typeof webSiteRootURL == 'undefined') {
-        setTimeout(function () {
-            serviceWorkerRegister();
-        }, 1000);
-        return false;
+window.addEventListener('beforeunload', function (e) {
+    console.log('window.addEventListener(beforeunload');
+    _addViewAsync();
+}, false);
+document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') {
+        console.log('document.addEventListener(visibilitychange');
+        _addViewAsync();
     }
-    if ('serviceWorker' in navigator) {
-        navigator.serviceWorker
-                .register(webSiteRootURL + 'sw.js?' + Math.random())
-                .then(() => {
-                    console.log('Service Worker Registered');
-                });
-    }
-}
-
-function A2HSInstall() {
-    // Show the prompt
-    deferredPrompt.prompt();
-    // Wait for the user to respond to the prompt
-    deferredPrompt.userChoice.then((choiceResult) => {
-        if (choiceResult.outcome === 'accepted') {
-            console.log('User accepted the A2HS prompt');
-        } else {
-            console.log('User dismissed the A2HS prompt');
-        }
-        deferredPrompt = null;
-    });
-}
+});

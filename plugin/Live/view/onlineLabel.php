@@ -13,7 +13,6 @@ $liveObj = AVideoPlugin::getObjectData('Live');
 if($liveObj->doNotShowOnlineOfflineLabel){
     $liveViewStatusClass .= ' hidden';
 }
-
 if (isLiveLink() || Live::isLiveAndIsReadyFromKey($streamName, $live_servers_id, @$live['live_index'])) {
     echo "<span class='label label-success liveOnlineLabel {$liveViewStatusClass}' id='{$liveViewStatusID}'>ONLINE</span>";
 } else {
@@ -111,7 +110,9 @@ if (isMobile()) {
                 player.trigger('loadstart');
                 player.posterImage.show();
                 player.bigPlayButton.show();
-                player.currentTime(0);
+                if(!isWebRTC()){
+                    player.currentTime(0);
+                }
                 player.on('play', function () {
                     $('#mainVideo.liveVideo').find('.vjs-poster').fadeOut();
                 });

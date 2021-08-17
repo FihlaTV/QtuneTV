@@ -9,12 +9,6 @@ global $global, $config;
 if (!isset($global['systemRootPath'])) {
     require_once '../videos/configuration.php';
 }
-if (!empty($_GET['PHPSESSID'])) {
-    session_write_close();
-    session_id($_GET['PHPSESSID']);
-    _error_log("userCreate.json: session_id changed to ". $_GET['PHPSESSID']);
-    session_start();
-}
 
 require_once $global['systemRootPath'] . 'objects/user.php';
 
@@ -53,7 +47,7 @@ if (!empty($advancedCustomUser->forceLoginToBeTheEmail)) {
 $_POST['email'] = trim(@$_POST['email']);
 if (!empty($advancedCustomUser->emailMustBeUnique)) {
     if (empty($_POST['email']) || !filter_var($_POST['email'], FILTER_VALIDATE_EMAIL)) {
-        $obj->error = __("You must specify an valid email");
+        $obj->error = __("You must specify a valid email")." {$_POST['email']} (create)";
         die(json_encode($obj));
     }
     $userFromEmail = User::getUserFromEmail($_POST['email']);

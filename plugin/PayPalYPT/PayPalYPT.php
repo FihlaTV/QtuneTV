@@ -68,7 +68,9 @@ class PayPalYPT extends PluginAbstract {
 
     public function setUpPayment($invoiceNumber, $redirect_url, $cancel_url, $total = '1.00', $currency = "USD", $description = "") {
         global $global;
-
+        if($total<1){
+            $total = 1;
+        }
         require $global['systemRootPath'] . 'plugin/PayPalYPT/bootstrap.php';
         $notify_url = "{$global['webSiteRootURL']}plugin/PayPalYPT/ipn.php";
         // After Step 2
@@ -171,7 +173,9 @@ class PayPalYPT extends PluginAbstract {
     private function createBillingPlan($redirect_url, $cancel_url, $total = '1.00', $currency = "USD", $frequency = "Month", $interval = 1, $name = 'Base Agreement', $plans_id = 0) {
         global $global;
         _error_log("createBillingPlan: start: " . json_encode(array($redirect_url, $cancel_url, $total, $currency, $frequency, $interval, $name)));
-
+        if($total<1){
+            $total = 1;
+        }
         require $global['systemRootPath'] . 'plugin/PayPalYPT/bootstrap.php';
         $notify_url = "{$global['webSiteRootURL']}plugin/PayPalYPT/ipn.php";
         // Create a new billing plan
@@ -283,7 +287,9 @@ class PayPalYPT extends PluginAbstract {
         global $global;
 
         require $global['systemRootPath'] . 'plugin/PayPalYPT/bootstrap.php';
-
+        if($total<1){
+            $total = 1;
+        }
         $notify_url = "{$global['webSiteRootURL']}plugin/PayPalYPT/ipn.php";
 
         $planId = $this->getPlanId();
@@ -346,6 +352,9 @@ class PayPalYPT extends PluginAbstract {
     public function setUpSubscriptionV2($total = '1.00', $currency = "USD", $frequency = "Month", $interval = 1, $name = '', $json = '', $trialDays = 0) {
         global $global;
 
+        if($total<1){
+            $total = 1;
+        }
         require $global['systemRootPath'] . 'plugin/PayPalYPT/bootstrap.php';
         //createBillingPlanV2($total = '1.00', $currency = "USD", $frequency = "Month", $interval = 1, $name = '', $trialDays = 0)
         $plan = $this->createBillingPlanV2($total, $currency, $frequency, $interval, $name, $json, $trialDays);
@@ -393,6 +402,9 @@ class PayPalYPT extends PluginAbstract {
 
     private function createBillingPlanV2($total = '1.00', $currency = "USD", $frequency = "Month", $interval = 1, $name = '', $json = '', $trialDays = 0) {
         global $global;
+        if($total<1){
+            $total = 1;
+        }
         $currency = strtoupper($currency);
         _error_log("createBillingPlanV2: createBillingPlan: start: " . json_encode(array($total, $currency, $frequency, $interval, $name, $trialDays)));
         
@@ -406,7 +418,7 @@ class PayPalYPT extends PluginAbstract {
         // Create a new billing plan
         $plan = new Plan();
         $plan->setName(substr(cleanString($name), 0, 126))
-                ->setDescription(substr(cleanString($name), 0, 126))
+                ->setDescription(substr(json_encode(User::getId()), 0, 126))
                 ->setType('INFINITE');
 
         $paymentDefinitionArray = array();
@@ -441,7 +453,7 @@ class PayPalYPT extends PluginAbstract {
             $merchantPreferences->setReturnUrl($success_url)
                     ->setCancelUrl($cancel_url)
                     ->setNotifyUrl($notify_url)
-                    ->setAutoBillAmount('yes')
+                    ->setAutoBillAmount('YES')
                     ->setInitialFailAmountAction('CONTINUE')
                     ->setMaxFailAttempts('0')
                     ->setSetupFee(new Currency(array('value' => $total, 'currency' => $currency)));
@@ -449,7 +461,7 @@ class PayPalYPT extends PluginAbstract {
             $merchantPreferences->setReturnUrl($success_url)
                     ->setCancelUrl($cancel_url)
                     ->setNotifyUrl($notify_url)
-                    ->setAutoBillAmount('yes')
+                    ->setAutoBillAmount('YES')
                     ->setInitialFailAmountAction('CONTINUE')
                     ->setMaxFailAttempts('0');
         }
@@ -570,6 +582,9 @@ class PayPalYPT extends PluginAbstract {
     }
 
     function sendToPayPal($invoiceNumber, $redirect_url, $cancel_url, $total, $currency) {
+        if($total<1){
+            $total = 1;
+        }
         $payment = $this->setUpPayment($invoiceNumber, $redirect_url, $cancel_url, $total, $currency);
         if (!empty($payment)) {
             header("Location: {$payment->getApprovalLink()}");
@@ -870,6 +885,11 @@ class PayPalYPT extends PluginAbstract {
     static function isRecurringPaymentIdUsed($recurring_payment_id){
         $row = PayPalYPT_log::getFromRecurringPaymentId($recurring_payment_id);
         return !empty($row);
+    }
+    
+    static function getAllLogsFromUser($users_id){
+        $rows = PayPalYPT_log::getAllFromUser($users_id);
+        return $rows;
     }
 
 }

@@ -70,4 +70,7 @@
 /plugin/FansSubscriptions/
 /videos/
 *.ser
+*.zip
 sitemap.xml
+/plugin/WebRTCLiveCam/
+/plugin/Wix/

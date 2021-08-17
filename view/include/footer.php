@@ -50,7 +50,7 @@ showAlertMessage();
 </script>
 <script src="<?php echo getCDN(); ?>view/js/jquery.lazy/jquery.lazy.min.js" type="text/javascript"></script>
 <script src="<?php echo getCDN(); ?>view/js/jquery.lazy/jquery.lazy.plugins.min.js" type="text/javascript"></script>
-<script src="<?php echo getCDN(); ?>view/js/script.js?<?php echo filectime("{$global['systemRootPath']}view/js/script.js"); ?>" type="text/javascript"></script>
+<script src="<?php echo getCDN(); ?>view/js/script.js?cache=<?php echo filectime("{$global['systemRootPath']}view/js/script.js"), filemtime("{$global['systemRootPath']}view/js/script.js"); ?>" type="text/javascript"></script>
 <?php
 $jsFiles = array();
 //$jsFiles[] = "view/js/jquery.lazy/jquery.lazy.min.js";
@@ -88,6 +88,11 @@ if (isset($_SESSION['savedQuerys'])) {
 if (!empty($advancedCustom->footerHTMLCode->value)) {
     echo $advancedCustom->footerHTMLCode->value;
 }
+
+if(isFirstPage()){
+    echo '<script src="'.(getCDN().'view/js/a2hs.js?'.filectime("{$global['systemRootPath']}view/js/a2hs.js")).'" type="text/javascript"></script>';
+}
+
 ?>
 <script>
     var checkFooterTimout;

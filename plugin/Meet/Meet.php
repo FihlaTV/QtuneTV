@@ -57,13 +57,20 @@ Passcode: {password}
         $obj->invitation = $o;
 
         $o = new stdClass();
-        $o->type = array('ca1.ypt.me' => "North America 1", 'eu1.ypt.me' => "Europe 1", 'custom' => "Custom Jitsi");
+        $o->type = array(
+            'ca1.ypt.me' => "North America 1", 
+            'eu1.ypt.me' => "Europe 1", 
+            'custom' => "Custom Jitsi",
+            'ca2.ypt.me' => "Test Server do not use it", );
         $o->value = 'ca1.ypt.me';
         $obj->server = $o;
 
         $obj->CUSTOM_JITSI_DOMAIN = "jitsi.eu1.ypt.me";
         $obj->JWT_APP_ID = "my_jitsi_app_id";
         $obj->JWT_APP_SECRET = "my_jitsi_app_secret";
+        $obj->hideTopButton = true;
+        $obj->buttonTitle = 'Meet';
+        self::addDataObjectHelper('hideTopButton', 'Hide Top Button', 'This will hide the button on the top menu bar');
         return $obj;
     }
 
@@ -253,6 +260,7 @@ Passcode: {password}
     static function getJoinURL() {
         $domain = self::getDomainURL();
         $url = "https://" . $domain . "/";
+        //$url = str_replace('ca2.ypt.me', 'ca1.ypt.me', $url);
         return $url;
     }
 
@@ -314,6 +322,10 @@ Passcode: {password}
 
     public function getHTMLMenuRight() {
         global $global;
+        $obj = $this->getDataObject();
+        if($obj->hideTopButton){
+            return '';
+        }
         if (!User::isLogged()) {
             return "";
         }
@@ -566,6 +578,16 @@ Passcode: {password}
             }
         }
         return true;
+    }
+    
+    public function getUploadMenuButton() {
+        global $global;
+        if (!User::isLogged()) {
+            return '';
+        }
+        $obj = $this->getDataObject();
+        $buttonTitle = $obj->buttonTitle;
+        include $global['systemRootPath'] . 'plugin/Meet/getUploadMenuButton.php';
     }
 
 }

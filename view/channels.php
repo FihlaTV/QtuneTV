@@ -127,12 +127,12 @@ $metaDescription = __("Channels");
                                 </div>
                                 
                                 <div class="clearfix" style="margin-bottom: 10px;"></div>
-                                <div class="row clear clearfix galeryRowElement">
+                                <div class="clear clearfix galeryRowElement">
                                     <?php
                                     $_POST['current'] = 1;
                                     $_REQUEST['rowCount'] = 6;
                                     $_POST['sort']['created'] = "DESC";
-                                    $uploadedVideos = Video::getAllVideosAsync("viewable", $value['id']);
+                                    $uploadedVideos = Video::getAllVideos("viewable", $value['id']);
                                     
                                     createGallerySection($uploadedVideos, dechex(crc32($value['channelName'])));
                                     ?>

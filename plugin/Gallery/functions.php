@@ -22,7 +22,7 @@ function createGallery($title, $sort, $rowCount, $getName, $mostWord, $lessWord,
     $paggingId = uniqid();
     $uid = "gallery" . uniqid();
     ?>
-    <div class="row clear clearfix galeryRowElement" id="<?php echo $uid; ?>">
+    <div class="clear clearfix galeryRowElement" id="<?php echo $uid; ?>">
         <?php
         if (canPrintCategoryTitle($title)) {
             ?>
@@ -152,8 +152,8 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
         }
 
         $img_portrait = (@$value['rotation'] === "90" || @$value['rotation'] === "270") ? "img-portrait" : "";
-        $name = User::getNameIdentificationById($value['users_id']);
-        $name .= " " . User::getEmailVerifiedIcon($value['users_id']);
+        $nameId = User::getNameIdentificationById($value['users_id']);
+        $name = $nameId." " . User::getEmailVerifiedIcon($value['users_id']);
         // make a row each 6 cols
         if ($countCols % $obj->screenColsLarge === 0) {
             echo '<div class="clearfix "></div>';
@@ -182,7 +182,7 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
             $isserieClass = "isserie";
         }
         ?>
-        <div class=" <?php echo $colsClass; ?> galleryVideo thumbsImage fixPadding" style="z-index: <?php echo $zindex--; ?>; min-height: 175px;" itemscope itemtype="http://schema.org/VideoObject">
+        <div class=" <?php echo $colsClass; ?> galleryVideo thumbsImage fixPadding" style="z-index: <?php echo $zindex--; ?>; min-height: 175px;">
             <a class="galleryLink <?php echo $isserieClass; ?>" videos_id="<?php echo $value['id']; ?>" 
                href="<?php echo Video::getLink($value['id'], $value['clean_title'], false, $getCN); ?>"  
                embed="<?php echo Video::getLink($value['id'], $value['clean_title'], true, $getCN); ?>" title="<?php echo $value['title']; ?>">
@@ -277,10 +277,10 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
             <a class="h6 galleryLink <?php echo $isserieClass; ?>" videos_id="<?php echo $value['id']; ?>" 
                href="<?php echo Video::getLink($value['id'], $value['clean_title'], false, $getCN); ?>"  
                embed="<?php echo Video::getLink($value['id'], $value['clean_title'], true, $getCN); ?>" title="<?php echo $value['title']; ?>">
-                <h2><?php echo $value['title']; ?></h2>
+                <strong class="title"><?php echo $value['title']; ?></strong>
             </a>
 
-            <div class="text-muted galeryDetails" style="overflow: hidden;">
+            <div class="galeryDetails" style="overflow: hidden;">
                 <div class="galleryTags">
                     <!-- category tags -->
                     <?php
@@ -324,42 +324,45 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
                         <?php
                     }
                 }
+                $humanTiming = humanTiming(strtotime($value['videoCreation']))." ". __('ago');
                 ?>
-                <div>
+                <div data-toggle="tooltip" title="<?php echo $humanTiming; ?>">
                     <i class="far fa-clock"></i>
-                    <?php echo humanTiming(strtotime($value['videoCreation'])), " ", __('ago'); ?>
+                    <?php echo $humanTiming; ?>
                 </div>
                 <div>
-                    <i class="fa fa-user"></i>
-                    <a class="text-muted" href="<?php echo User::getChannelLink($value['users_id']); ?>">
+                    <a href="<?php echo User::getChannelLink($value['users_id']); ?>" data-toggle="tooltip" title="<?php echo $nameId; ?>">
+                        <i class="fa fa-user"></i>
                         <?php echo $name; ?>
                     </a>
-                    <?php
-                    if ((!empty($value['description'])) && !empty($obj->Description)) {
-                        //$desc = str_replace(array('"', "'", "#", "/", "\\"), array('``', "`", "", "", ""), preg_replace("/\r|\n/", " ", nl2br(trim($value['description']))));
-                        $desc = nl2br(trim($value['description']));
-                        if (!empty($desc)) {
-                            $duid = uniqid();
-                            $titleAlert = str_replace(array('"', "'"), array('``', "`"), $value['title']);
-                            ?>
-                            <a href="#" onclick='avideoAlert("<?php echo $titleAlert; ?>", "<div style=\"max-height: 300px; overflow-y: scroll;overflow-x: hidden;\" id=\"videoDescriptionAlertContent<?php echo $duid; ?>\" ></div>", "");$("#videoDescriptionAlertContent<?php echo $duid; ?>").html($("#videoDescription<?php echo $duid; ?>").html());return false;' ><i class="far fa-file-alt"></i> <?php echo __("Description"); ?></a>
-                            <div id="videoDescription<?php echo $duid; ?>" style="display: none;"><?php echo $desc; ?></div>
-                            <?php
-                        }
-                    }
-                    ?>
                 </div>
+                <?php
+                if ((!empty($value['description'])) && !empty($obj->Description)) {
+                    //$desc = str_replace(array('"', "'", "#", "/", "\\"), array('``', "`", "", "", ""), preg_replace("/\r|\n/", " ", nl2br(trim($value['description']))));
+                    $desc = nl2br(trim($value['description']));
+                    if (!empty($desc)) {
+                        $duid = uniqid();
+                        $titleAlert = str_replace(array('"', "'"), array('``', "`"), $value['title']);
+                        ?>
+                        <div>
+                            <a href="#" onclick='avideoAlert("<?php echo $titleAlert; ?>", "<div style=\"max-height: 300px; overflow-y: scroll;overflow-x: hidden;\" id=\"videoDescriptionAlertContent<?php echo $duid; ?>\" ></div>", "");$("#videoDescriptionAlertContent<?php echo $duid; ?>").html($("#videoDescription<?php echo $duid; ?>").html());return false;' data-toggle="tooltip" title="<?php echo __("Description"); ?>"><i class="far fa-file-alt"></i> <span  class="hidden-md hidden-sm hidden-xs"><?php echo __("Description"); ?></span></a>
+                            <div id="videoDescription<?php echo $duid; ?>" style="display: none;"><?php echo $desc; ?></div>
+                        </div>
+                        <?php
+                    }
+                }
+                ?>
                 <?php if (Video::canEdit($value['id'])) { ?>
                     <div>
-                        <a href="#" onclick="avideoModalIframe('<?php echo $global['webSiteRootURL']; ?>mvideos?video_id=<?php echo $value['id']; ?>');return false;" class="text-primary">
-                            <i class="fa fa-edit"></i> <?php echo __("Edit Video"); ?>
+                        <a href="#" onclick="avideoModalIframe('<?php echo $global['webSiteRootURL']; ?>mvideos?video_id=<?php echo $value['id']; ?>');return false;" data-toggle="tooltip" title="<?php echo __("Edit Video"); ?>">
+                            <i class="fa fa-edit"></i> <span class="hidden-md hidden-sm hidden-xs"><?php echo __("Edit Video"); ?></span>
                         </a>
                     </div>
                 <?php }
                 ?>
                 <?php if (!empty($value['trailer1'])) { ?>
                     <div>
-                        <span onclick="showTrailer('<?php echo parseVideos($value['trailer1'], 1); ?>'); return false;" class="text-primary cursorPointer" >
+                        <span onclick="showTrailer('<?php echo parseVideos($value['trailer1'], 1); ?>'); return false;" class="cursorPointer" >
                             <i class="fa fa-video"></i> <?php echo __("Trailer"); ?>
                         </span>
                     </div>
@@ -511,10 +514,10 @@ function createGalleryLiveSection($videos) {
             <a class="h6 galleryLink" videos_id="<?php echo $video['title']; ?>" 
                href="<?php echo $video['href']; ?>"  
                embed="<?php echo $video['link']; ?>" title="<?php echo $video['title']; ?>">
-                <h2><?php echo $video['title'] ?></h2>
+                <strong class="title"><?php echo $video['title'] ?></strong>
             </a>
 
-            <div class="text-muted galeryDetails" style="overflow: hidden;">
+            <div class="galeryDetails" style="overflow: hidden;">
                 <div class="galleryTags">
                     <?php if (empty($_GET['catName']) && !empty($obj->showCategoryTag)) { ?>
                         <a class="label label-default" href="<?php echo $global['webSiteRootURL']; ?>cat/<?php echo $video['clean_category']; ?>">
@@ -531,21 +534,23 @@ function createGalleryLiveSection($videos) {
                 </div>
                 <div>
                     <i class="fa fa-user"></i>
-                    <a class="text-muted" href="<?php echo User::getChannelLink($video['users_id']); ?>">
+                    <a href="<?php echo User::getChannelLink($video['users_id']); ?>">
                         <?php echo $name; ?>
                     </a>
-                    <?php
-                    if ((!empty($video['description'])) && !empty($obj->Description)) {
-                        $desc = str_replace(array('"', "'", "#", "/", "\\"), array('``', "`", "", "", ""), preg_replace("/\r|\n/", " ", nl2br(trim($video['description']))));
-                        if (!empty($desc)) {
-                            $titleAlert = str_replace(array('"', "'"), array('``', "`"), $video['title']);
-                            ?>
-                            <a href="#" onclick='avideoAlert("<?php echo $titleAlert; ?>", "<div style=\"max-height: 300px; overflow-y: scroll;overflow-x: hidden;\"><?php echo $desc; ?></div>", "info");return false;' ><i class="far fa-file-alt"></i> <?php echo __("Description"); ?></a>
-                            <?php
-                        }
-                    }
-                    ?>
                 </div>
+                <?php
+                if ((!empty($video['description'])) && !empty($obj->Description)) {
+                    $desc = str_replace(array('"', "'", "#", "/", "\\"), array('``', "`", "", "", ""), preg_replace("/\r|\n/", " ", nl2br(trim($video['description']))));
+                    if (!empty($desc)) {
+                        $titleAlert = str_replace(array('"', "'"), array('``', "`"), $video['title']);
+                        ?>
+                        <div>
+                            <a href="#" onclick='avideoAlert("<?php echo $titleAlert; ?>", "<div style=\"max-height: 300px; overflow-y: scroll;overflow-x: hidden;\"><?php echo $desc; ?></div>", "info");return false;' data-toggle="tooltip" title="<?php echo __("Description"); ?>"><i class="far fa-file-alt"></i> <span  class="hidden-md hidden-sm hidden-xs"><?php echo __("Description"); ?></span></a>
+                        </div>
+                        <?php
+                    }
+                }
+                ?>
             </div>
         </div>
 

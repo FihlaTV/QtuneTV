@@ -177,6 +177,10 @@ abstract class ObjectYPT implements ObjectInterface {
                     $direction = "DESC";
                 }
                 $key = preg_replace("/[^A-Za-z0-9._ ]/", '', $key);
+                $key = trim($key);
+                if (strpos($key, '.') === false) {
+                    $key = "`{$key}`";
+                }
                 $orderBy[] = " {$keyPrefix}{$key} {$value} ";
             }
             $sql .= " ORDER BY " . implode(",", $orderBy);
@@ -279,7 +283,7 @@ abstract class ObjectYPT implements ObjectInterface {
                     $fields[] = " now() ";
                 } elseif (!isset($this->$value) || strtolower($this->$value) == 'null') {
                     $fields[] = " NULL ";
-                } else {
+                } else if(is_string($this->$value)){
                     $fields[] = " '{$this->$value}' ";
                 }
             }
@@ -381,7 +385,9 @@ abstract class ObjectYPT implements ObjectInterface {
         }
         $cachefile = self::getCacheFileName($name);
 
+        //_error_log('getCache: cachefile '.$cachefile);
         if (!empty($_getCache[$name])) {
+            //_error_log('getCache: '.__LINE__);
             return $_getCache[$name];
         }
 
@@ -398,6 +404,7 @@ abstract class ObjectYPT implements ObjectInterface {
             $session = self::getSessionCache($name, $lifetime);
             if (!empty($session)) {
                 $_getCache[$name] = $session;
+                //_error_log('getCache: '.__LINE__);
                 return $session;
             }
         }
@@ -423,10 +430,13 @@ abstract class ObjectYPT implements ObjectInterface {
             
             self::setSessionCache($name, $json);
             $_getCache[$name] = $json;
+            //_error_log('getCache: '.__LINE__);
             return $json;
         } elseif (file_exists($cachefile)) {
             self::deleteCache($name);
+            @unlink($cachefile);
         }
+        //if(preg_match('/getChannelsWithMoreViews30/i', $name)){var_dump($name, $cachefile, file_exists($cachefile) , $lifetime, time() - $lifetime, filemtime($cachefile));exit;}
         //_error_log("YPTObject::getCache log error [{$name}] $cachefile filemtime = ".filemtime($cachefile));
         return null;
     }

@@ -5,10 +5,7 @@ if (empty($global['systemRootPath'])) {
 require_once $global['systemRootPath'] . 'objects/subscribe.php';
 if (empty($video) && !empty($_GET['videos_id'])) {
     $video = Video::getVideo(intval($_GET['videos_id']), "viewable", true, false, true, true);
-    $name = User::getNameIdentificationById($video['users_id']);
-    $name = "<a href='" . User::getChannelLink($video['users_id']) . "' class='btn btn-xs btn-default'>{$name} " . User::getEmailVerifiedIcon($video['users_id']) . "</a>";
-    $subscribe = Subscribe::getButton($video['users_id']);
-    $video['creator'] = '<div class="pull-left"><img src="' . User::getPhoto($video['users_id']) . '" alt="User Photo" class="img img-responsive img-circle zoom" style="max-width: 40px;"/></div><div class="commentDetails" style="margin-left:45px;"><div class="commenterName text-muted"><strong>' . $name . '</strong><br />' . $subscribe . '<br /><small>' . humanTiming(strtotime($video['videoCreation'])) . '</small></div></div>';
+    $video['creator'] = Video::getCreatorHTML($video['users_id'], '<div class="clearfix"></div><small>' . humanTiming(strtotime($video['videoCreation'])) . '</small>');
     $source = Video::getSourceFile($video['filename']);
     if (($video['type'] !== "audio") && ($video['type'] !== "linkAudio") && !empty($source['url'])) {
         $img = $source['url'];
@@ -97,7 +94,7 @@ if (User::hasBlockedUser($video['users_id'])) {
             <?php
             if (Video::showYoutubeModeOptions() && empty($advancedCustom->doNotDisplayViews)) {
                 ?>
-                <span class="watch-view-count pull-right text-muted" itemprop="interactionCount"><span class="view-count<?php echo $video['id']; ?>"><?php echo number_format($video['views_count'], 0); ?></span> <?php echo __("Views"); ?></span>
+                <span class="watch-view-count pull-right text-muted" itemprop="interactionCount"><span class="view-count<?php echo $video['id']; ?>"><?php echo number_format_short($video['views_count']); ?></span> <?php echo __("Views"); ?></span>
                 <?php
             }
             ?>
@@ -184,11 +181,11 @@ if (User::hasBlockedUser($video['users_id'])) {
                 <?php
                 if (!empty($video['id']) && empty($advancedCustom->removeThumbsUpAndDown)) {
                     ?>
-                    <a href="#" class="btn btn-default no-outline pull-right <?php echo ($video['myVote'] == - 1) ? "myVote" : "" ?>" id="dislikeBtn" <?php if (!User::isLogged()) { ?> data-toggle="tooltip" title="<?php echo __("Don´t like this video? Sign in to make your opinion count."); ?>" <?php } ?>>
-                        <span class="fa fa-thumbs-down"></span> <small><?php echo $video['dislikes']; ?></small>
+                    <a href="#" class="faa-parent animated-hover btn btn-default no-outline pull-right <?php echo (@$video['myVote'] == - 1) ? "myVote" : "" ?>" id="dislikeBtn" <?php if (!User::isLogged()) { ?> data-toggle="tooltip" title="<?php echo __("Don´t like this video? Sign in to make your opinion count."); ?>" <?php } ?>>
+                        <span class="fa fa-thumbs-down faa-bounce faa-reverse "></span> <small><?php echo $video['dislikes']; ?></small>
                     </a>
-                    <a href="#" class="btn btn-default no-outline pull-right <?php echo ($video['myVote'] == 1) ? "myVote" : "" ?>" id="likeBtn" <?php if (!User::isLogged()) { ?> data-toggle="tooltip" title="<?php echo __("Like this video? Sign in to make your opinion count."); ?>" <?php } ?>>
-                        <span class="fa fa-thumbs-up"></span>
+                    <a href="#" class="faa-parent animated-hover btn btn-default no-outline pull-right <?php echo (@$video['myVote'] == 1) ? "myVote" : "" ?>" id="likeBtn" <?php if (!User::isLogged()) { ?> data-toggle="tooltip" title="<?php echo __("Like this video? Sign in to make your opinion count."); ?>" <?php } ?>>
+                        <span class="fa fa-thumbs-up faa-bounce"></span>
                         <small><?php echo $video['likes']; ?></small>
                     </a>
                     <script>
@@ -261,7 +258,7 @@ if (User::hasBlockedUser($video['users_id'])) {
 }
 
 if ($video['type'] !== 'notfound' && CustomizeUser::canShareVideosFromVideo($video['id'])) {
-    getShareMenu($video['title'], Video::getPermaLink($video['id']), Video::getURLFriendly($video['id']), Video::getLink($video['id'], $video['clean_title'], true), $img);
+    getShareMenu($video['title'], Video::getPermaLink($video['id']), Video::getURLFriendly($video['id']), Video::getLink($video['id'], $video['clean_title'], true), $img, "row bgWhite list-group-item menusDiv", parseDurationToSeconds($video['duration']));
 }
 ?>
 <div class="row bgWhite list-group-item" id="modeYoutubeBottomContentDetails">
@@ -283,15 +280,15 @@ if ($video['type'] !== 'notfound' && CustomizeUser::canShareVideosFromVideo($vid
             if ($video['type'] !== 'notfound' && $video['type'] !== 'article') {
                 ?>
                 <div class="col-xs-4 col-sm-2 col-lg-2 text-right"><strong><?php echo __("Description"); ?>:</strong></div>
-                <div class="col-xs-8 col-sm-10 col-lg-10" itemprop="description" id="descriptionArea">
-                    <div id="descriptionAreaPreContent">
-                        <div id="descriptionAreaContent">
+                <div class="col-xs-8 col-sm-10 col-lg-10 descriptionArea" itemprop="description">
+                    <div class="descriptionAreaPreContent">
+                        <div class="descriptionAreaContent">
                             <?php
                             echo Video::htmlDescription($video['description']);
                             ?>
                         </div>
                     </div>
-                    <button onclick="$('#descriptionArea').toggleClass('expanded');" class="btn btn-xs btn-default" id="descriptionAreaShowMoreBtn" style="display: none; ">
+                    <button onclick="$(this).closest('.descriptionArea').toggleClass('expanded');" class="btn btn-xs btn-default descriptionAreaShowMoreBtn" style="display: none; ">
                         <span class="showMore"><i class="fas fa-caret-down"></i> <?php echo __("Show More"); ?></span>
                         <span class="showLess"><i class="fas fa-caret-up"></i> <?php echo __("Show Less"); ?></span>
                     </button>
@@ -305,9 +302,6 @@ if ($video['type'] !== 'notfound' && CustomizeUser::canShareVideosFromVideo($vid
 </div>
 <script>
     $(document).ready(function () {
-        if ($('#descriptionArea').height() < $('#descriptionAreaContent').height()) {
-            $('#descriptionAreaShowMoreBtn').show();
-        }
 <?php
 if (empty($advancedCustom->showShareMenuOpenByDefault)) {
     ?>

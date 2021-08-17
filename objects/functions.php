@@ -1676,9 +1676,39 @@ function im_resizeV3($file_src, $file_dest, $wd, $hd) {
     exec($ffmpeg . " < /dev/null 2>&1", $output, $return_val);
 }
 
+function im_resize_gif($file_src, $file_dest, $max_width, $max_height) {
+    if (class_exists('Imagick')) {
+        $imagick = new Imagick($file_src);
+
+        $format = $imagick->getImageFormat();
+        if ($format == 'GIF') {
+            $imagick = $imagick->coalesceImages();
+            do {
+                $imagick->resizeImage($max_width, $max_height, Imagick::FILTER_BOX, 1);
+            } while ($imagick->nextImage());
+            $imagick = $imagick->deconstructImages();
+            $imagick->writeImages($file_dest, true);
+        }
+
+        $imagick->clear();
+        $imagick->destroy();
+    } else {
+        copy($file_src, $file_dest);
+    }
+}
+
 function im_resize_max_size($file_src, $file_dest, $max_width, $max_height) {
     $fn = $file_src;
-    $tmpFile = getTmpFile() . ".jpg";
+
+    $extension = strtolower(pathinfo($file_dest, PATHINFO_EXTENSION));
+
+    if ($extension == 'gif') {
+        im_resize_gif($file_src, $file_dest, $max_width, $max_height);
+        @unlink($file_src);
+        return true;
+    }
+
+    $tmpFile = getTmpFile() . ".{$extension}";
     if (empty($fn)) {
         _error_log("im_resize_max_size: file name is empty, Destination: {$file_dest}", AVideoLog::$ERROR);
         return false;
@@ -1806,7 +1836,9 @@ function convertImage($originalImage, $outputImage, $quality) {
 }
 
 function decideMoveUploadedToVideos($tmp_name, $filename, $type = "video") {
-    if($filename == '.zip'){return false;}
+    if ($filename == '.zip') {
+        return false;
+    }
     global $global;
     $obj = new stdClass();
     $aws_s3 = AVideoPlugin::loadPluginIfEnabled('AWS_S3');
@@ -1901,11 +1933,11 @@ function unzipDirectory($filename, $destination) {
 }
 
 function make_path($path) {
-    if (substr($path, -1) !== '/') {
+    if (substr($path, -1) !== DIRECTORY_SEPARATOR) {
         $path = pathinfo($path, PATHINFO_DIRNAME);
     }
     if (!is_dir($path)) {
-        @mkdir($path, 0755, true);
+        mkdir($path, 0755, true);
     }
 }
 
@@ -2125,7 +2157,7 @@ function combineFiles($filesArray, $extension = "js") {
     $str = "";
     $fileName = "";
     foreach ($filesArray as $value) {
-        $fileName .= $value;
+        $fileName .= $value . filectime($global['systemRootPath'] . $value) . filemtime($global['systemRootPath'] . $value);
     }
     if ($advancedCustom != false) {
         $minifyEnabled = $advancedCustom->EnableMinifyJS;
@@ -2168,12 +2200,12 @@ function combineFiles($filesArray, $extension = "js") {
         }
         file_put_contents($cacheDir . $md5FileName, $str);
     }
-    return getCDN() . 'videos/cache/' . $extension . "/" . $md5FileName . "?" . filectime($cacheDir . $md5FileName);
+    return getCDN() . 'videos/cache/' . $extension . "/" . $md5FileName . "?cache=" . filectime($cacheDir . $md5FileName) . filemtime($cacheDir . $md5FileName);
 }
 
 function local_get_contents($path) {
     if (function_exists('fopen')) {
-        $myfile = fopen($path, "r") or die("Unable to open file!");
+        $myfile = fopen($path, "r") or die("Unable to open file! [{$path}]");
         $text = fread($myfile, filesize($path));
         fclose($myfile);
         return $text;
@@ -2509,6 +2541,10 @@ function isMobile($userAgent = null, $httpHeaders = null) {
     $detect = new Mobile_Detect;
 
     return $detect->isMobile($userAgent, $httpHeaders);
+}
+
+function isChannelPage() {
+    return strpos($_SERVER["SCRIPT_NAME"], 'view/channel.php') !== false;
 }
 
 function isAVideoMobileApp($user_agent = "") {
@@ -3637,7 +3673,15 @@ function postVariables($url, $array, $httpcodeOnly = true, $timeout = 10) {
 
 function _session_start(array $options = array()) {
     try {
-        if (session_status() == PHP_SESSION_NONE) {
+        if (!empty($_GET['PHPSESSID'])) {
+            if (session_status() != PHP_SESSION_NONE) {
+                @session_write_close();
+            }
+            session_id($_GET['PHPSESSID']);
+            _error_log("captcha: session_id changed to " . $_GET['PHPSESSID']);
+            unset($_GET['PHPSESSID']);
+            return @session_start($options);
+        }else if (session_status() == PHP_SESSION_NONE) {
             return @session_start($options);
         }
     } catch (Exception $exc) {
@@ -3737,12 +3781,18 @@ function getUsageFromFilename($filename, $dir = "") {
         $paths = Video::getPaths($filename);
         $dir = $paths['path'];
     }
-    $pos = strrpos($dir, '/');
-    $dir .= (($pos === false) ? "/" : "");
+    $dir = addLastSlash($dir);
     $totalSize = 0;
     _error_log("getUsageFromFilename: start {$dir}{$filename}");
     //$files = glob("{$dir}{$filename}*");
-    $files = globVideosDir($filename);
+    $paths = Video::getPaths($filename);
+    
+    if(is_dir($paths['path'])){
+        $files = array($paths['path']);
+    }else{
+        $files = globVideosDir($filename);
+    }
+    //var_dump($paths, $files, $filename);exit;
     session_write_close();
     $filesProcessed = array();
     if (empty($files)) {
@@ -3759,11 +3809,23 @@ function getUsageFromFilename($filename, $dir = "") {
                 _error_log("getUsageFromFilename: {$f} is Dir");
                 $dirSize = getDirSize($f);
                 $totalSize += $dirSize;
-                if ($dirSize < 10000 && AVideoPlugin::isEnabledByName('YPTStorage')) {
+                $minDirSize = 1000000;
+                $isEnabled = AVideoPlugin::isEnabledByName('YPTStorage');
+                if ($dirSize < $minDirSize && $isEnabled) {
                     // probably the HLS file is hosted on the YPTStorage
                     $info = YPTStorage::getFileInfo($filename);
                     if (!empty($info->size)) {
+                        _error_log("getUsageFromFilename: found info on the YPTStorage ". print_r($info, true));
                         $totalSize += $info->size;
+                    }else{
+                        _error_log("getUsageFromFilename: there is no info on the YPTStorage ". print_r($info, true));
+                    }
+                }else{
+                   if ($dirSize < $minDirSize) {
+                        _error_log("getUsageFromFilename: does not have the size to process $dirSize < $minDirSize");
+                    } 
+                    if($isEnabled){
+                        _error_log("getUsageFromFilename: YPTStorage is disabled");
                     }
                 }
             } elseif (is_file($f)) {
@@ -3977,7 +4039,7 @@ function encrypt_decrypt($string, $action) {
     while (strlen($secret_iv) < 16) {
         $secret_iv .= $global['systemRootPath'];
     }
-    if(empty($secret_iv)){
+    if (empty($secret_iv)) {
         $secret_iv = '1234567890abcdef';
     }
     // hash
@@ -4174,6 +4236,14 @@ function isEmbed() {
     return !empty($isEmbed);
 }
 
+function isWebRTC() {
+    global $isWebRTC, $global;
+    if (!empty($global['doNotLoadPlayer'])) {
+        return false;
+    }
+    return !empty($isWebRTC);
+}
+
 function isLive() {
     global $isLive, $global;
     if (!empty($global['doNotLoadPlayer'])) {
@@ -4223,6 +4293,9 @@ function setLiveKey($key, $live_servers_id, $live_index = '') {
 }
 
 function isVideoPlayerHasProgressBar() {
+    if (isWebRTC()) {
+        return false;
+    }
     if (isLive()) {
         $obj = AVideoPlugin::getObjectData('Live');
         if (empty($obj->disableDVR)) {
@@ -5127,8 +5200,8 @@ function getPagination($total, $page = 0, $link = "", $maxVisible = 10, $infinit
         if (preg_match("/(current=[0-9]+)/i", $link, $match)) {
             $link = str_replace($match[1], "current={page}", $link);
         } else {
-            $link = addQueryStringParameter($link, 'current', '{page}');
-            //$link .= (parse_url($link, PHP_URL_QUERY) ? '&' : '?') . 'current={page}';
+            //$link = addQueryStringParameter($link, 'current', '{page}');
+            $link .= (parse_url($link, PHP_URL_QUERY) ? '&' : '?') . 'current={page}';
         }
     }
 
@@ -5215,7 +5288,7 @@ function getPagination($total, $page = 0, $link = "", $maxVisible = 10, $infinit
     return $pag;
 }
 
-function getShareMenu($title, $permaLink, $URLFriendly, $embedURL, $img, $class = "row bgWhite list-group-item menusDiv") {
+function getShareMenu($title, $permaLink, $URLFriendly, $embedURL, $img, $class = "row bgWhite list-group-item menusDiv", $videoLengthInSeconds = 0) {
     global $global, $advancedCustom;
     include $global['systemRootPath'] . 'objects/functiongetShareMenu.php';
 }
@@ -5668,7 +5741,7 @@ function globVideosDir($filename, $filesOnly = false) {
     }
     $cleanfilename = Video::getCleanFilenameFromFile($filename);
     $paths = Video::getPaths($filename);
-    ;
+    
     $dir = $paths['path'];
 
     if (is_dir($dir . $filename)) {
@@ -5992,21 +6065,22 @@ function pathToRemoteURL($filename, $forceHTTP = false) {
         if ($yptStorage = AVideoPlugin::loadPluginIfEnabled("YPTStorage")) {
             $source = $yptStorage->getAddress("{$fileName}");
             $url = $source['url'];
-        } else
-        if ($aws_s3 = AVideoPlugin::loadPluginIfEnabled("AWS_S3")) {
-            $source = $aws_s3->getAddress("{$fileName}");
-            $url = $source['url'];
-            $url = replaceCDNIfNeed($url, 'CDN_S3');
-        } else
-        if ($bb_b2 = AVideoPlugin::loadPluginIfEnabled("Blackblaze_B2")) {
-            $source = $bb_b2->getAddress("{$fileName}");
-            $url = $source['url'];
-            $url = replaceCDNIfNeed($url, 'CDN_B2');
-        } else
-        if ($ftp = AVideoPlugin::loadPluginIfEnabled("FTP_Storage")) {
-            $source = $ftp->getAddress("{$fileName}");
-            $url = $source['url'];
-            $url = replaceCDNIfNeed($url, 'CDN_FTP');
+        } else if (!preg_match('/index.m3u8$/', $filename)) {
+            if ($aws_s3 = AVideoPlugin::loadPluginIfEnabled("AWS_S3")) {
+                $source = $aws_s3->getAddress("{$fileName}");
+                $url = $source['url'];
+                $url = replaceCDNIfNeed($url, 'CDN_S3');
+            } else
+            if ($bb_b2 = AVideoPlugin::loadPluginIfEnabled("Blackblaze_B2")) {
+                $source = $bb_b2->getAddress("{$fileName}");
+                $url = $source['url'];
+                $url = replaceCDNIfNeed($url, 'CDN_B2');
+            } else
+            if ($ftp = AVideoPlugin::loadPluginIfEnabled("FTP_Storage")) {
+                $source = $ftp->getAddress("{$fileName}");
+                $url = $source['url'];
+                $url = replaceCDNIfNeed($url, 'CDN_FTP');
+            }
         }
     }
     if (empty($url)) {
@@ -6244,7 +6318,7 @@ function getStatsNotifications($force_recreate = false) {
         $json = ObjectYPT::getCache($cacheName, 0, true);
     }
     if (empty($json)) {
-        _error_log('getStatsNotifications: 1 ' . json_encode(debug_backtrace()));
+        //_error_log('getStatsNotifications: 1 ' . json_encode(debug_backtrace()));
         $json = Live::getStats();
         $json = object_to_array($json);
 
@@ -6628,12 +6702,12 @@ function fixPath($path, $addLastSlash = false) {
 
 function idToHash($id) {
     global $global, $_idToHash;
-    
-    if(!isset($_idToHash)){
+
+    if (!isset($_idToHash)) {
         $_idToHash = array();
     }
-    
-    if(!empty($_idToHash[$id])){
+
+    if (!empty($_idToHash[$id])) {
         return $_idToHash[$id];
     }
 
@@ -6644,7 +6718,7 @@ function idToHash($id) {
         $base = 32;
         $cipher_algo = 'rc4';
     }
-    if(empty($global['salt'])){
+    if (empty($global['salt'])) {
         $global['salt'] = '11234567890abcdef';
     }
     $idConverted = base_convert($id, 10, $base);
@@ -6719,6 +6793,11 @@ function getCDN($type = 'CDN', $id = 0) {
 
     //var_dump($type, $id, $_getCDNURL[$index]);
     return empty($_getCDNURL[$index]) ? false : $_getCDNURL[$index];
+}
+
+function getURL($relativePath) {
+    global $global;
+    return getCDN() . $relativePath . '?cache=' . (@filemtime("{$global['systemRootPath']}{$relativePath}") . (@filectime("{$global['systemRootPath']}{$relativePath}")));
 }
 
 function getCDNOrURL($url, $type = 'CDN', $id = 0) {
@@ -6903,22 +6982,83 @@ function optimizeJS($html) {
     return str_replace('</body>', '<!-- optimized JS -->' . PHP_EOL . $HTMLTag . PHP_EOL . '</body>', $html);
 }
 
-function mysqlBeginTransaction(){
+function mysqlBeginTransaction() {
     global $global;
-    _error_log('Begin transaction '. getSelfURI());
+    _error_log('Begin transaction ' . getSelfURI());
     $global['mysqli']->autocommit(false);
 }
 
-function mysqlRollback(){
+function mysqlRollback() {
     global $global;
-    _error_log('Rollback transaction '. getSelfURI(), AVideoLog::$ERROR);
+    _error_log('Rollback transaction ' . getSelfURI(), AVideoLog::$ERROR);
     $global['mysqli']->rollback();
     $global['mysqli']->autocommit(true);
 }
 
-function mysqlCommit(){
+function mysqlCommit() {
     global $global;
-    _error_log('Commit transaction '. getSelfURI());
+    _error_log('Commit transaction ' . getSelfURI());
     $global['mysqli']->commit();
     $global['mysqli']->autocommit(true);
+}
+
+function number_format_short($n, $precision = 1) {
+    if ($n < 900) {
+        // 0 - 900
+        $n_format = number_format($n, $precision);
+        $suffix = '';
+    } else if ($n < 900000) {
+        // 0.9k-850k
+        $n_format = number_format($n / 1000, $precision);
+        $suffix = 'K';
+    } else if ($n < 900000000) {
+        // 0.9m-850m
+        $n_format = number_format($n / 1000000, $precision);
+        $suffix = 'M';
+    } else if ($n < 900000000000) {
+        // 0.9b-850b
+        $n_format = number_format($n / 1000000000, $precision);
+        $suffix = 'B';
+    } else {
+        // 0.9t+
+        $n_format = number_format($n / 1000000000000, $precision);
+        $suffix = 'T';
+    }
+
+    // Remove unecessary zeroes after decimal. "1.0" -> "1"; "1.00" -> "1"
+    // Intentionally does not affect partials, eg "1.50" -> "1.50"
+    if ($precision > 0) {
+        $dotzero = '.' . str_repeat('0', $precision);
+        $n_format = str_replace($dotzero, '', $n_format);
+    }
+
+    return $n_format . $suffix;
+}
+
+function seconds2human($ss) {
+    $s = $ss % 60;
+    $m = floor(($ss % 3600) / 60);
+    $h = floor(($ss % 86400) / 3600);
+    $d = floor(($ss % 2592000) / 86400);
+    $M = floor($ss / 2592000);
+
+    $times = array();
+
+    if (!empty($M)) {
+        $times[] = "$M " . __('m');
+    }
+    if (!empty($d)) {
+        $times[] = "$d " . __('d');
+    }
+    if (!empty($h)) {
+        $times[] = "$h " . __('h');
+    }
+    if (!empty($m)) {
+        $times[] = "$m " . __('min');
+    }
+    if (!empty($s)) {
+        $times[] = "$s " . __('sec');
+    }
+
+    return implode(', ', $times);
 }

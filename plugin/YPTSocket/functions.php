@@ -112,11 +112,11 @@ function killProcessOnPort() {
     $port = intval($obj->port);
     if (!empty($port)) {
         echo 'Searching for port: ' . $port . PHP_EOL;
-        $command = 'netstat -ano | findstr ' . $port;
-        exec($command, $output, $retval);
+        //$command = 'netstat -ano | findstr ' . $port;
+        //exec($command, $output, $retval);
         $pid = getPIDUsingPort($port);
         if (!empty($pid)) {
-            echo 'Killing, PID ' . $pid . PHP_EOL;
+            echo 'Server is already runing on port '.$port.' Killing, PID ' . $pid . PHP_EOL;
             killProcess($pid);
         } else {
             echo 'No Need to kill, port NOT found' . PHP_EOL;
@@ -124,10 +124,31 @@ function killProcessOnPort() {
     }
 }
 
-function restartServer(){
+function restartServer($kill=true) {
     global $global;
-    killProcessOnPort();
-    sleep(1);
-    $cmd = "nohup php {$global['systemRootPath']}plugin/YPTSocket/server.php &";
-    return exec($cmd);
+    if($kill){
+        killProcessOnPort();
+        sleep(1);
+    }
+    $cmd = "php {$global['systemRootPath']}plugin/YPTSocket/server.php";
+    echo 'Starting server with command ' . $cmd . PHP_EOL;
+    exec($cmd, $output, $retval);
+    echo implode(PHP_EOL,$output);
+    echo PHP_EOL;
+    return $retval;
+}
+
+function restartServerIfIsDead() {
+    global $global;
+
+    $obj = \AVideoPlugin::getDataObject("YPTSocket");
+    $port = intval($obj->port);
+    $pid = getPIDUsingPort($port);
+    if (!empty($pid)) {
+        echo 'Server is already runing on port '.$port.' PID ' . $pid . PHP_EOL;
+        echo 'Run "php '.$global['systemRootPath'].'plugin/YPTSocket/serverRestart.php force" if you want to kill the current server and restart it'.PHP_EOL;
+        return false;
+    }
+    echo 'Server was dead, restart it'.PHP_EOL;
+    return restartServer(false);
 }

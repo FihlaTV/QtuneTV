@@ -7,7 +7,7 @@ if (empty($objM)) {
 
 $meetDomain = Meet::getDomain();
 if (empty($meetDomain)) {
-    echo "<span class='label label-danger'>".__("The server is not ready")."</span>";
+    echo "<span class='label label-danger'>" . __("The server is not ready") . "</span>";
     return '';
 }
 
@@ -36,17 +36,17 @@ $dropURL = "{$global['webSiteRootURL']}plugin/Live/droplive.json.php?live_transm
 include $global['systemRootPath'] . 'plugin/Meet/api.js.php';
 ?>
 <span class=" pull-right" style="display: none;" id="meetButtons">
-    <button class="btn btn-danger btn-xs showOnLive hideOnProcessingLive hideOnMeetNotReady showOnLive hideOnNoLive" id="stopRecording" style="display: none;" onclick="aVideoMeetStopRecording('<?php echo $dropURL; ?>')" data-toggle="tooltip" data-placement="bottom" title="<?php echo __("Stop"); ?>">
+    <button class="btn btn-danger btn-xs showOnLive hideOnProcessingLive hideOnMeetNotReady hideOnNoLive" id="stopRecording" style="display: none;" onclick="aVideoMeetStopRecording('<?php echo $dropURL; ?>')" data-toggle="tooltip" data-placement="bottom" title="<?php echo __("Stop"); ?>">
         <i class="fas fa-stop"></i> <?php echo __("Stop"); ?>
     </button>
-    <button class="btn btn-success btn-xs showOnNoLive hideOnProcessingLive hideOnMeetNotReady" id="startRecording" style="display: none;" onclick="aVideoMeetStartRecording('<?php echo Live::getRTMPLink(User::getId()); ?>','<?php echo $dropURL; ?>');" data-toggle="tooltip" data-placement="bottom" title="<?php echo __("Start Live Now"); ?>">
+    <button class="btn btn-success btn-xs showOnNoLive hideOnProcessingLive hideOnMeetNotReady" id="startRecording" style="display: none;" onclick="aVideoMeetStartRecording('<?php echo Live::getRTMPLink(User::getId()); ?>', '<?php echo $dropURL; ?>');" data-toggle="tooltip" data-placement="bottom" title="<?php echo __("Start Live Now"); ?>">
         <i class="fas fa-circle"></i> <?php echo __("Go Live"); ?>
     </button>
     <button class="btn btn-warning btn-xs showOnProcessingLive hideOnMeetNotReady" style="display: none;">
         <i class="fas fa-circle-notch fa-spin"></i> <?php echo __("Please Wait"); ?>
     </button>
     <button class="btn btn-default btn-xs hideOnMeetReady showOnMeetNotReady hideOnProcessingMeetReady" id="startMeet" onclick="startMeetNow();" data-toggle="tooltip" data-placement="bottom" title="<?php echo __("Use your webcam"); ?>">
-        <i class="fas fa-camera"></i> <?php echo __("Webcam"); ?>/<?php echo __("Meet"); ?>
+        <i class="fas fa-comments"></i> <?php echo __("Meet"); ?>
     </button>
     <button class="btn btn-warning btn-xs hideOnMeetReady showOnProcessingMeetReady" id="processMeet" style="display: none;" >
         <i class="fas fa-cog fa-spin"></i> <?php echo __("Please Wait"); ?>
@@ -61,13 +61,12 @@ include $global['systemRootPath'] . 'plugin/Meet/api.js.php';
         ?>
         <a href="<?php echo $global['webSiteRootURL']; ?>plugin/Meet/checkServers.php" class="btn btn-xs btn-default"
            data-toggle="tooltip" data-placement="bottom" title="You need to use one of our servers, your selfhosted jitsi will not work, you can disable this feature on Plugins->Live->disableMeetCamera">
-            <i class="fas fa-exclamation-triangle"></i> Use our servers
+            <i class="fas fa-exclamation-triangle"></i> <span class="hidden-sm hidden-xs">Use our servers</span>
         </a>
         <?php
     }
     ?>
 </span>
-<div class="clearfix"></div>
 <script>
     var meetPassword;
     var meetLink;
@@ -124,15 +123,23 @@ include $global['systemRootPath'] . 'plugin/Meet/api.js.php';
                 } else {
                     aVideoMeetStart('<?php echo $domain; ?>', response.roomName, response.jwt, '<?php echo User::getEmail_(); ?>', '<?php echo addcslashes(User::getNameIdentification(), "'"); ?>', <?php echo json_encode(Meet::getButtons(0)); ?>);
                     
+                    if (typeof hideWebcam == 'function') {
+                        hideWebcam();
+                    }
                     meetPassword = response.password;
                     $('#meetPassword').val(meetPassword);
-                    
+
                     meetLink = response.link;
                     $('#meetLink').val(meetLink);
 <?php echo (Meet::isCustomJitsi() ? 'event_on_meetReady();$("#startRecording").hide();$("#stopRecording").hide();' : "") ?>
                 }
             }
         });
+    }
+    
+    function stopMeetNow() {
+        $('#divMeetToIFrame iframe').remove();
+        on_meetStop();
     }
 
     var showStopStartInterval;
@@ -191,15 +198,17 @@ include $global['systemRootPath'] . 'plugin/Meet/api.js.php';
     function showMeet() {
         userIsControling = true;
         on_processingMeetReady();
-        $('#mainVideo').slideUp();
-        $('#divMeetToIFrame').slideDown();
+        $('#mainVideo').hide();
+        $('#divMeetToIFrame').show();
+        $('#divWebcamIFrame').hide();
         player.pause();
     }
 
     function hideMeet() {
         on_meetStop();
-        $('#mainVideo').slideDown();
-        $('#divMeetToIFrame').slideUp();
+        $('#mainVideo').show();
+        $('#divMeetToIFrame').hide();
+        $('#divWebcamIFrame').hide();
     }
 
     var setProcessingIsLiveTimeout;

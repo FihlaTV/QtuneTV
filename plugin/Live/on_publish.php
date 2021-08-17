@@ -22,10 +22,12 @@ if(!empty($parts["query"])){
 }
 
 if(!empty($_GET['e']) && empty($_GET['p'])){
-    $objE = json_decode(decryptString($_GET['e']));
+    $objE = _json_decode(decryptString($_GET['e']));
     if(!empty($objE->users_id)){
         $user = new User($objE->users_id);
         $_GET['p'] = $user->getPassword();
+    }else{
+        _error_log("NGINX ON Publish encryption token error: " . json_encode($objE));
     }
 }
 
@@ -140,7 +142,7 @@ if (!empty($obj) && empty($obj->error)) {
     }
     //exit;
 } else {
-    _error_log("NGINX ON Publish denied ", AVideoLog::$SECURITY);
+    _error_log("NGINX ON Publish denied ". json_encode($obj), AVideoLog::$SECURITY);
     http_response_code(401);
     header("HTTP/1.1 401 Unauthorized Error");
     exit;

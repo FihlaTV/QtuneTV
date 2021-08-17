@@ -14,6 +14,7 @@ $obj = AVideoPlugin::getDataObject("Live");
         background-color: rgba(255,0,0,0.7);
     }
     #availableLiveStream{
+        min-width: 300px;
         max-width: 400px;
         overflow: hidden;
         max-height: 75vh;
@@ -27,16 +28,18 @@ $obj = AVideoPlugin::getDataObject("Live");
 if (empty($obj->doNotShowGoLiveButton) && User::canStream()) {
     ?>
     <li>
-        <a href="<?php echo $global['webSiteRootURL']; ?>plugin/Live"  class="btn btn-danger navbar-btn" data-toggle="tooltip" title="<?php echo __("Broadcast a Live Stream"); ?>" data-placement="bottom" >
-            <span class="fa fa-circle"></span>  <span class="hidden-md hidden-sm hidden-mdx"><?php echo __($buttonTitle); ?></span>
+        <a href="<?php echo $global['webSiteRootURL']; ?>plugin/Live"  class="faa-parent animated-hover btn btn-danger navbar-btn" data-toggle="tooltip" title="<?php echo __("Broadcast a Live Stream"); ?>" data-placement="bottom" >
+            <span class="fa fa-circle faa-flash"></span>  <span class="hidden-md hidden-sm hidden-mdx"><?php echo __($buttonTitle); ?></span>
         </a>
     </li>
     <?php
 }
 ?>
-<li class="dropdown">
-    <a href="#" class=" btn btn-default navbar-btn" data-toggle="dropdown">
-        <span class="fa fa-bell"></span>
+<li class="dropdown" onclick="setTimeout(function () {
+                lazyImage();
+            }, 500);">
+    <a href="#" class="faa-parent animated-hover btn btn-default navbar-btn" data-toggle="dropdown">
+        <span class="fas fa-bell faa-ring"></span>
         <span class="badge onlineApplications" style=" background: rgba(255,0,0,1); color: #FFF;">0</span>
         <b class="caret"></b>
     </a>
@@ -55,33 +58,34 @@ if (empty($obj->doNotShowGoLiveButton) && User::canStream()) {
         </div>
     </a>
 </li>
+
 <div class="col-lg-12 col-sm-12 col-xs-12 bottom-border hidden extraVideosModel liveVideo">
-    <a href="" class="h6 videoLink">
-        <div class="col-lg-5 col-sm-5 col-xs-5 nopadding thumbsImage" style="min-height: 70px; position:relative;" >
+    <a href="" class="videoLink" class="videoLink galleryLink " >
+        <div class="aspectRatio16_9" style="min-height: 70px;" >
             <img src="<?php echo getCDN(); ?>videos/userPhoto/logo.png" class="thumbsJPG img-responsive" height="130" itemprop="thumbnailUrl" alt="Logo" />
-            <span itemprop="uploadDate" content="<?php echo date("Y-m-d h:i:s"); ?>" />
             <img src="" style="position: absolute; top: 0; display: none;" class="thumbsGIF img-responsive" height="130" />
             <span class="label label-danger liveNow faa-flash faa-slow animated"><?php echo __("LIVE NOW"); ?></span>
         </div>
-        <div class="col-lg-7 col-sm-7 col-xs-7 videosDetails">
-            <div class="text-uppercase row"><strong itemprop="name" class="title liveTitle"><?php echo __("Title"); ?></strong></div>
-            <div class="details row" itemprop="description">
-                <div class="pull-left">
-                    <img src="" class="photoImg img img-circle img-responsive" style="max-width: 20px;">
-                </div>
-                <div style="margin-left: 25px;">
-                    <div class="liveUser"><?php echo __("User"); ?></div>
-                </div>
-            </div>
-            <div class="clearfix"></div>
+    </a>
+
+    <a class="h6 galleryLink " href="_link_" title="_title_" >
+        <strong class="title liveTitle"><?php echo __("Title"); ?></strong>
+    </a>
+    <div class="galeryDetails" style="overflow: hidden;">
+        <div>
+            <img src="" class="photoImg img img-circle img-responsive" style="max-width: 20px;">
+        </div>
+        <div class="liveUser"><?php echo __("User"); ?></div>        
+        <div class="galleryTags">
             <?php
             if (AVideoPlugin::isEnabledByName("LiveUsers") && method_exists("LiveUsers", "getLabels")) {
                 echo LiveUsers::getLabels('extraVideosModelOnLineLabels');
             }
             ?>
         </div>
-    </a>
+    </div>
 </div>
+
 <script>
     var loadedExtraVideos = [];
     /* Use this funtion to display live videos dynamic on pages*/
@@ -179,12 +183,17 @@ if (empty($obj->doNotShowGoLiveButton) && User::canStream()) {
             $liveLi = afterExtraVideos($liveLi);
             $('.extraVideos').append($liveLi);
             $liveLi.slideDown();
+            
             setTimeout(function () {
                 refreshGetLiveImage("#" + id)
             }, 5000);
         } else if ($("#" + id).length) {
             refreshGetLiveImage("#" + id);
         }
+        
+        setTimeout(function () {
+            lazyImage();
+        }, 1000);
     }
 
     function refreshGetLiveImage(selector) {
@@ -350,6 +359,9 @@ if (isVideo()) {
                 }
             }
             $('#liveVideos').slideDown();
+            setTimeout(function () {
+                lazyImage();
+            }, 1000);
             if (callback) {
                 eval("try {$liveLi = " + callback + ";} catch (e) {console.log('processApplication application.callback error',e.message);}");
             }
@@ -374,8 +386,8 @@ if (!empty($obj->playLiveInFullScreenOnIframe)) {
             }, 200);
 
         }
-        if(application.users && typeof application.users.views !== 'undefined'){
-            $('.views_on_total_on_live_'+application.users.transmition_key+'_'+application.users.live_servers_id).text(application.users.views);
+        if (application.users && typeof application.users.views !== 'undefined') {
+            $('.views_on_total_on_live_' + application.users.transmition_key + '_' + application.users.live_servers_id).text(application.users.views);
         }
     }
 
@@ -407,6 +419,7 @@ if (!empty($obj->playLiveInFullScreenOnIframe)) {
         console.log('socketLiveOFFCallback', json);
         processLiveStats(json.stats);
         var selector = '.live_' + json.live_servers_id + "_" + json.key;
+        selector += ', .liveVideo_live_' + json.live_servers_id + "_" + json.key;
         //console.log('socketLiveOFFCallback 1', selector);
         $(selector).slideUp();
         if (typeof onlineLabelOffline == 'function') {
@@ -420,19 +433,21 @@ if (!empty($obj->playLiveInFullScreenOnIframe)) {
             //console.log('socketLiveOFFCallback 3', selector);
             onlineLabelOffline(selector);
         }
-        setTimeout(function(){hideExtraVideosIfEmpty();},500);
+        setTimeout(function () {
+            hideExtraVideosIfEmpty();
+        }, 500);
     }
 
     function hideExtraVideosIfEmpty() {
         $('.extraVideos').each(function (index, currentElement) {
             var somethingIsVisible = false;
             $(this).children('div').each(function (index2, currentElement2) {
-                if($(this).is(":visible")){
+                if ($(this).is(":visible")) {
                     somethingIsVisible = true;
                     return false;
                 }
             });
-            if(!somethingIsVisible){
+            if (!somethingIsVisible) {
                 $('#liveVideos').slideUp();
             }
         });

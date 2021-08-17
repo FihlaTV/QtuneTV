@@ -1,16 +1,17 @@
 <?php
 global $socialAdded;
+$titleSocial = @$title;
 if (!empty($video['id'])) {
     $url = Video::getLinkToVideo($video['id']);
     if (!empty($video['title'])) {
         $titleSocial = $video['title'];
     } else {
         $video = new Video("", "", $video['id']);
-        $title = $video->getTitle();
+        $titleSocial = $video->getTitle();
     }
 }
 $removeChars = array('|');
-$titleSocial = str_replace($removeChars, '-', @$title);
+$titleSocial = str_replace($removeChars, '-', $titleSocial);
 //$originalURL = $urlSocial;
 $urlSocial = urlencode($url);
 //set the $urlSocial and the $titleSocial before include this
@@ -22,6 +23,9 @@ $reddit = "http://www.reddit.com/submit?url=$urlSocial&title=$titleSocial";
 $linkedin = "http://www.linkedin.com/shareArticle?mini=true&url=$urlSocial&title=$titleSocial&summary=&source=$urlSocial";
 $wordpress = "http://wordpress.com/press-this.php?u=$urlSocial&quote=$titleSocial&s=";
 $pinboard = "https://pinboard.in/popup_login/?url=$urlSocial&title=$titleSocial&description=";
+$gabURL = "https://gab.com/compose?url={$urlSocial}&text={$titleSocial}";
+$cloutHubURL = "https://app.clouthub.com/share?url={$urlSocial}&text={$titleSocial}";
+
 if (empty($socialAdded)) { // do not add the CSS more then once
     ?>     
     <link href="<?php echo getCDN(); ?>view/css/social.css" rel="stylesheet" type="text/css"/>
@@ -39,7 +43,21 @@ $socialAdded = 1;
     <li><a href="<?php echo $wordpress; ?>" target="_blank"  class="icoWordpress" title="Wordpress" data-toggle="tooltip" ><i class="fab fa-wordpress-simple"></i></a></li>
     <li><a href="<?php echo $pinboard; ?>" target="_blank"  class="icoPinboard" title="Pinboard" data-toggle="tooltip" ><i class="fas fa-thumbtack"></i></a></li>
     <li>
-        <a href="#" class="icoCopy" title="<?php echo __('Copy to Clipboard'); ?>" data-toggle="tooltip" onclick="copyToClipboard('<?php echo ($urlSocial); ?>');$(this).closest('.modal').modal('hide');" >
+        <a href="<?php echo $gabURL; ?>" style="" target="_blank" class="icoGab" title="Gab" data-toggle="tooltip" >
+            <i class="fas">
+                <img src="<?php echo getCDN(); ?>view/img/gab.png" title="gab" style="height: 30px;"/>
+            </i>
+        </a>
+    </li>
+    <li>
+        <a href="<?php echo $cloutHubURL; ?>" style="" target="_blank" class="icoCloutHub" title="CloutHub" data-toggle="tooltip" >
+            <i class="fas">
+                <img src="<?php echo getCDN(); ?>view/img/cloutHub.png" title="gab" style="height: 30px;"/>
+            </i>
+        </a>
+    </li>
+    <li>
+        <a href="#" class="icoCopy" title="<?php echo __('Copy to Clipboard'); ?>" data-toggle="tooltip" onclick="copyToClipboard('<?php echo urldecode($urlSocial); ?>');$(this).closest('.modal').modal('hide');" >
             <i class="far fa-copy"></i>
         </a>
     </li>
