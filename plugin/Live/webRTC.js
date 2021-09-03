@@ -2,6 +2,10 @@
 window.addEventListener('message', event => {
     if (event.data.startLiveRestream) {
         startLiveRestream(event.data.m3u8, forceIndex);
+    }else if (event.data.onStreamReady) {
+        onStreamReady();
+    }else if (event.data.webRTCPleaseWaitHide) {
+        webRTCPleaseWaitHide();
     }else if (event.data.showPleaseWait) {
         modal.showPleaseWait();
     }else if (event.data.hidePleaseWait) {
@@ -21,11 +25,15 @@ window.addEventListener('message', event => {
     }
 });
 
+function onStreamReady(){
+    $('#webRTCConnect button').prop('disabled', false);
+}
+
 function startLiveRestream(m3u8, forceIndex) {
     console.log('WebRTCLiveCam: startLiveRestream', m3u8, forceIndex);
     modal.showPleaseWait();
     $.ajax({
-        url: webSiteRootURL + '/plugin/Live/webRTCToLive.json.php',
+        url: webSiteRootURL + 'plugin/Live/webRTCToLive.json.php',
         method: 'POST',
         data: {
             'm3u8': m3u8,
@@ -69,7 +77,7 @@ function webRTCPleaseWaitShow(){
     _webRTCPleaseWaitShowTimeout = setTimeout(function(){
         avideoToastError('Live error')
         webRTCPleaseWaitHide();
-    },60000);
+    },120000);
 }
 
 function webRTCPleaseWaitHide(){

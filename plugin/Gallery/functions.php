@@ -354,7 +354,7 @@ function createGallerySection($videos, $crc = "", $get = array(), $ignoreAds = f
                 ?>
                 <?php if (Video::canEdit($value['id'])) { ?>
                     <div>
-                        <a href="#" onclick="avideoModalIframe('<?php echo $global['webSiteRootURL']; ?>mvideos?video_id=<?php echo $value['id']; ?>');return false;" data-toggle="tooltip" title="<?php echo __("Edit Video"); ?>">
+                        <a href="#" onclick="avideoModalIframeFull('<?php echo $global['webSiteRootURL']; ?>mvideos?video_id=<?php echo $value['id']; ?>');return false;" data-toggle="tooltip" title="<?php echo __("Edit Video"); ?>">
                             <i class="fa fa-edit"></i> <span class="hidden-md hidden-sm hidden-xs"><?php echo __("Edit Video"); ?></span>
                         </a>
                     </div>
@@ -569,6 +569,10 @@ function createGalleryLiveSection($videos) {
                 echo "<div class='clearfix hidden-lg hidden-md hidden-sm'></div>";
             }
         }
+        if (!empty($video['galleryCallback'])) {
+            $video['galleryCallback'] = addcslashes($video['galleryCallback'], '"');
+            echo '<!-- galleryCallback --><script>$(document).ready(function () {eval("' . $video['galleryCallback'] . '")});</script>';
+        }
     }
     ?>
     <div class="col-xs-12  text-center clear clearfix" style="padding: 10px;">
@@ -579,12 +583,6 @@ function createGalleryLiveSection($videos) {
         ?>
     </div>
     <?php
-    if (!empty($video['galleryCallback'])) {
-        $video['galleryCallback'] = addcslashes($video['galleryCallback'], '"');
-        echo '<!-- galleryCallback --><script>$(document).ready(function () {eval("' . $video['galleryCallback'] . '")});</script>';
-    }
-
-
     unset($_POST['disableAddTo']);
     return $countCols;
 }

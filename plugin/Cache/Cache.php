@@ -119,7 +119,7 @@ class Cache extends PluginAbstract {
         $whitelistedFiles = array('user.php', 'status.php', 'canWatchVideo.json.php', '/login', '/status');
         $blacklistedFiles = array('videosAndroid.json.php');
         $baseName = basename($_SERVER["SCRIPT_FILENAME"]);
-        if (isVideo() || isLive() || isLiveLink() || in_array($baseName, $whitelistedFiles) || in_array($_SERVER['REQUEST_URI'], $whitelistedFiles)) {
+        if (getVideos_id() || isVideo() || isLive() || isLiveLink() || in_array($baseName, $whitelistedFiles) || in_array($_SERVER['REQUEST_URI'], $whitelistedFiles)) {
             return true;
         }
 
@@ -189,6 +189,9 @@ class Cache extends PluginAbstract {
 
         if ($this->isBlacklisted() || $this->isFirstPage() || !class_exists('User') || !User::isLogged() || !empty($obj->enableCacheForLoggedUsers)) {
             $cacheName = 'firstPage'.DIRECTORY_SEPARATOR.$this->getFileName();
+            
+            $c = preg_replace('/<script id="infoForNonCachedPages">[^<]+<\/script>/', '', $c);
+            
             $r = ObjectYPT::setCache($cacheName, $c);
             //var_dump($r);
         }
@@ -210,7 +213,8 @@ class Cache extends PluginAbstract {
             '/roku.json',
             'mrss',
             '/sitemap.xml',
-            'plugin/Live/verifyToken.json.php');
+            'plugin/Live/verifyToken.json.php',
+            'control.json.php');
         foreach ($cacheBotWhitelist as $value) {
             if (strpos($_SERVER['REQUEST_URI'], $value) !== false) {
                 _error_log("Cache::isREQUEST_URIWhitelisted: ($value) is whitelisted");

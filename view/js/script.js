@@ -467,7 +467,8 @@ function addViewBeacon() {
             console.log('addViewBeacon seconds_watching_video <= 0 ', seconds_watching_video);
             return false;
         }
-        var url = webSiteRootURL + 'objects/videoAddViewCount.json.php?PHPSESSID=' + PHPSESSID;
+        var url = webSiteRootURL + 'objects/videoAddViewCount.json.php';
+        url = addGetParam(url, 'PHPSESSID', PHPSESSID);
         url = addGetParam(url, 'id', mediaId);
         url = addGetParam(url, 'currentTime', playerCurrentTime);
         url = addGetParam(url, 'seconds_watching_video', seconds_watching_video);
@@ -493,8 +494,10 @@ function _addView(videos_id, currentTime) {
     if(typeof PHPSESSID == 'undefined'){
         PHPSESSID = '';
     }
+    var url = webSiteRootURL + 'objects/videoAddViewCount.json.php';
+    url = addGetParam(url, 'PHPSESSID', PHPSESSID);
     $.ajax({
-        url: webSiteRootURL + 'objects/videoAddViewCount.json.php?PHPSESSID=' + PHPSESSID,
+        url: url,
         method: 'POST',
         data: {
             'id': videos_id,
@@ -508,15 +511,17 @@ function _addView(videos_id, currentTime) {
 
 var _addViewAsyncSent = false;
 function _addViewAsync() {
-    if(_addViewAsyncSent){
+    if(_addViewAsyncSent || typeof webSiteRootURL == 'undefined' || typeof player == 'undefined'){
         return false;
     }
     if(typeof PHPSESSID == 'undefined'){
         PHPSESSID = '';
     }
+    var url = webSiteRootURL + 'objects/videoAddViewCount.json.php';
+    url = addGetParam(url, 'PHPSESSID', PHPSESSID);
     _addViewAsyncSent = true;
     $.ajax({
-        url: webSiteRootURL + 'objects/videoAddViewCount.json.php?PHPSESSID=' + PHPSESSID,
+        url: url,
         method: 'POST',
         data: {
             'id': mediaId,
@@ -1165,10 +1170,23 @@ function avideoModalIframeLarge(url) {
     avideoModalIframeWithClassName(url, 'swal-modal-iframe-large');
 }
 
+function avideoModalIframeFullScreen(url) {
+    avideoModalIframeWithClassName(url, 'swal-modal-iframe-full');
+}
+function avideoModalIframeFull(url) {
+    avideoModalIframeFullScreen(url);
+}
+""
 function avideoModalIframeWithClassName(url, className) {
-    var span = document.createElement("span");
     url = addGetParam(url, 'avideoIframe', 1);
-    span.innerHTML = '<iframe frameBorder="0" src="' + url + '" />';
+    var html = '';
+    html = '<div id="avideoModalIframeDiv" class="clearfix">';
+    html += '<button class="btn btn-default pull-left" onclick="swal.close();">';
+    html += '<i class="fas fa-chevron-left"></i>';
+    html += '</button></div>';
+    html += '<iframe frameBorder="0" src="' + url + '"  allow="camera *;microphone *" ></iframe>';
+    var span = document.createElement("span");
+    span.innerHTML = html;
     swal({
         content: span,
         closeModal: true,
@@ -1178,7 +1196,7 @@ function avideoModalIframeWithClassName(url, className) {
     });
     setTimeout(function () {
         avideoModalIframeRemove();
-    }, 1000);
+    }, 2000);
 }
 
 function avideoModalIframeIsVisible() {
@@ -1187,6 +1205,8 @@ function avideoModalIframeIsVisible() {
         modal = $('.swal-modal-iframe-small');
     } else if ($('.swal-modal-iframe-large').length) {
         modal = $('.swal-modal-iframe-large');
+    } else if ($('.swal-modal-iframe-full').length) {
+        modal = $('.swal-modal-iframe-full');
     } else {
         modal = $('.swal-modal-iframe');
     }
@@ -1204,7 +1224,8 @@ function avideoModalIframeRemove() {
             avideoModalIframeRemove();
         }, 1000);
     } else {
-        $('.swal-modal-iframe .swal-content').html('');
+        console.log('avideoModalIframeRemove');
+        $('.swal-content').html('');
     }
 }
 
@@ -1853,13 +1874,16 @@ function avideoAjax(url, data) {
     });
 }
 
+function isPlayerUserActive(){
+    return $('#mainVideo').hasClass("vjs-user-active");
+}
+
 window.addEventListener('beforeunload', function (e) {
-    console.log('window.addEventListener(beforeunload');
+    //console.log('window.addEventListener(beforeunload');
     _addViewAsync();
 }, false);
 document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') {
-        console.log('document.addEventListener(visibilitychange');
         _addViewAsync();
     }
 });
