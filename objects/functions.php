@@ -1344,7 +1344,7 @@ function getVideosURL_V2($fileName, $recreateCache = false) {
                 'filename' => "{$parts['filename']}.{$parts['extension']}",
                 'path' => $file,
                 'url' => $source['url'],
-                'url_noCDN' => $source['url_noCDN'],
+                'url_noCDN' => @$source['url_noCDN'],
                 'type' => $type,
                 'format' => strtolower($parts['extension']),
             );
@@ -2230,6 +2230,19 @@ function getSelfUserAgent() {
     $agent = $AVideoStreamer_UA . "_";
     $agent .= md5($global['salt']);
     return $agent;
+}
+
+function isValidM3U8Link($url, $timeout = 3){
+    if(!isValidURL($url)){
+        return false;
+    }
+    $content = url_get_contents($url, '', $timeout);
+    if(!empty($content)){
+        if(preg_match('/EXTM3U/', $content)){
+            return true;
+        }
+    }
+    return false;
 }
 
 function url_get_contents($url, $ctx = "", $timeout = 0, $debug = false) {
