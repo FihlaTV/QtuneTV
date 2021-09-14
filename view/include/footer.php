@@ -136,8 +136,33 @@ if(isFirstPage()){
 
 
     function getPageHeight() {
-        return $('#mainNavBar').height() + $('#mainFooter').height() + $('.container, .container-fluid').first().height();
+        var mainNavBarH = 0;
+        if($('#mainNavBar').length){
+            mainNavBarH = $('#mainNavBar').height();
+        }
+        var mainFooterH = 0;
+        if($('#mainFooter').length){
+            mainFooterH = $('#mainFooter').height();
+        }
+        var containerH = getLargerContainerHeight();
+        return mainNavBarH + mainFooterH + containerH;
     }
+    
+    function getLargerContainerHeight(){
+        var conteiners = $('body > .container,body >  .container-fluid');
+        var height = 0;
+        for (var item in conteiners) {
+            if(isNaN(item)){
+                continue;
+            }
+            var h = $(conteiners[item]).height();
+            if(h>height){
+                height = h;
+            }
+        }
+        return height;
+    }
+    
 </script>
 <!--
 <?php

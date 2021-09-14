@@ -2232,13 +2232,13 @@ function getSelfUserAgent() {
     return $agent;
 }
 
-function isValidM3U8Link($url, $timeout = 3){
-    if(!isValidURL($url)){
+function isValidM3U8Link($url, $timeout = 3) {
+    if (!isValidURL($url)) {
         return false;
     }
     $content = url_get_contents($url, '', $timeout);
-    if(!empty($content)){
-        if(preg_match('/EXTM3U/', $content)){
+    if (!empty($content)) {
+        if (preg_match('/EXTM3U/', $content)) {
             return true;
         }
     }
@@ -3045,9 +3045,7 @@ function object_to_array($obj) {
 
 function allowOrigin() {
     global $global;
-    if (!headers_sent()) {
-        header_remove('Access-Control-Allow-Origin');
-    }
+    cleanUpAccessControlHeader();
     if (empty($_SERVER['HTTP_ORIGIN'])) {
         $server = parse_url($global['webSiteRootURL']);
         header('Access-Control-Allow-Origin: ' . $server["scheme"] . '://imasdk.googleapis.com');
@@ -3057,6 +3055,17 @@ function allowOrigin() {
     header("Access-Control-Allow-Credentials: true");
     header("Access-Control-Allow-Methods: GET,HEAD,OPTIONS,POST,PUT");
     header("Access-Control-Allow-Headers: Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers");
+}
+
+function cleanUpAccessControlHeader(){
+    if (!headers_sent()) {
+        foreach (headers_list() as $header) {
+            if(preg_match('/Access-Control-Allow-Origin/i', $header)){
+                $parts = explode(':', $header);
+                header_remove($parts[0]);
+            }
+        }
+    }
 }
 
 function rrmdir($dir) {
@@ -5256,7 +5265,7 @@ function _substr($string, $start, $length = null) {
 function getPagination($total, $page = 0, $link = "", $maxVisible = 10, $infinityScrollGetFromSelector = "", $infinityScrollAppendIntoSelector = "") {
     global $global, $advancedCustom;
     if ($total < 2) {
-        return '';
+        return '<!-- getPagination total < 2 ('. json_encode($total).') -->';
     }
 
     if (empty($page)) {
@@ -6107,7 +6116,7 @@ function get_ffmpeg($ignoreGPU = false) {
     if (!empty($global['ffmpeg'])) {
         $ffmpeg = "{$global['ffmpeg']}{$ffmpeg}";
     }
-    return $ffmpeg.$complement;
+    return $ffmpeg . $complement;
 }
 
 function isHTMLPage($url) {
@@ -6910,7 +6919,7 @@ function getCDN($type = 'CDN', $id = 0) {
     if ($type == 'CDN') {
         if (!empty($global['ignoreCDN'])) {
             return $global['webSiteRootURL'];
-        } else if (!empty ($advancedCustom) && isValidURL($advancedCustom->videosCDN)) {
+        } else if (!empty($advancedCustom) && isValidURL($advancedCustom->videosCDN)) {
             $_getCDNURL[$index] = addLastSlash($advancedCustom->videosCDN);
         } else if (empty($_getCDNURL[$index])) {
             $_getCDNURL[$index] = $global['webSiteRootURL'];
@@ -7205,4 +7214,29 @@ function getTimeInTimezone($time, $timezone) {
     //$date->setTimezone(date_default_timezone_get());
     $dateString = $date->format('Y-m-d H:i:s');
     return strtotime($dateString);
+}
+
+function listFolderFiles($dir){
+    if(empty($dir)){
+        return array();
+    }
+    $ffs = scandir($dir);
+
+    unset($ffs[array_search('.', $ffs, true)]);
+    unset($ffs[array_search('..', $ffs, true)]);
+
+    $files = array();
+    // prevent empty ordered elements
+    if (count($ffs) >= 1){
+        foreach($ffs as $ff){
+            $dir = rtrim($dir,DIRECTORY_SEPARATOR);
+            $file = $dir.DIRECTORY_SEPARATOR.$ff;
+            if(is_dir($file)){
+                listFolderFiles($file);
+            }else{
+                $files[] = $file;
+            }
+        }
+    }
+    return $files;
 }

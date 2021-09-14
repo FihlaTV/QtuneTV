@@ -628,6 +628,10 @@ if (!class_exists('Video')) {
             }
         }
 
+        static function getUserGroups($videos_id) {
+            return UserGroups::getVideoGroups($videos_id);
+        }
+
         public static function getVideo($id = "", $status = "viewable", $ignoreGroup = false, $random = false, $suggestedOnly = false, $showUnlisted = false, $ignoreTags = false, $activeUsersOnly = true) {
             global $global, $config, $advancedCustom, $advancedCustomUser;
             if ($config->currentVersionLowerThen('5')) {
@@ -1468,11 +1472,12 @@ if (!class_exists('Video')) {
                     $sql .= " AND v.serie_playlists_id IS NOT NULL ";
                 }
             }
-
+            
             if (!empty($_GET['catName'])) {
                 $catName = $global['mysqli']->real_escape_string($_GET['catName']);
-                $sql .= " AND c.clean_name = '{$catName}'";
+                $sql .= " AND (c.clean_name = '{$catName}' OR c.parentId IN (SELECT cs.id from categories cs where cs.clean_name = '{$catName}' ))";
             }
+            
             if (!empty($_SESSION['type'])) {
                 if ($_SESSION['type'] == 'video') {
                     $sql .= " AND (v.type = 'video' OR  v.type = 'embed' OR  v.type = 'linkVideo')";
@@ -3690,6 +3695,9 @@ if (!class_exists('Video')) {
             if (!is_object($advancedCustomUser)) {
                 $advancedCustomUser = AVideoPlugin::getDataObject('CustomizeUser');
             }
+            if (empty($advancedCustom)) {
+                $advancedCustom = AVideoPlugin::loadPlugin("CustomizeAdvanced");
+            }
             if (empty($videos_id) && !empty($clean_title)) {
                 $videos_id = self::get_id_from_clean_title($clean_title);
             }
@@ -4361,6 +4369,8 @@ if (!class_exists('Video')) {
             } else {
                 $template = $global['systemRootPath'] . 'view/videoCreator.html';
             }
+            
+            require_once $global['systemRootPath'] . 'objects/subscribe.php';
             $content = local_get_contents($template);
             $name = User::getNameIdentificationById($users_id);
 
@@ -4524,11 +4534,11 @@ if (!class_exists('Video')) {
                 $tagsHTML,
                 $viewsHTML,
                 $creator
-            );  
+            );
             $btnHTML = @str_replace(
-                    $search,
-                    $replace,
-                    $templateContent
+                            $search,
+                            $replace,
+                            $templateContent
             );
             return $btnHTML;
         }

@@ -44,19 +44,20 @@ if (!empty($currentCat) && empty($_GET['showOnly'])) {
                 ?>
             </div>
         </div>
-        <?php
-        $total = Video::getTotalVideos("viewable");
-        $totalPages = ceil($total / getRowCount());
-        $page = getCurrentPage();
-        if ($totalPages < $page) {
-            $page = $totalPages;
-        }
-        ?>
         <!-- mainAreaCategory -->
         <div class="col-sm-12" style="z-index: 1;">
             <?php
+            $_REQUEST['rowCount'] = $obj->CategoriesRowCount * 3;
+            $_GET['catName'] = $currentCat['clean_name'];
+            $total = Video::getTotalVideos("viewableNotUnlisted", false, !$obj->hidePrivateVideos);
+            $totalPages = ceil($total / getRowCount());
+            $page = getCurrentPage();
+            if ($totalPages < $page) {
+                $page = $totalPages;
+            }
+            $categoryURL = "{$global['webSiteRootURL']}cat/{$currentCat['clean_name']}/page/";
             //getPagination($total, $page = 0, $link = "", $maxVisible = 10, $infinityScrollGetFromSelector="", $infinityScrollAppendIntoSelector="")
-            echo getPagination($totalPages, $page, "{$url}{page}{$args}", 10, ".Div{$currentCat['clean_name']}Section", ".Div{$currentCat['clean_name']}Section");
+            echo getPagination($totalPages, $page, "{$categoryURL}{page}{$args}", 10, ".Div{$currentCat['clean_name']}Section", ".Div{$currentCat['clean_name']}Section");
             ?>
         </div>
         <?php
