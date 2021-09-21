@@ -607,8 +607,7 @@ if (!class_exists('Video')) {
                 return "";
             }
 
-            $obj = AVideoPlugin::getDataObject('Subscription');
-            if ($obj && $obj->allowFreePlayWithAds) {
+            if (self::allowFreePlayWithAdsIsEnabled()) {
                 $sql = " AND {$tableAlias}only_for_paid = 0 ";
                 return $sql;
             } else {
@@ -626,6 +625,22 @@ if (!class_exists('Video')) {
                 }
                 return " AND " . $sql;
             }
+        }
+        
+        static function allowFreePlayWithAdsIsEnabled(){
+            $obj = AVideoPlugin::getDataObjectIfEnabled('Subscription');
+            if ($obj && $obj->allowFreePlayWithAds) {
+                return true;
+            }
+            $obj = AVideoPlugin::getDataObjectIfEnabled('PayPerView');
+            if ($obj && $obj->allowFreePlayWithAds) {
+                return true;
+            }
+            $obj = AVideoPlugin::getDataObjectIfEnabled('FansSubscriptions');
+            if ($obj && $obj->allowFreePlayWithAds) {
+                return true;
+            }
+            return false;
         }
 
         static function getUserGroups($videos_id) {
@@ -2773,7 +2788,6 @@ if (!class_exists('Video')) {
             //if(!isValidFormats($type)){
             //return array();
             //}
-
             self::_moveSourceFilesToDir($filename);
             $paths = self::getPaths($filename);
             if ($type == '_thumbsSmallV2.jpg' && empty($advancedCustom->usePreloadLowResolutionImages)) {
@@ -2926,7 +2940,6 @@ if (!class_exists('Video')) {
                 $source['url'] = addQueryStringParameter($source['url'], 'cache', $x);
                 $source['url_noCDN'] = addQueryStringParameter($source['url_noCDN'], 'cache', $x);
             }
-
             //ObjectYPT::setCache($name, $source);
             $VideoGetSourceFile[$cacheName] = $source;
             return $VideoGetSourceFile[$cacheName];
@@ -2966,13 +2979,13 @@ if (!class_exists('Video')) {
             }
             $cleanVideoFilename = self::getCleanFilenameFromFile($videoFilename);
             $videosDir = self::getStoragePath();
-            if (is_dir("{$videosDir}{$videoFilename}")) {
-                $path = addLastSlash("{$videosDir}{$videoFilename}");
-                //} else if (preg_match('/index\.m3u8$/', $videoFilename)) {
-                //    $path = addLastSlash($videosDir);                
+            
+            if (is_dir("{$videosDir}{$cleanVideoFilename}")) {
+                $path = addLastSlash("{$videosDir}{$cleanVideoFilename}");           
             } else {
-                $path = addLastSlash("{$videosDir}{$cleanVideoFilename}");
+                $path = addLastSlash("{$videosDir}{$videoFilename}");
             }
+            
             $path = fixPath($path);
             if ($createDir) {
                 make_path(addLastSlash($path));
@@ -3143,6 +3156,11 @@ if (!class_exists('Video')) {
             }
 
             $cleanName = str_replace($search, '', $filename);
+            
+            if($cleanName == $filename){
+                $cleanName = preg_replace('/([a-z]+_[0-9]{12}_[a-z0-9]{4})_[0-9]+/', '$1', $filename);
+            }
+            
             $path_parts = pathinfo($cleanName);
             if (empty($path_parts['extension'])) {
                 //_error_log("Video::getCleanFilenameFromFile could not find extension of ".$filename);

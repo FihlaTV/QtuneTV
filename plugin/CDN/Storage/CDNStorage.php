@@ -1,8 +1,10 @@
 <?php
 
-require_once $global['systemRootPath'] . 'plugin/CDN/FtpClient/FtpClient.php';
-require_once $global['systemRootPath'] . 'plugin/CDN/FtpClient/FtpWrapper.php';
-require_once $global['systemRootPath'] . 'plugin/CDN/FtpClient/FtpException.php';
+if (!class_exists('FtpClient')) {
+    require_once $global['systemRootPath'] . 'plugin/CDN/FtpClient/FtpClient.php';
+    require_once $global['systemRootPath'] . 'plugin/CDN/FtpClient/FtpWrapper.php';
+    require_once $global['systemRootPath'] . 'plugin/CDN/FtpClient/FtpException.php';
+}
 
 class CDNStorage {
 
@@ -16,11 +18,12 @@ class CDNStorage {
         $obj = AVideoPlugin::getDataObject('CDN');
         $CDNstorage = new \FtpClient\FtpClient();
         try {
-            $CDNstorage->connect('storage.ypt.me');
+            $CDNstorage->connect($obj->storage_hostname);
             $CDNstorage->login($obj->storage_username, $obj->storage_password);
             $CDNstorage->pasv(true);
         } catch (Exception $exc) {
-            _error_log("FTP:getClient fail " . $exc->getMessage());
+            _error_log("FTP:getClient fail ($obj->storage_username), ($obj->storage_password)" . $exc->getMessage());
+            die('Error');
         }
         _error_log("FTP:getClient finish");
         return $CDNstorage;
@@ -78,6 +81,11 @@ class CDNStorage {
         return $files;
     }
 
+    static function getPZ() {
+        $obj = AVideoPlugin::getDataObject('CDN');
+        return addLastSlash($obj->storage_username . '.cdn.ypt.me');
+    }
+
     static function getFilesListRemote($videos_id, $client = null) {
         global $global, $_getFilesListRemote;
         if (!isset($_getFilesListRemote)) {
@@ -91,14 +99,23 @@ class CDNStorage {
         if (empty($client)) {
             $client = self::getStorageClient();
         }
-        if (!$client->isDir($video['filename'])) {
-            return array();
+        $dir = self::filenameToRemotePath($video['filename']);
+        try {
+            if (!$client->isDir($dir)) {
+                return array();
+            }
+        } catch (Exception $exc) {
+            _error_log("CDNStorage::getFilesListRemote ({$dir}) " . $exc->getTraceAsString());
         }
 
         $obj = AVideoPlugin::getDataObject('CDN');
-        $pz = addLastSlash($obj->storage_pullzone);
+        $pz = self::getPZ();
+        try {
+            $list = $client->rawlist($video['filename'], true);
+        } catch (Exception $exc) {
+            $list = array();
+        }
 
-        $list = $client->rawlist($video['filename'], true);
         $files = array();
         foreach ($list as $key => $value) {
             $parts1 = explode('#', $key);
@@ -112,7 +129,7 @@ class CDNStorage {
             $relative = $parts1[1];
             $local_path = "{$global['systemRootPath']}videos/{$relative}";
             $local_filesize = filesize($local_path);
-            $remote_path = "/{$obj->storage_username}/" . $relative;
+            $remote_path = self::filenameToRemotePath($relative);
             $path_parts = pathinfo($local_path);
             $extension = $path_parts['extension'];
 
@@ -143,7 +160,7 @@ class CDNStorage {
         return $total;
     }
 
-    static function getFilesListInfo($local_path, $storage_username, $storage_pullzone, $videos_id, $skipDummyFiles = true) {
+    static function getFilesListInfo($local_path, $storage_pullzone, $videos_id, $skipDummyFiles = true) {
         global $global;
         if ($skipDummyFiles && filesize($local_path) < 20) {
             return false;
@@ -158,7 +175,7 @@ class CDNStorage {
         $relative = str_replace($videosDir, '', $local_path);
         $relative = str_replace('\\', '/', $relative);
         $local_filesize = filesize($local_path);
-        $remote_path = "/{$storage_username}/" . $relative;
+        $remote_path = self::filenameToRemotePath($relative);
 
         $file = array(
             'extension' => $path_parts['extension'],
@@ -213,7 +230,7 @@ class CDNStorage {
         return $v->save();
     }
 
-    static function moveRemoteToLocal($videos_id, $runInBackground= true) {
+    static function moveRemoteToLocal($videos_id, $runInBackground = true) {
         $start = microtime(true);
         self::addToLog($videos_id, "Start moveRemoteToLocal videos_id={$videos_id}");
         $client = self::getStorageClient();
@@ -229,7 +246,7 @@ class CDNStorage {
         }
         self::addToLog($videos_id, 'Found ' . $totalFiles . ' Files');
         $video = Video::getVideoLight($videos_id);
-        if($runInBackground){
+        if ($runInBackground) {
             outputAndContinueInBackground();
         }
         @session_write_close();
@@ -238,15 +255,15 @@ class CDNStorage {
         set_time_limit(0);
         $fails = 0;
         foreach ($list as $value) {
-            $remote_filesize = $client->size($value['remote_path']);
+            $remote_filesize = $client->size($value['relative']);
             if ($local_filesize >= $remote_filesize) {
                 self::addToLog($value['videos_id'], $value['local_path'] . ' is NOT a dummy file local_filesize=' . $value['local_filesize'] . ' Bytes');
                 //$client->delete($value['remote_path']);
                 continue;
             }
             try {
-                $response = $client->get($value['local_path'], $value['remote_path']);
-                $msg = "File moved from {$value['remote_path']} to {$value['local_path']} ";
+                $response = $client->get($value['local_path'], $value['relative']);
+                $msg = "GET File moved from {$value['remote_path']} to {$value['local_path']} ";
                 self::addToLog($videos_id, $msg);
                 $filesCopied++;
             } catch (Exception $exc) {
@@ -260,6 +277,8 @@ class CDNStorage {
         if (empty($fails)) {
             self::deleteRemoteDirectory($videos_id, $client);
             self::setProgress($videos_id, true, true);
+            self::sendSocketNotification($videos_id, __('Video upload complete'));
+        } else {
             _error_log("ERROR moveRemoteToLocal had {$fails} fails videos_id=($videos_id) filesCopied={$filesCopied} in {$end} Seconds");
         }
         $end = microtime(true) - $start;
@@ -268,33 +287,41 @@ class CDNStorage {
     }
 
     static function deleteRemoteDirectory($videos_id, $client = null, $recursive = true) {
-        if(empty($videos_id)){
+        if (empty($videos_id)) {
             return false;
         }
         $video = Video::getVideoLight($videos_id);
-        if(empty($video['filename'])){
+        if (empty($video['filename'])) {
             return false;
         }
         return self::deleteRemoteDirectoryFromFilename($video['filename'], $client, $recursive);
     }
-    
+
     static function deleteRemoteDirectoryFromFilename($filename, $client = null, $recursive = true) {
-        if(empty($filename)){
+        if (empty($filename)) {
             return false;
         }
         $obj = AVideoPlugin::getDataObject('CDN');
         if (empty($client)) {
             $client = self::getStorageClient();
         }
-        $dir = "/{$obj->storage_username}/{$filename}";
-        if(!$client->isDir($dir)){
+        $dir = self::filenameToRemotePath($filename);
+        if (!$client->isDir($dir)) {
             return false;
         }
         _error_log("CDNStorage::deleteRemoteDirectoryFromFilename {$dir}");
         return $client->rmdir($dir, $recursive);
     }
 
-    static function moveLocalToRemote($videos_id, $runInBackground= true) {
+    static function filenameToRemotePath($filename) {
+        $obj = AVideoPlugin::getDataObject('CDN');
+        if (!preg_match('/^\/' . $obj->storage_username . '\//', $filename)) {
+            return "/{$obj->storage_username}/$filename";
+        }
+        return $filename;
+    }
+
+    static function moveLocalToRemote($videos_id, $runInBackground = true) {
         $start = microtime(true);
         self::addToLog($videos_id, "Start moveLocalToRemote videos_id={$videos_id}");
         $list = self::getFilesListLocal($videos_id);
@@ -308,7 +335,7 @@ class CDNStorage {
         $client = self::getStorageClient();
         $video = Video::getVideoLight($videos_id);
         $client->mkdir($video['filename'], true);
-        if($runInBackground){
+        if ($runInBackground) {
             outputAndContinueInBackground();
         }
         @session_write_close();
@@ -322,13 +349,29 @@ class CDNStorage {
                 continue;
             }
             try {
-                $response = $client->put($value['remote_path'], $value['local_path']);
-                $msg = "File moved from {$value['local_path']} to {$value['remote_path']} ";
-                self::addToLog($videos_id, $msg);
-                $filesCopied++;
-                $remote_filesize = $client->size($value['remote_path']);
-                if ($remote_filesize == $value['local_filesize']) {
+                $remote_filesize = $client->size($value['relative']);
+                if ($remote_filesize > 0 && $remote_filesize == $value['local_filesize']) {
+                    $msg = "File is already on the remote {$value['local_path']} to {$value['remote_path']} ";
+                    self::addToLog($videos_id, $msg);
+                    $filesCopied++;
                     self::createDummy($value['local_path']);
+                    continue;
+                }
+                $response = $client->put($value['relative'], $value['local_path']);
+                $remote_filesize = $client->size($value['relative']);
+                if ($remote_filesize < 0) {
+                    self::addToLog($videos_id, "Filesizes are not the same trying the full path ");
+                    $response = $client->put($value['remote_path'], $value['local_path']);
+                    $remote_filesize = $client->size($value['remote_path']);
+                }
+
+                if ($remote_filesize == $value['local_filesize']) {
+                    $msg = "PUT File moved from {$value['local_path']} to {$value['remote_path']} ";
+                    self::addToLog($videos_id, $msg);
+                    $filesCopied++;
+                    self::createDummy($value['local_path']);
+                } else {
+                    self::addToLog($videos_id, "ERROR Filesizes are not the same $remote_filesize == {$value['local_filesize']} " . json_encode($value));
                 }
             } catch (Exception $exc) {
                 _error_log($exc->getTraceAsString());
@@ -337,12 +380,22 @@ class CDNStorage {
                 self::addToLog($videos_id, "ERROR 2 " . json_encode(error_get_last()));
             }
         }
-        
+        self::sendSocketNotification($videos_id, __('Video upload complete'));
         self::setProgress($videos_id, true, true);
         $end = microtime(true) - $start;
         _error_log("Finish moveLocalToRemote videos_id=($videos_id) filesCopied={$filesCopied} in {$end} Seconds");
 
         return $filesCopied;
+    }
+
+    static function sendSocketNotification($videos_id, $msg) {
+        $v = Video::getVideoLight($videos_id);
+        $users_id = $v['users_id'];
+        if (!empty($users_id)) {
+            $poster = Video::getPoster($videos_id);
+            $img = "<img src='{$poster}' class='img img-responsive'>";
+            sendSocketMessageToUsers_id($msg . '<br>' . $img, $users_id, 'socketCDNStorageMoved');
+        }
     }
 
     private static function setProgress($videos_id, $isOnTheStorage, $finished) {
@@ -358,7 +411,15 @@ class CDNStorage {
         if (empty($file) || !file_exists($file)) {
             return false;
         }
-        return true;
+
+        $modified = filemtime($file);
+        if (time() - $modified > 300) {
+            // if is laonger than 5 min say it is not moving
+            _error_log('CDNStorage isMoving is taking too long to finish, check your connection speed or FTP errors', AVideoLog::$WARNING);
+            return false;
+        }
+
+        return array('modified' => $modified, 'created' => filectime($file));
     }
 
     static function createDummy($file_path) {
@@ -386,20 +447,20 @@ class CDNStorage {
             return $_getFilesList_CDNSTORAGE[$videos_id];
         }
         $obj = AVideoPlugin::getDataObject('CDN');
-        $pz = addLastSlash($obj->storage_pullzone);
+        $pz = self::getPZ();
         $files = self::getLocalFolder($videos_id);
         $video = Video::getVideoLight($videos_id);
         $filesList = array();
         foreach ($files as $value) {
             if (is_array($value)) {
                 foreach ($value as $value2) {
-                    $file = self::getFilesListInfo($value2, $obj->storage_username, $pz, $videos_id, $skipDummyFiles);
+                    $file = self::getFilesListInfo($value2, $pz, $videos_id, $skipDummyFiles);
                     if (!empty($file)) {
                         $filesList[$file['relative']] = $file;
                     }
                 }
             } else {
-                $file = self::getFilesListInfo($value, $obj->storage_username, $pz, $videos_id, $skipDummyFiles);
+                $file = self::getFilesListInfo($value, $pz, $videos_id, $skipDummyFiles);
                 if (!empty($file)) {
                     $filesList[$file['relative']] = $file;
                 }
@@ -443,7 +504,7 @@ class CDNStorage {
             $relativeFilename = "{$paths['filename']}/{$filename}";
         }
         $obj = AVideoPlugin::getDataObject('CDN');
-        $pz = addLastSlash($obj->storage_pullzone);
+        $pz = self::getPZ();
         return "https://{$pz}{$relativeFilename}";
     }
 
@@ -456,6 +517,7 @@ class CDNStorage {
     }
 
     static function addToLog($videos_id, $message) {
+        _error_log($message);
         $file = self::getLogFile($videos_id);
         return file_put_contents($file, date('Y-m-d H:i:s: ') . $message . PHP_EOL, FILE_APPEND);
     }
