@@ -278,12 +278,15 @@
                     </button>
                     <?php
                 }
+                if (AVideoPlugin::isEnabledByName('CDN') && CDN::userCanMoveVideoStorage()) {
+                    include $global['systemRootPath'] . 'plugin/CDN/Storage/getVideoManagerButton.php';
+                }
                 ?>
                 <button class="btn btn-danger" id="deleteBtn">
                     <i class="fa fa-trash" aria-hidden="true"></i>  <span class="hidden-md hidden-sm hidden-xs"><?php echo __('Delete'); ?></span>
                 </button>
             </div>
-            <table id="grid" class="table table-condensed table-hover table-striped">
+            <table id="grid" class="table table-condensed table-hover table-striped videosManager">
                 <thead>
                     <tr>
                         <th data-formatter="checkbox" data-width="25px" ></th>
@@ -1782,7 +1785,8 @@ if (CustomizeUser::canDownloadVideos()) {
                                                                 if (typeof row.videosURL[k].url === 'undefined' || !row.videosURL[k].url) {
                                                                     continue;
                                                                 }
-                                                                var url = (typeof row.videosURL[k].url_noCDN !== 'undefined')?row.videosURL[k].url_noCDN:row.videosURL[k].url;
+                                                                //var url = (typeof row.videosURL[k].url_noCDN !== 'undefined')?row.videosURL[k].url_noCDN:row.videosURL[k].url;
+                                                                var url = (typeof row.videosURL[k].url !== 'undefined')?row.videosURL[k].url:row.videosURL[k].url;
                                                                 var addParameters = true;
                                                                 if (url.includes('.s3.')) {
                                                                     addParameters = false;

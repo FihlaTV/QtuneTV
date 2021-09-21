@@ -356,7 +356,7 @@ function cleanString($text) {
 }
 
 function cleanURLName($name) {
-    $name = preg_replace('/[!#$&\'()*+,\\/:;=?@[\\]%" ]+/', '-', trim(strtolower(cleanString($name))));
+    $name = preg_replace('/[!#$&\'()*+,\\/:;=?@[\\]%"\/ ]+/', '-', trim(strtolower(cleanString($name))));
     return trim(preg_replace('/[\x00-\x1F\x7F]/u', '', $name), "-");
 }
 
@@ -1315,7 +1315,6 @@ function getVideosURL_V2($fileName, $recreateCache = false) {
         $filesInDir = globVideosDir($cleanfilename, true);
         TimeLogEnd($timeName, __LINE__);
 
-
         $timeName = "getVideosURL_V2::foreach";
         TimeLogStart($timeName);
         foreach ($filesInDir as $file) {
@@ -1327,9 +1326,9 @@ function getVideosURL_V2($fileName, $recreateCache = false) {
 
             //$timeName2 = "getVideosURL_V2::Video::getSourceFile({$parts['filename']}, .{$parts['extension']})";
             //TimeLogStart($timeName2);
-            $source = Video::getSourceFile($parts['filename'], ".{$parts['extension']}");
+            $source = Video::getSourceFile($parts['filename'], ".{$parts['extension']}");          
             //TimeLogEnd($timeName2, __LINE__);
-            if (empty($source)) {
+            if (empty($source)) { 
                 continue;
             }
             if (in_array($parts['extension'], $image) && filesize($file) < 1000 && !preg_match("/Dummy File/i", file_get_contents($file))) {
@@ -1370,7 +1369,7 @@ function getVideosURL_V2($fileName, $recreateCache = false) {
         // sort by resolution
         uasort($files, "sortVideosURL");
     }
-    //var_dump($files);//exit;
+    //var_dump($files);exit;
     $getVideosURL_V2Array[$cleanfilename] = $files;
     return $getVideosURL_V2Array[$cleanfilename];
 }
@@ -1901,6 +1900,11 @@ function decideMoveUploadedToVideos($tmp_name, $filename, $type = "video") {
                     }
                 }
             }
+            if(file_exists($destinationFile)){
+                _error_log("decideMoveUploadedToVideos: SUCCESS Local {$destinationFile}");
+            }else{
+                _error_log("decideMoveUploadedToVideos: ERROR Local {$destinationFile}");
+            }
             chmod($destinationFile, 0644);
         }
     }
@@ -1908,6 +1912,7 @@ function decideMoveUploadedToVideos($tmp_name, $filename, $type = "video") {
     $fsize = @filesize($destinationFile);
     _error_log("decideMoveUploadedToVideos: destinationFile {$destinationFile} filesize=" . ($fsize) . " (" . humanFileSize($fsize) . ")");
     Video::clearCacheFromFilename($filename);
+    return $destinationFile;
 }
 
 function unzipDirectory($filename, $destination) {
@@ -4444,16 +4449,42 @@ function isHLS() {
 
 function getRedirectUri() {
     if (!empty($_GET['redirectUri'])) {
-        if (isSameDomainAsMyAVideo($_GET['redirectUri'])) {
-            return $_GET['redirectUri'];
-        }
+        return $_GET['redirectUri'];
+    }
+    if (!empty($_SESSION['redirectUri'])) {
+        return $_SESSION['redirectUri'];
     }
     if (!empty($_SERVER["HTTP_REFERER"])) {
-        if (isSameDomainAsMyAVideo($_SERVER["HTTP_REFERER"])) {
-            return $_SERVER["HTTP_REFERER"];
-        }
+        return $_SERVER["HTTP_REFERER"];
     }
     return getRequestURI();
+}
+
+function setRedirectUri($redirectUri) {
+    _session_start();
+    $_SESSION['redirectUri'] = $redirectUri;
+}
+
+function redirectIfRedirectUriIsSet(){
+    $redirectUri = false;
+    if (!empty($_GET['redirectUri'])) {
+        if (isSameDomainAsMyAVideo($_GET['redirectUri'])) {
+            $redirectUri = $_GET['redirectUri'];
+        }
+    }
+    if(!empty($_SESSION['redirectUri'])){
+        if (isSameDomainAsMyAVideo($_SESSION['redirectUri'])) {
+            $redirectUri = $_SESSION['redirectUri'];
+        }
+        _session_start();
+        unset($_SESSION['redirectUri']);
+    }
+    
+    if(!empty($redirectUri)){
+        header("Location: {$_SESSION['redirectUri']}");
+        exit;
+    }
+            
 }
 
 function getRedirectToVideo($videos_id) {
@@ -6933,7 +6964,11 @@ function videosHashToID($hash_of_videos_id) {
         return $hash_of_videos_id;
     }
     if (!is_string($hash_of_videos_id) && !is_numeric($hash_of_videos_id)) {
-        return 0;
+        if(is_array($hash_of_videos_id)){
+            return $hash_of_videos_id;
+        }else{
+            return 0;
+        }
     }
     if (preg_match('/^\.([0-9a-z._-]+)/i', $hash_of_videos_id, $matches)) {
         $hash_of_videos_id = hashToID($matches[1]);

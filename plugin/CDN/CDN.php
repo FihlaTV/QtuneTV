@@ -52,19 +52,22 @@ class CDN extends PluginAbstract {
         $obj->storage_users_can_choose_storage = true;
         $obj->storage_username = "";
         $obj->storage_password = "";
-        $obj->storage_pullzone = "";
+        $obj->storage_hostname = "";
 
         return $obj;
     }
 
     public function getVideosManagerListButton() {
-        $btn = '<button type="button" class="btn btn-default btn-light btn-sm btn-xs btn-block " onclick="avideoModalIframeSmall(webSiteRootURL+\\\'plugin/CDN/Storage/syncVideo.php?videos_id=\'+ row.id +\'\\\');" ><i class="fas fa-project-diagram"></i> Move To Storage</button>';
+        if(!self::userCanMoveVideoStorage()){
+            return '';
+        }
+        $btn = '<button type="button" class="btn btn-default btn-light btn-sm btn-xs btn-block " onclick="avideoModalIframeSmall(webSiteRootURL+\\\'plugin/CDN/Storage/syncVideo.php?videos_id=\'+ row.id +\'\\\');" ><i class="fas fa-project-diagram"></i> CDN Storage</button>';
         return $btn;
     }
 
     public function getPluginMenu() {
         global $global;
-        $fileAPIName = $global['systemRootPath'] . 'plugin/CDN/Storage/pluginMenu.html';
+        $fileAPIName = $global['systemRootPath'] . 'plugin/CDN/pluginMenu.html';
         $content = file_get_contents($fileAPIName);
         $obj = $this->getDataObject();
 
@@ -75,7 +78,7 @@ class CDN extends PluginAbstract {
 
         $cdnMenu = str_replace('{url}', $url, $content);
         $storageMenu = '';
-        if($obj->enable_storage){
+        if(self::userCanMoveVideoStorage()){
             $fileStorageMenu = $global['systemRootPath'] . 'plugin/CDN/Storage/pluginMenu.html';
             $storageMenu = file_get_contents($fileStorageMenu);
         }
@@ -217,6 +220,27 @@ class CDN extends PluginAbstract {
             if($obj->storage_autoupload_new_videos){
                 CDNStorage::moveLocalToRemote($videos_id, false);
             }
+        }
+    }
+    
+    public static function userCanMoveVideoStorage(){
+        $obj = AVideoPlugin::getDataObjectIfEnabled('CDN');
+        if(empty($obj->enable_storage)){
+            return false;
+        }
+        if(User::isAdmin()){
+            return true;
+        }
+        if (!empty($obj->storage_users_can_choose_storage) && User::canUpload()) {
+            return true;
+        }
+        return false;
+    }
+    
+    public function getFooterCode() {
+        global $global;
+        if(self::userCanMoveVideoStorage()){
+            include $global['systemRootPath'] . 'plugin/CDN/Storage/footer.php';
         }
     }
 
