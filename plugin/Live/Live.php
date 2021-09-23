@@ -271,7 +271,8 @@ class Live extends PluginAbstract {
             'poster' => $imgJPG,
             'imgGif' => $imgGIF,
             'categories_id' => intval($lt['categories_id']),
-            'className' => $uid
+            'className' => $uid,
+            'comingsoon' => $comingsoon
         );
 
         return $array;
@@ -373,6 +374,9 @@ class Live extends PluginAbstract {
         
         $obj->disable_live_schedule = false;
         self::addDataObjectHelper('disable_live_schedule', 'Disable Live Schedule');
+        
+        $obj->live_schedule_label = 'Upcoming Events';
+        self::addDataObjectHelper('live_schedule_label', 'Label for Schedule');
         
         $obj->webRTC_isDisabled = false;
         self::addDataObjectHelper('webRTC_isDisabled', 'Disable WebRTC camera', 'https://github.com/WWBN/AVideo/wiki/WebRTC-Server');
@@ -486,10 +490,7 @@ class Live extends PluginAbstract {
     }
 
     static function getDestinationApplicationName() {
-        $server = self::getPlayerServer();
-        $server = rtrim($server, "/");
-        $parts = explode("/", $server);
-        $app = array_pop($parts);
+        $app = self::getAPPName();
         $domain = self::getControl();
 //return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
         return "{$app}?p=" . User::getUserPass();
@@ -526,54 +527,73 @@ class Live extends PluginAbstract {
         }
         return trim($obj->server);
     }
-
-    static function getDropURL($key, $live_servers_id = 0) {
+    
+    static function getControlOrPublic($key, $live_servers_id = 0){
+        global $global;
+        $obj = AVideoPlugin::getObjectData("Live");              
+        if(empty($obj->server_type->value)){ 
+            $row = LiveTransmitionHistory::getLatest($key, $live_servers_id);
+            if(!empty($row['domain'])){
+                $url = "{$row['domain']}control.json.php";
+                return addQueryStringParameter($url, 'webSiteRootURL', $global['webSiteRootURL']);
+            }            
+        }
+        $domain = self::getControl($live_servers_id);
+    }
+    
+    static function getAPPName(){
         $obj = AVideoPlugin::getObjectData("Live");
-        
         if(empty($obj->server_type->value)){
-            $app = 'live';
+            return 'live';
         }else{
-            $server = $obj->server;
+            $server = self::getPlayerServer();
             $server = rtrim($server, "/");
             $parts = explode("/", $server);
             $app = array_pop($parts);
         }
-        $domain = self::getControl($live_servers_id);
-        //return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
-        return "{$domain}?command=drop_publisher&app={$app}&name={$key}&token=" . getToken(60);
+        return $app;
+    }
+
+    static function getDropURL($key, $live_servers_id = 0) {
+        $obj = AVideoPlugin::getObjectData("Live");
+        
+        $app = self::getAPPName();
+        $domain = self::getControlOrPublic($key, $live_servers_id);
+        $domain = addQueryStringParameter($domain, 'command', 'drop_publisher');
+        $domain = addQueryStringParameter($domain, 'app', $app);
+        $domain = addQueryStringParameter($domain, 'name', $key);
+        $domain = addQueryStringParameter($domain, 'token', getToken(60));
+        return $domain;
     }
 
     static function getIsRecording($key, $live_servers_id = 0) {
-        $obj = AVideoPlugin::getObjectData("Live");
-        $server = $obj->server;
-        $server = rtrim($server, "/");
-        $parts = explode("/", $server);
-        $app = array_pop($parts);
-        $domain = self::getControl($live_servers_id);
-        //return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
-        return "{$domain}?command=is_recording&app={$app}&name={$key}&token=" . getToken(60);
+        $app = self::getAPPName();
+        $domain = self::getControlOrPublic($key, $live_servers_id);
+        $domain = addQueryStringParameter($domain, 'command', 'is_recording');
+        $domain = addQueryStringParameter($domain, 'app', $app);
+        $domain = addQueryStringParameter($domain, 'name', $key);
+        $domain = addQueryStringParameter($domain, 'token', getToken(60));
+        return $domain;
     }
 
     static function getStartRecordURL($key, $live_servers_id = 0) {
-        $obj = AVideoPlugin::getObjectData("Live");
-        $server = $obj->server;
-        $server = rtrim($server, "/");
-        $parts = explode("/", $server);
-        $app = array_pop($parts);
-        $domain = self::getControl($live_servers_id);
-        //return "{$domain}/control/drop/publisher?app={$app}&name={$key}";
-        return "{$domain}?command=record_start&app={$app}&name={$key}&token=" . getToken(60);
+        $app = self::getAPPName();
+        $domain = self::getControlOrPublic($key, $live_servers_id);
+        $domain = addQueryStringParameter($domain, 'command', 'record_start');
+        $domain = addQueryStringParameter($domain, 'app', $app);
+        $domain = addQueryStringParameter($domain, 'name', $key);
+        $domain = addQueryStringParameter($domain, 'token', getToken(60));
+        return $domain;
     }
 
     static function getStopRecordURL($key, $live_servers_id = 0) {
-        $obj = AVideoPlugin::getObjectData("Live");
-        $server = $obj->server;
-        $server = rtrim($server, "/");
-        $parts = explode("/", $server);
-        $app = array_pop($parts);
-        $domain = self::getControl($live_servers_id);
-
-        return "{$domain}?command=record_stop&app={$app}&name={$key}&token=" . getToken(60);
+        $app = self::getAPPName();
+        $domain = self::getControlOrPublic($key, $live_servers_id);
+        $domain = addQueryStringParameter($domain, 'command', 'record_stop');
+        $domain = addQueryStringParameter($domain, 'app', $app);
+        $domain = addQueryStringParameter($domain, 'name', $key);
+        $domain = addQueryStringParameter($domain, 'token', getToken(60));
+        return $domain;
     }
 
     static function controlRecording($key, $live_servers_id, $start = true, $try = 0) {
@@ -719,6 +739,7 @@ class Live extends PluginAbstract {
         if ($iconsOnly) {
             $label = "";
         }
+        
         $html = "<button class='{$buttonClass} {$class}' id='{$id}'  data-toggle=\"tooltip\" data-placement=\"bottom\" title=\"{$tooltip}\"><i class='{$iconClass}'></i> <span class='hidden-sm hidden-xs'>{$label}</span> {$afterLabel}";
         $html .= "<script>$(document).ready(function () {
             $('#{$id}').click(function(){
@@ -2726,7 +2747,7 @@ class LiveStreamObject {
         if(empty($o->server_type->value)){
             $row = LiveTransmitionHistory::getLatest($this->key, $this->live_servers_id);
             if(!empty($row['domain'])){
-                return "https://{$row['domain']}/live/{$uuid}.m3u8";
+                return "{$row['domain']}live/{$uuid}.m3u8";
             }            
         }
         
