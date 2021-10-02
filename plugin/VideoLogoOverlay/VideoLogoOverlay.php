@@ -102,17 +102,28 @@ class VideoLogoOverlay extends PluginAbstract {
         $class = VideoLogoOverlay::getClass();
         $obj = AVideoPlugin::getObjectData("VideoLogoOverlay");
         $logoOverlay = "{$global['webSiteRootURL']}videos/logoOverlay.png";
+        $html = '';
+        $js = '';
         //$cols = "col-lg-12 col-md-8 col-sm-7 col-xs-6";
         if ($obj->useUserChannelImageAsLogo) {
             $users_id = 0;
             if ($liveLink_id = isLiveLink()) {
+                $js .= "/* VideoLogoOverlay livelink */";
                 $liveLink = new LiveLinksTable($liveLink_id);
                 $users_id = $liveLink->getUsers_id();
             } else if ($live = isLive()) {
-                //$live = array('key' => false, 'live_servers_id' => false, 'live_index' => false);
-                $lt = LiveTransmition::getFromKey($live['key']);
-                $users_id = $lt['users_id'];
+                if(!empty($_REQUEST['live_schedule'])){
+                    $js .= "/* VideoLogoOverlay live schedule {$_REQUEST['live_schedule']} */";
+                    $ls = new Live_schedule($_REQUEST['live_schedule']);
+                    $users_id = $ls->getUsers_id();
+                }else{
+                    $js .= "/* VideoLogoOverlay live */";
+                    //$live = array('key' => false, 'live_servers_id' => false, 'live_index' => false);
+                    $lt = LiveTransmition::getFromKey($live['key']);
+                    $users_id = $lt['users_id'];
+                }
             } else {
+                $js .= "/* VideoLogoOverlay video */";
                 $videos_id = getVideos_id();
                 $video = Video::getVideoLight($videos_id);
                 $users_id = $video['users_id'];
@@ -122,7 +133,10 @@ class VideoLogoOverlay extends PluginAbstract {
                 $url = User::getChannelLink($users_id);
                 $class .= ' VideoLogoOverlay-User';
                 //$cols = "col-lg-12 col-md-8 col-sm-7 col-xs-6";
+            }else{
+                $js .= "/* VideoLogoOverlay empty users_id */";
             }
+            $js .= "/* VideoLogoOverlay users_id = {$users_id} */";
         }
         $cols = "";
         
@@ -130,9 +144,8 @@ class VideoLogoOverlay extends PluginAbstract {
             $class .= ' VideoLogoOverlay-URL';
         }
         //$logoOverlay = "{$global['webSiteRootURL']}videos/logoOverlay.png";
-
-        $html = '<div style="' . $style . '" class="' . $class . '"><a href="' . $url . '" target="_blank"> <img src="' . $logoOverlay . '" alt="Logo"  class="img img-responsive ' . $cols . '" ></a></div>';
-        $js = "$('{$html}').appendTo('#mainVideo');";
+        $html .= '<div style="' . $style . '" class="' . $class . '"><a href="' . $url . '" target="_blank"> <img src="' . $logoOverlay . '" alt="Logo"  class="img img-responsive ' . $cols . '" ></a></div>';
+        $js .= "$('{$html}').appendTo('#mainVideo');";
         PlayerSkins::addOnPlayerReady($js);
     }
 

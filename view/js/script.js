@@ -1678,16 +1678,16 @@ function startTimerToDate(toDate, selector, useDBDate) {
     }
     if (typeof toDate === 'string') {
         //console.log('startTimerToDate 1 '+toDate);
-        toDate = new Date(toDate);
+        toDate = new Date(toDate.replace(/-/g, "/"));
     }
     if (useDBDate) {
         if (typeof _serverDBTimeString !== 'undefined') {
-            date2 = new Date(_serverDBTimeString);
+            date2 = new Date(_serverDBTimeString.replace(/-/g, "/"));
             //console.log('startTimerToDate 2 '+date2);
         }
     } else {
         if (typeof _serverTimeString !== 'undefined') {
-            date2 = new Date(_serverTimeString);
+            date2 = new Date(_serverTimeString.replace(/-/g, "/"));
             //console.log('startTimerToDate 3 '+date2);
         }
     }

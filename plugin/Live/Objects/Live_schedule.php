@@ -252,7 +252,19 @@ class Live_schedule extends ObjectYPT {
         if (empty($this->live_servers_id)) {
             $this->live_servers_id = 'NULL';
         }
-
+        
+        if (empty($this->public)) {
+            $this->public = 'NULL';
+        }
+        
+        if (empty($this->saveTransmition)) {
+            $this->saveTransmition = 'NULL';
+        }
+        
+        if (empty($this->showOnTV)) {
+            $this->showOnTV = 'NULL';
+        }
+        
         if (empty($this->key)) {
             $this->key = uniqid();
         }
@@ -271,6 +283,7 @@ class Live_schedule extends ObjectYPT {
             $array['key'] = $this->key;
             $array['live_servers_id'] = $this->live_servers_id;
             Live::notifySocketStats("socketLiveONCallback", $array);
+            clearCache(true);
         }
         return $id;
     }
@@ -282,6 +295,7 @@ class Live_schedule extends ObjectYPT {
         if (!empty($id)) {
             $array['stats'] = getStatsNotifications(true);
             Live::notifySocketStats("socketLiveOFFCallback", $array);
+            clearCache(true);
         }      
         return $id;
     }
