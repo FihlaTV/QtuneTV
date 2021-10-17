@@ -50,7 +50,6 @@
 /plugin/SecureVideosDirectory/
 /plugin/SendRecordedToEncoder/
 /plugin/SignUpAgreement/
-/plugin/Statistics/
 /plugin/Subscription/
 /plugin/SubtitleSwitcher/
 /plugin/SupportAuthor/
@@ -69,9 +68,9 @@
 /plugin/predefinedCategory/
 /plugin/FansSubscriptions/
 /videos/
-*.ser
 *.zip
 sitemap.xml
+README.md
 /plugin/WebRTCLiveCam/
 /plugin/Wix/
 /plugin/Live/standAloneFiles/WebRTCServer/configuration.php

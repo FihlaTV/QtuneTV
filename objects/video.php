@@ -58,6 +58,7 @@ if (!class_exists('Video')) {
         private $filesize;
         private $live_transmitions_history_id;
         private $total_seconds_watching;
+        private $duration_in_seconds;
         public static $statusDesc = array(
             'a' => 'Active',
             'k' => 'Active and Encoding',
@@ -65,7 +66,7 @@ if (!class_exists('Video')) {
             'e' => 'Encoding',
             'x' => 'Encoding Error',
             'd' => 'Downloading',
-            't' => 'Transfering',
+            't' => 'Transferring',
             'u' => 'Unlisted',
             'r' => 'Recording',
             'f' => 'FansOnly');
@@ -357,6 +358,10 @@ if (!class_exists('Video')) {
                 $this->live_transmitions_history_id = 'NULL';
             }
 
+            if (empty($this->duration_in_seconds)) {
+                $this->duration_in_seconds = durationToSeconds($this->duration);
+            }
+
             if (!empty($this->id)) {
                 if (!$this->userCanManageVideo() && !$allowOfflineUser && !Permissions::canModerateVideos()) {
                     header('Content-Type: application/json');
@@ -366,7 +371,7 @@ if (!class_exists('Video')) {
                         . " filename = '{$this->filename}', categories_id = '{$this->categories_id}', status = '{$this->status}',"
                         . " description = '{$this->description}', duration = '{$this->duration}', type = '{$this->type}', videoDownloadedLink = '{$this->videoDownloadedLink}', youtubeId = '{$this->youtubeId}', videoLink = '{$this->videoLink}', next_videos_id = {$this->next_videos_id}, isSuggested = {$this->isSuggested}, users_id = {$this->users_id}, "
                         . " trailer1 = '{$this->trailer1}', trailer2 = '{$this->trailer2}', trailer3 = '{$this->trailer3}', rate = '{$this->rate}', can_download = '{$this->can_download}', can_share = '{$this->can_share}', only_for_paid = '{$this->only_for_paid}', rrating = '{$this->rrating}', externalOptions = '{$this->externalOptions}', sites_id = {$this->sites_id}, serie_playlists_id = {$this->serie_playlists_id} ,live_transmitions_history_id = {$this->live_transmitions_history_id} , video_password = '{$this->video_password}', "
-                        . " encoderURL = '{$this->encoderURL}', filepath = '{$this->filepath}' , filesize = '{$this->filesize}' , modified = now()"
+                        . " encoderURL = '{$this->encoderURL}', filepath = '{$this->filepath}' , filesize = '{$this->filesize}' , duration_in_seconds = '{$this->duration_in_seconds}' , modified = now()"
                         . " WHERE id = {$this->id}";
 
                 $saved = sqlDAL::writeSql($sql);
@@ -375,8 +380,8 @@ if (!class_exists('Video')) {
                 }
             } else {
                 $sql = "INSERT INTO videos "
-                        . "(title,clean_title, filename, users_id, categories_id, status, description, duration,type,videoDownloadedLink, next_videos_id, created, modified, videoLink, can_download, can_share, only_for_paid, rrating, externalOptions, sites_id, serie_playlists_id,live_transmitions_history_id, video_password, encoderURL, filepath , filesize) values "
-                        . "('{$this->title}','{$this->clean_title}', '{$this->filename}', {$this->users_id},{$this->categories_id}, '{$this->status}', '{$this->description}', '{$this->duration}', '{$this->type}', '{$this->videoDownloadedLink}', {$this->next_videos_id},now(), now(), '{$this->videoLink}', '{$this->can_download}', '{$this->can_share}','{$this->only_for_paid}', '{$this->rrating}', '$this->externalOptions', {$this->sites_id}, {$this->serie_playlists_id},{$this->live_transmitions_history_id}, '{$this->video_password}', '{$this->encoderURL}', '{$this->filepath}', '{$this->filesize}')";
+                        . "(duration_in_seconds, title,clean_title, filename, users_id, categories_id, status, description, duration,type,videoDownloadedLink, next_videos_id, created, modified, videoLink, can_download, can_share, only_for_paid, rrating, externalOptions, sites_id, serie_playlists_id,live_transmitions_history_id, video_password, encoderURL, filepath , filesize) values "
+                        . "('{$this->duration_in_seconds}','{$this->title}','{$this->clean_title}', '{$this->filename}', {$this->users_id},{$this->categories_id}, '{$this->status}', '{$this->description}', '{$this->duration}', '{$this->type}', '{$this->videoDownloadedLink}', {$this->next_videos_id},now(), now(), '{$this->videoLink}', '{$this->can_download}', '{$this->can_share}','{$this->only_for_paid}', '{$this->rrating}', '$this->externalOptions', {$this->sites_id}, {$this->serie_playlists_id},{$this->live_transmitions_history_id}, '{$this->video_password}', '{$this->encoderURL}', '{$this->filepath}', '{$this->filesize}')";
 
                 $insert_row = sqlDAL::writeSql($sql);
             }
@@ -416,6 +421,27 @@ if (!class_exists('Video')) {
             }
             _error_log('Video::save Error : (' . $global['mysqli']->errno . ') ' . $global['mysqli']->error . " $sql");
             return false;
+        }
+
+        public static function updateDurationInSeconds($videos_id, $duration) {
+            global $config;
+            $videos_id = intval($videos_id);
+            if ($config->currentVersionLowerThen('11.4')) {
+                return false;
+            }
+            if (empty($videos_id)) {
+                return false;
+            }
+            $duration_in_seconds = durationToSeconds($duration);
+            if (empty($duration_in_seconds)) {
+                _error_log("Video::updateDurationInSeconds empty duration {$videos_id}, {$duration}");
+                return false;
+            }
+            _error_log("Video::updateDurationInSeconds update duration {$videos_id}, {$duration}, {$duration_in_seconds}");
+            $sql = "UPDATE videos SET duration_in_seconds = '{$duration_in_seconds}' , modified = now() WHERE id = {$videos_id}";
+            $saved = sqlDAL::writeSql($sql);
+            self::clearCache($videos_id);
+            return $duration_in_seconds;
         }
 
         // i would like to simplify the big part of the method above in this method, but won't work as i want.
@@ -626,8 +652,8 @@ if (!class_exists('Video')) {
                 return " AND " . $sql;
             }
         }
-        
-        static function allowFreePlayWithAdsIsEnabled(){
+
+        static function allowFreePlayWithAdsIsEnabled() {
             $obj = AVideoPlugin::getDataObjectIfEnabled('Subscription');
             if ($obj && $obj->allowFreePlayWithAds) {
                 return true;
@@ -728,7 +754,8 @@ if (!class_exists('Video')) {
             }
 
             if (!empty($_POST['searchPhrase'])) {
-                $searchFieldsNames = array('v.title', 'v.description', 'c.name', 'c.description', 'v.id');
+                $_POST['searchPhrase'] = str_replace('&quot;', '"', $_POST['searchPhrase']);
+                $searchFieldsNames = array('v.title', 'v.description', 'c.name', 'c.description', 'v.id', 'v.filename');
                 if ($advancedCustomUser->videosSearchAlsoSearchesOnChannelName) {
                     $searchFieldsNames[] = 'u.channelName';
                 }
@@ -853,12 +880,12 @@ if (!class_exists('Video')) {
                 $fileName = $parts[0];
             }
             $fileName = self::getCleanFilenameFromFile($fileName);
-            
-            if(!isset($_getVideoFromFileName)){
+
+            if (!isset($_getVideoFromFileName)) {
                 $_getVideoFromFileName = array();
             }
             $indexName = "{$fileName}_{$ignoreGroup}_{$ignoreTags}";
-            if(isset($_getVideoFromFileName[$indexName])){
+            if (isset($_getVideoFromFileName[$indexName])) {
                 return $_getVideoFromFileName[$indexName];
             }
             $_getVideoFromFileName[$indexName] = false;
@@ -1069,7 +1096,8 @@ if (!class_exists('Video')) {
             }
 
             if (!empty($_POST['searchPhrase'])) {
-                $searchFieldsNames = array('v.title', 'v.description', 'c.name', 'c.description', 'v.id');
+                $_POST['searchPhrase'] = str_replace('&quot;', '"', $_POST['searchPhrase']);
+                $searchFieldsNames = array('v.title', 'v.description', 'c.name', 'c.description', 'v.id', 'v.filename');
                 if ($advancedCustomUser->videosSearchAlsoSearchesOnChannelName) {
                     $searchFieldsNames[] = 'u.channelName';
                 }
@@ -1131,7 +1159,7 @@ if (!class_exists('Video')) {
                     if (!empty($_REQUEST['rowCount'])) {
                         $sql .= " LIMIT {$_REQUEST['rowCount']}";
                     } else {
-                        _error_log("getAllVideos without limit " . json_encode(debug_backtrace()));
+                        _error_log("getAllVideos without limit " . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
                         if (empty($global['limitForUnlimitedVideos'])) {
                             $global['limitForUnlimitedVideos'] = 100;
                         }
@@ -1162,6 +1190,9 @@ if (!class_exists('Video')) {
                 require_once 'userGroups.php';
                 TimeLogStart("video::getAllVideos foreach");
                 foreach ($fullData as $row) {
+                    if (empty($row['duration_in_seconds'])) {
+                        $row['duration_in_seconds'] = self::updateDurationInSeconds($row['id'], $row['duration']);
+                    }
                     $row = self::getInfo($row, $getStatistcs);
                     $videos[] = $row;
                 }
@@ -1229,11 +1260,11 @@ if (!class_exists('Video')) {
                 $otherInfo['category'] = xss_esc_back($row['category']);
                 $otherInfo['groups'] = UserGroups::getVideoGroups($row['id']);
                 $otherInfo['tags'] = self::getTags($row['id']);
-                $otherInfo['title'] = UTF8encode($row['title']);
-                $otherInfo['description'] = UTF8encode($row['description']);
-                $otherInfo['descriptionHTML'] = self::htmlDescription($otherInfo['description']);
                 ObjectYPT::setCache($otherInfocachename, $otherInfo);
             }
+            $otherInfo['title'] = UTF8encode($row['title']);
+            $otherInfo['description'] = UTF8encode($row['description']);
+            $otherInfo['descriptionHTML'] = self::htmlDescription($otherInfo['description']);
             foreach ($otherInfo as $key => $value) {
                 $row[$key] = $value;
             }
@@ -1300,9 +1331,9 @@ if (!class_exists('Video')) {
             }
             return false;
         }
-        
+
         public static function updateFilesizeFromFilename($filename) {
-            $value = Video::getVideoFromFileNameLight($filename);    
+            $value = Video::getVideoFromFileNameLight($filename);
             return self::updateFilesize($value['id']);
         }
 
@@ -1325,7 +1356,7 @@ if (!class_exists('Video')) {
                 $obj = AVideoPlugin::getObjectDataIfEnabled("DiskUploadQuota");
                 if (!empty($obj->deleteVideosWith0Bytes)) {
                     try {
-                        _error_log("updateFilesize: DELETE videos_id=$videos_id filename=$filename filesize=$filesize ". humanFileSize($filesize));
+                        _error_log("updateFilesize: DELETE videos_id=$videos_id filename=$filename filesize=$filesize " . humanFileSize($filesize));
                         return $video->delete();
                     } catch (Exception $exc) {
                         _error_log("updateFilesize: ERROR " . $exc->getTraceAsString());
@@ -1334,17 +1365,17 @@ if (!class_exists('Video')) {
                 }
             }
             if ($video->getFilesize() == $filesize) {
-                _error_log("updateFilesize: No need to update videos_id=$videos_id filename=$filename filesize=$filesize ". humanFileSize($filesize));
+                _error_log("updateFilesize: No need to update videos_id=$videos_id filename=$filename filesize=$filesize " . humanFileSize($filesize));
                 return $filesize;
             }
             $video->setFilesize($filesize);
             TimeLogEnd("Video::updateFilesize {$videos_id}", __LINE__);
             if ($video->save(false, true)) {
-                _error_log("updateFilesize: videos_id=$videos_id filename=$filename filesize=$filesize ". humanFileSize($filesize));
+                _error_log("updateFilesize: videos_id=$videos_id filename=$filename filesize=$filesize " . humanFileSize($filesize));
                 Video::clearCache($videos_id);
                 return $filesize;
             } else {
-                _error_log("updateFilesize: ERROR videos_id=$videos_id filename=$filename filesize=$filesize ". humanFileSize($filesize));
+                _error_log("updateFilesize: ERROR videos_id=$videos_id filename=$filename filesize=$filesize " . humanFileSize($filesize));
                 return false;
             }
         }
@@ -1421,6 +1452,9 @@ if (!class_exists('Video')) {
             $videos = array();
             if ($res != false) {
                 foreach ($fullData as $row) {
+                    if (empty($row['duration_in_seconds'])) {
+                        $row['duration_in_seconds'] = self::updateDurationInSeconds($row['id'], $row['duration']);
+                    }
                     if (empty($row['filesize'])) {
                         $row['filesize'] = Video::updateFilesize($row['id']);
                     }
@@ -1527,7 +1561,8 @@ if (!class_exists('Video')) {
             $sql .= AVideoPlugin::getVideoWhereClause();
 
             if (!empty($_POST['searchPhrase'])) {
-                $searchFieldsNames = array('v.title', 'v.description', 'c.name', 'c.description', 'v.id');
+                $_POST['searchPhrase'] = str_replace('&quot;', '"', $_POST['searchPhrase']);
+                $searchFieldsNames = array('v.title', 'v.description', 'c.name', 'c.description', 'v.id', 'v.filename');
                 if ($advancedCustomUser->videosSearchAlsoSearchesOnChannelName) {
                     $searchFieldsNames[] = 'u.channelName';
                 }
@@ -2385,6 +2420,7 @@ if (!class_exists('Video')) {
 
         public static function deleteTagsAsync($video_id) {
             global $global;
+            return false;
             if (empty($video_id)) {
                 return false;
             }
@@ -2813,6 +2849,7 @@ if (!class_exists('Video')) {
                 $bb_b2 = AVideoPlugin::loadPluginIfEnabled('Blackblaze_B2');
                 $ftp = AVideoPlugin::loadPluginIfEnabled('FTP_Storage');
                 $cdn = AVideoPlugin::loadPluginIfEnabled('CDN');
+                $yptStorage = AVideoPlugin::loadPluginIfEnabled('YPTStorage');
                 if (!empty($cdn)) {
                     $cdn_obj = $cdn->getDataObject();
                     if (!empty($cdn_obj->enable_storage)) {
@@ -2871,7 +2908,7 @@ if (!class_exists('Video')) {
                     }
                     $source['url'] = CDNStorage::getURL($f) . "{$token}";
                     $source['url_noCDN'] = $source['url'];
-                } else if (!empty($video['sites_id']) && $isValidType && $fsize < 20) {
+                } else if (!empty($yptStorage) && !empty($video['sites_id']) && $isValidType && $fsize < 20) {
                     $site = new Sites($video['sites_id']);
                     $siteURL = getCDNOrURL($site->getUrl(), 'CDN_YPTStorage', $video['sites_id']);
                     $source['url'] = "{$siteURL}{$paths['relative']}{$filename}{$type}{$token}";
@@ -2979,13 +3016,13 @@ if (!class_exists('Video')) {
             }
             $cleanVideoFilename = self::getCleanFilenameFromFile($videoFilename);
             $videosDir = self::getStoragePath();
-            
+
             if (is_dir("{$videosDir}{$cleanVideoFilename}")) {
-                $path = addLastSlash("{$videosDir}{$cleanVideoFilename}");           
+                $path = addLastSlash("{$videosDir}{$cleanVideoFilename}");
             } else {
                 $path = addLastSlash("{$videosDir}{$videoFilename}");
             }
-            
+
             $path = fixPath($path);
             if ($createDir) {
                 make_path(addLastSlash($path));
@@ -3012,7 +3049,7 @@ if (!class_exists('Video')) {
             $videoFilename = str_replace($videosDir, '', $videoFilename);
             $paths = Video::getPaths($videoFilename, $createDir);
             $parts = explode('/', $videoFilename);
-            if(!empty($parts[1]) && $parts[1]=='index.m3u8'){
+            if (!empty($parts[1]) && $parts[1] == 'index.m3u8') {
                 $videoFilename = $parts[1];
             }
             return "{$paths['url']}{$videoFilename}";
@@ -3160,11 +3197,11 @@ if (!class_exists('Video')) {
             }
 
             $cleanName = str_replace($search, '', $filename);
-            
-            if($cleanName == $filename){
+
+            if ($cleanName == $filename) {
                 $cleanName = preg_replace('/([a-z]+_[0-9]{12}_[a-z0-9]{4})_[0-9]+/', '$1', $filename);
             }
-            
+
             $path_parts = pathinfo($cleanName);
             if (empty($path_parts['extension'])) {
                 //_error_log("Video::getCleanFilenameFromFile could not find extension of ".$filename);
@@ -3231,6 +3268,8 @@ if (!class_exists('Video')) {
         public static function getHigestResolution($filename) {
             global $global;
             $filename = self::getCleanFilenameFromFile($filename);
+
+            $return = array();
             $cacheName = "getHigestResolution($filename)";
             $return = ObjectYPT::getCache($cacheName, 0);
             if (!empty($return)) {
@@ -3240,42 +3279,78 @@ if (!class_exists('Video')) {
             TimeLogStart($name0);
             $name1 = "Video:::getHigestResolution::getVideosURL_V2($filename)";
             TimeLogStart($name1);
-            $sources = getVideosURL_V2($filename);
-            if (!is_array($sources)) {
-                _error_log("Video:::getHigestResolution::getVideosURL_V2($filename) does not return an array " . json_encode($sources));
+
+            $v = self::getVideoFromFileNameLight($filename);
+            if (empty($v)) {
                 return array();
             }
-            TimeLogEnd($name1, __LINE__);
-            $return = array();
-            foreach ($sources as $key => $value) {
-                if ($value['type'] === 'video') {
-                    $parts = explode("_", $key);
-                    $resolution = intval(@$parts[1]);
-                    if (empty($resolution)) {
-                        $name2 = "Video:::getHigestResolution::getResolution({$value["path"]})";
-                        TimeLogStart($name2);
-                        $resolution = self::getResolutionFromFilename($value["path"]); // this is faster
-                        if ($resolution && empty($global['onlyGetResolutionFromFilename'])) {
-                            _error_log("Video:::getHigestResolution:: could not get the resolution from file name [{$value["path"]}], trying a slower method");
-                            $resolution = self::getResolution($value["path"]);
-                        }
-                        TimeLogEnd($name2, __LINE__);
+            if ($v['type'] !== 'video') {
+                return array();
+            }
+            if ($v['status'] !== self::$statusActive && $v['status'] !== self::$statusUnlisted) {
+                return array();
+            }
+            $video = new Video('', '', $v['id']);
+            if (empty($video)) {
+                return array();
+            }
+            $HigestResolution = $video->getVideoHigestResolution();
+            //_error_log("Video:::getHigestResolution::getVideosURL_V2($filename) 1 FROM database $HigestResolution");
+            if (!empty($HigestResolution)) {
+                //_error_log("Video:::getHigestResolution::getVideosURL_V2($filename) 2 FROM database $HigestResolution");
+                $resolution = $HigestResolution;
+
+                $return['resolution'] = $resolution;
+                $return['resolution_text'] = getResolutionText($return['resolution']);
+                $return['resolution_label'] = getResolutionLabel($return['resolution']);
+                $return['resolution_string'] = trim($resolution . "p {$return['resolution_label']}");
+                return $return;
+            } else {
+                $validFileExtensions = array('webm', 'mp4', 'm3u8');
+                $sources = getVideosURL_V2($filename);
+                if (!is_array($sources)) {
+                    //_error_log("Video:::getHigestResolution::getVideosURL_V2($filename) does not return an array " . json_encode($sources));
+                    return array();
+                }
+                TimeLogEnd($name1, __LINE__);
+                foreach ($sources as $key => $value) {
+                    $ext = pathinfo($value["path"], PATHINFO_EXTENSION);
+                    if (!in_array($ext, $validFileExtensions)) {
+                        continue;
                     }
-                    if (!isset($return['resolution']) || $resolution > $return['resolution']) {
-                        $return = $value;
-                        $return['resolution'] = $resolution;
-                        $return['resolution_text'] = getResolutionText($return['resolution']);
-                        $return['resolution_label'] = getResolutionLabel($return['resolution']);
-                        $return['resolution_string'] = trim($resolution . "p {$return['resolution_label']}");
+                    if ($value['type'] === 'video') {
+                        $parts = explode("_", $key);
+                        $resolution = intval(@$parts[1]);
+                        if (empty($resolution)) {
+                            $name2 = "Video:::getHigestResolution::getResolution({$value["path"]})";
+                            TimeLogStart($name2);
+                            $resolution = self::getResolutionFromFilename($value["path"]); // this is faster
+                            //var_dump(2, $filename, $resolution);
+                            if (empty($resolution) && empty($global['onlyGetResolutionFromFilename'])) {
+                                $resolution = self::getResolution($value["path"]);
+                            }
+                            TimeLogEnd($name2, __LINE__);
+                        }
+                        if (!isset($return['resolution']) || $resolution > $return['resolution']) {
+                            $return = $value;
+                            $return['resolution'] = $resolution;
+                            $return['resolution_text'] = getResolutionText($return['resolution']);
+                            $return['resolution_label'] = getResolutionLabel($return['resolution']);
+                            $return['resolution_string'] = trim($resolution . "p {$return['resolution_label']}");
+                        }
                     }
                 }
             }
+            _error_log("Video:::getHigestResolution::getVideosURL_V2($filename) 3 FROM database " . $return['resolution'] . ' - ' . $v['path']); //exit;
+            //if($filename=='video_210916143432_c426'){var_dump(1, $filename, $return);exit;}
+            $video->setVideoHigestResolution($return['resolution']);
             TimeLogEnd($name0, __LINE__);
             ObjectYPT::setCache($cacheName, $return);
             return $return;
         }
 
         public static function getResolutionFromFilename($filename) {
+            global $global;
             $resolution = false;
             if (preg_match("/_([0-9]+).(mp4|webm)/i", $filename, $matches)) {
                 if (!empty($matches[1])) {
@@ -3285,9 +3360,34 @@ if (!class_exists('Video')) {
                 if (!empty($matches[1])) {
                     $resolution = intval($matches[1]);
                 }
+            } elseif (preg_match('/_(HD|Low|SD).(mp4|webm)/i', $filename, $matches)) {
+                if (!empty($matches[1])) {
+                    if ($matches[1] == 'HD') {
+                        $resolution = 1080;
+                    } else if ($matches[1] == 'SD') {
+                        $resolution = 720;
+                    } else if ($matches[1] == 'Low') {
+                        $resolution = 480;
+                    }
+                }
+            } elseif (preg_match('/\/(hd|low|sd)\/index.m3u8/', $filename, $matches)) {
+                if (!empty($matches[1])) {
+                    if ($matches[1] == 'hd') {
+                        $resolution = 1080;
+                    } else if ($matches[1] == 'sd') {
+                        $resolution = 720;
+                    } else if ($matches[1] == 'low') {
+                        $resolution = 480;
+                    }
+                }
+            } elseif (preg_match('/video_[0-9_a-z]+\/index.m3u8/i', $filename)) {
+                if (file_exists($filename) && class_exists('VideoHLS')) {
+                    $resolution = VideoHLS::getHLSHigestResolutionFromFile($filename);
+                    //var_dump(5, $filename,$resolution);
+                }
             }
-
-            //var_dump($filename, $resolution);exit;
+            //var_dump(4, preg_match('/video_[0-9_a-z]+\/index.m3u8/i', $filename), $filename, $resolution, $matches);
+            //if($filename=='video_210916143432_c426'){var_dump(3, $filename, $resolution, $matches);exit;}
             return $resolution;
         }
 
@@ -3580,19 +3680,21 @@ if (!class_exists('Video')) {
                     $obj->thumbsJpg = $thumbsSource['url'];
                     // create thumbs
                     if (!file_exists($thumbsSource['path']) && filesize($jpegSource['path']) > 1024) {
-                        _error_log("Resize JPG 3 {$jpegSource['path']}, {$thumbsSource['path']}");
                         if (!empty($advancedCustom->useFFMPEGToGenerateThumbs)) {
-                            im_resizeV3($jpegSource['path'], $thumbsSource['path'], $advancedCustom->thumbsWidthLandscape, $advancedCustom->thumbsHeightLandscape);
+                            _error_log("Resize JPG 3 useFFMPEGToGenerateThumbs {$jpegSource['path']}, {$thumbsSource['path']}");
+                            //im_resizeV3($jpegSource['path'], $thumbsSource['path'], $advancedCustom->thumbsWidthLandscape, $advancedCustom->thumbsHeightLandscape);
                         } else {
+                            //_error_log("Resize JPG 3 {$jpegSource['path']}, {$thumbsSource['path']}");
                             im_resizeV2($jpegSource['path'], $thumbsSource['path'], $advancedCustom->thumbsWidthLandscape, $advancedCustom->thumbsHeightLandscape);
                         }
                     }
                     // create thumbs
                     if (!file_exists($thumbsSmallSource['path']) && filesize($jpegSource['path']) > 1024) {
-                        _error_log("Resize Small JPG 4 {$jpegSource['path']}, {$thumbsSmallSource['path']}");
                         if (!empty($advancedCustom->useFFMPEGToGenerateThumbs)) {
+                            //_error_log("Resize Small JPG 4 useFFMPEGToGenerateThumbs {$jpegSource['path']}, {$thumbsSmallSource['path']}");
                             im_resizeV3($jpegSource['path'], $thumbsSmallSource['path'], $advancedCustom->thumbsWidthLandscape, $advancedCustom->thumbsHeightLandscape);
                         } else {
+                            //_error_log("Resize Small JPG 4 {$jpegSource['path']}, {$thumbsSmallSource['path']}");
                             im_resizeV2($jpegSource['path'], $thumbsSmallSource['path'], $advancedCustom->thumbsWidthLandscape, $advancedCustom->thumbsHeightLandscape, 5);
                         }
                     }
@@ -4186,6 +4288,41 @@ if (!class_exists('Video')) {
             $this->externalOptions = $externalOptions;
         }
 
+        public function setVideoTags($tags) {
+            $externalOptions = _json_decode($this->getExternalOptions());
+            if (!is_object($externalOptions)) {
+                $externalOptions = new stdClass();
+            }
+            $externalOptions->VideoTags = $tags;
+            $this->setExternalOptions(json_encode($externalOptions));
+        }
+
+        public function getVideoTags() {
+            $externalOptions = _json_decode($this->getExternalOptions());
+            if (empty($externalOptions->VideoTags)) {
+                return false;
+            }
+            return $externalOptions->VideoTags;
+        }
+
+        public function setVideoHigestResolution($HigestResolution) {
+            $externalOptions = _json_decode($this->getExternalOptions());
+            if (!is_object($externalOptions)) {
+                $externalOptions = new stdClass();
+            }
+            $externalOptions->HigestResolution = $HigestResolution;
+            $this->setExternalOptions(json_encode($externalOptions));
+            return $this->save(false, true);
+        }
+
+        public function getVideoHigestResolution() {
+            $externalOptions = _json_decode($this->getExternalOptions());
+            if (empty($externalOptions->HigestResolution)) {
+                return false;
+            }
+            return $externalOptions->HigestResolution;
+        }
+
         public function setVideoStartSeconds($videoStartSeconds) {
             $externalOptions = _json_decode($this->getExternalOptions());
             AVideoPlugin::onVideoSetVideoStartSeconds($this->id, $this->videoStartSeconds, $videoStartSeconds);
@@ -4333,6 +4470,7 @@ if (!class_exists('Video')) {
         private static function getFullTextSearch($columnsArray, $search, $connection = "OR") {
             global $global;
             $search = $global['mysqli']->real_escape_string(xss_esc($search));
+            $search = str_replace('&quot;', '"', $search);
             if (empty($columnsArray) || empty($search)) {
                 return "";
             }
@@ -4610,10 +4748,18 @@ if (!class_exists('Video')) {
             $this->total_seconds_watching = $total_seconds_watching;
         }
 
+        function getDuration_in_seconds() {
+            return $this->duration_in_seconds;
+        }
+
+        function setDuration_in_seconds($duration_in_seconds) {
+            $this->duration_in_seconds = intval($duration_in_seconds);
+        }
+
     }
 
 }
-// just to convert permalink into clean_title
+// Just to convert permalink into clean_title
 if (!empty($_GET['v']) && empty($_GET['videoName'])) {
     $_GET['videoName'] = Video::get_clean_title($_GET['v']);
 }

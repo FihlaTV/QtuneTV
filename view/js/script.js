@@ -1164,6 +1164,17 @@ function avideoAlertAJAXHTML(url) {
     });
 }
 
+function avideoAlertAJAX(url) {
+    modal.showPleaseWait();
+    $.ajax({
+        url: url,
+        success: function (response) {
+            avideoResponse(response);
+            modal.hidePleaseWait();
+        }
+    });
+}
+
 function avideoAlertHTMLText(title, msg, type) {
     var span = document.createElement("span");
     span.innerHTML = msg;
@@ -1678,16 +1689,16 @@ function startTimerToDate(toDate, selector, useDBDate) {
     }
     if (typeof toDate === 'string') {
         //console.log('startTimerToDate 1 '+toDate);
-        toDate = new Date(toDate);
+        toDate = new Date(toDate.replace(/-/g, "/"));
     }
     if (useDBDate) {
         if (typeof _serverDBTimeString !== 'undefined') {
-            date2 = new Date(_serverDBTimeString);
+            date2 = new Date(_serverDBTimeString.replace(/-/g, "/"));
             //console.log('startTimerToDate 2 '+date2);
         }
     } else {
         if (typeof _serverTimeString !== 'undefined') {
-            date2 = new Date(_serverTimeString);
+            date2 = new Date(_serverTimeString.replace(/-/g, "/"));
             //console.log('startTimerToDate 3 '+date2);
         }
     }

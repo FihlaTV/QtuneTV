@@ -23,13 +23,20 @@ class Scheduler extends PluginAbstract {
     }
 
     public function getPluginVersion() {
-        return "2.0";
+        return "3.0";
     }
     
     public function updateScript() {
         global $global;
         if (AVideoPlugin::compareVersion($this->getName(), "2.0") < 0) {
             $sqls = file_get_contents($global['systemRootPath'] . 'plugin/Scheduler/install/updateV2.0.sql');
+            $sqlParts = explode(";", $sqls);
+            foreach ($sqlParts as $value) {
+                sqlDal::writeSql(trim($value));
+            }
+        }
+        if (AVideoPlugin::compareVersion($this->getName(), "3.0") < 0) {
+            $sqls = file_get_contents($global['systemRootPath'] . 'plugin/Scheduler/install/updateV3.0.sql');
             $sqlParts = explode(";", $sqls);
             foreach ($sqlParts as $value) {
                 sqlDal::writeSql(trim($value));
@@ -60,7 +67,9 @@ class Scheduler extends PluginAbstract {
     
     public function getPluginMenu() {
         global $global;
-        return '<a href="plugin/Scheduler/View/editor.php" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fa fa-edit"></i> Edit</a>';
+        $btn = '<button onclick="avideoModalIframeLarge(webSiteRootURL+\'plugin/Scheduler/View/editor.php\')" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fa fa-edit"></i> Edit</button>';
+        $btn .= '<button onclick="avideoModalIframeLarge(webSiteRootURL+\'plugin/Scheduler/run.php\')" class="btn btn-primary btn-sm btn-xs btn-block"><i class="fas fa-terminal"></i> Run now</button>';
+        return $btn;
     }
     
     static public function run($scheduler_commands_id){
@@ -74,7 +83,10 @@ class Scheduler extends PluginAbstract {
             return false;
         }
         if(empty($_executeSchelude[$callBackURL])){
+            $callBackURL = addQueryStringParameter($callBackURL, 'token', getToken(60));
+            _error_log("Scheduler::run getting callback URL {$callBackURL}");
             $_executeSchelude[$callBackURL] = url_get_contents($callBackURL);
+            _error_log("Scheduler::run got callback ". json_encode($_executeSchelude[$callBackURL]));
         }
         if(!empty($_executeSchelude[$callBackURL])){
             return $e->setExecuted($_executeSchelude[$callBackURL]);

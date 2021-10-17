@@ -136,7 +136,7 @@ class Plugin extends ObjectYPT {
             $pluginJustInstalled = array();
         }
         if (empty($getPluginByUUID[$uuid])) {
-            $getPluginByUUID[$uuid] = object_to_array(ObjectYPT::getCache($name, 0));
+            $getPluginByUUID[$uuid] = object_to_array(ObjectYPT::getCache($name, 60));
         }
         if (empty($getPluginByUUID[$uuid])) {
             $sql = "SELECT * FROM " . static::getTableName() . " WHERE uuid = ? LIMIT 1";
@@ -335,7 +335,7 @@ class Plugin extends ObjectYPT {
                 }
 
                 if ($addedNewPlugin && empty($try)) {
-                    ObjectYPT::deleteALLCache();
+                    //ObjectYPT::deleteALLCache();
                     return self::getAllEnabled(1);
                 }
 
@@ -448,7 +448,7 @@ class Plugin extends ObjectYPT {
             $this->object_data = 'null';
         }
         self::deletePluginCache($this->uuid);
-        ObjectYPT::deleteALLCache();
+        //ObjectYPT::deleteALLCache();
         return parent::save();
     }
 

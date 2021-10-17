@@ -7,6 +7,7 @@ if (!User::isAdmin()) {
     header("Location: {$global['webSiteRootURL']}");
     exit;
 }
+$isAdminPanel = 1;
 
 class MenuAdmin {
 
@@ -39,7 +40,10 @@ $itens = array();
 
 $menu = new MenuAdmin(__("Dashboard"), "fa fa-tachometer-alt", "dashboard");
 $itens[] = $menu;
-
+/*
+  $menu = new MenuAdmin(__("Premium Featrures"), "fas fa-star", "premium");
+  $itens[] = $menu;
+ */
 $menu = new MenuAdmin(__("Settings"), "fa fa-wrench");
 $menu->addItem(new MenuAdmin(__("Remove Branding"), "far fa-edit", "customize_settings"));
 $menu->addItem(new MenuAdmin(__("General Settings"), "fas fa-cog", "general_settings"));
@@ -93,6 +97,9 @@ $includeBody = "";
 switch ($_GET['page']) {
     case "backup":
         $includeBody = $global['systemRootPath'] . 'admin/backup.php';
+        break;
+    case "premium":
+        $includeBody = $global['systemRootPath'] . 'admin/premium.php';
         break;
     case "design_first_page":
         $includeBody = $global['systemRootPath'] . 'admin/design_first_page.php';
@@ -173,7 +180,7 @@ switch ($_GET['page']) {
 <!DOCTYPE html>
 <html lang="<?php echo $config->getLanguage(); ?>">
     <head>
-        <?php 
+        <?php
         echo getHTMLTitle(__("Administration"));
         ?>
         <?php
@@ -193,6 +200,23 @@ switch ($_GET['page']) {
             .leftMenu .panel-body {
                 padding: 0px;
             }
+            .adminLeftMenu.panel-default i, .adminLeftMenu.panel-default{
+                -webkit-transition: opacity 0.5s ease-in-out;
+                -moz-transition: opacity 0.5s ease-in-out;
+                transition: opacity 0.5s ease-in-out;
+            }
+            .adminLeftMenu.panel-default i{
+                opacity: 0.2;
+            }
+            .adminLeftMenu:hover.panel-default i{
+                opacity: 1;
+            }
+            .adminLeftMenu.panel-default{
+                opacity: 0.6;
+            }
+            .adminLeftMenu:hover.panel-default{
+                opacity: 1;
+            }
         </style>
     </head>
     <body class="<?php echo $global['bodyClass']; ?>">
@@ -203,7 +227,7 @@ switch ($_GET['page']) {
         <div class="container-fluid">
             <br>
             <div class="row">
-                <div class="col-sm-3 col-md-3 fixed affix leftMenu">
+                <div class=" col-lg-2 col-md-3 col-sm-3 fixed affix leftMenu">
                     <div class="panel-group" id="accordion">
                         <?php
                         foreach ($itens as $key => $value) {
@@ -212,11 +236,23 @@ switch ($_GET['page']) {
                             if (!empty($value->href)) {
                                 $href = 'href="' . $global['webSiteRootURL'] . 'admin/?page=' . $value->href . '"';
                             }
+                            $panel = 'panel-default';
+                            if (!empty($_REQUEST['page']) && $_REQUEST['page'] == $value->href) {
+                                $panel = 'panel-primary';
+                            } else {
+                                foreach ($value->itens as $key2 => $value2) {
+                                    if (!empty($_REQUEST['page']) && $_REQUEST['page'] === $value2->href) {
+                                        $panel = 'panel-primary';
+                                    }
+                                }
+                            }
                             ?>
-                            <div class="panel panel-default">
+                            <div class="panel <?php echo $panel; ?>" class="adminLeftMenu">
                                 <div class="panel-heading">
                                     <h4 class="panel-title">
-                                        <a <?php echo $href; ?>><i class="<?php echo $value->icon; ?>"></i> <?php echo $value->title; ?></a>
+                                        <a <?php echo $href; ?> >
+                                            <i class="<?php echo $value->icon; ?> "></i> <?php echo $value->title; ?>
+                                        </a>
                                     </h4>
                                 </div>
                                 <?php
@@ -261,7 +297,7 @@ switch ($_GET['page']) {
                         ?>
                     </div>
                 </div>
-                <div class="col-sm-9 col-md-9 col-sm-offset-3 col-md-offset-3 ">
+                <div class=" col-lg-10 col-md-9 col-sm-9 col-sm-offset-3 col-md-offset-3 col-lg-offset-2 ">
                     <?php
                     if (!empty($includeBody)) {
                         if (is_array($includeBody)) {
