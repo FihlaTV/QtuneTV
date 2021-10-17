@@ -70,6 +70,7 @@
 /videos/
 *.zip
 sitemap.xml
+README.md
 /plugin/WebRTCLiveCam/
 /plugin/Wix/
 /plugin/Live/standAloneFiles/WebRTCServer/configuration.php
