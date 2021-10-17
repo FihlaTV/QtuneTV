@@ -1168,7 +1168,7 @@ class AVideoPlugin {
             self::YPTend("{$value['dirName']}::" . __FUNCTION__);
         }
         if (!empty($users_id)) {
-            _error_log("userCanWatchVideo: No plugins approve user ({$users_id}) watch the video ({$videos_id}) ");
+            //_error_log("userCanWatchVideo: No plugins approve user ({$users_id}) watch the video ({$videos_id}) ");
         }
         $userCanWatchVideoFunction[$users_id][$videos_id] = $resp;
         ObjectYPT::setSessionCache($cacheName, $resp);
@@ -1197,7 +1197,9 @@ class AVideoPlugin {
                 if (!empty($can)) {
                     $resp = $can > 0 ? true : false;
                     if ($resp) {
-                        _error_log("userCanWatchVideoWithAds the plugin ({$value['dirName']}) said user ({$users_id}) can watch");
+                        if(!empty($users_id)){
+                            _error_log("userCanWatchVideoWithAds the plugin ({$value['dirName']}) said user ({$users_id}) can watch");
+                        }
                         $userCanWatchVideoWithAdsFunction[$users_id][$videos_id] = true;
                         return true;
                     } else {

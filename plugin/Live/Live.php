@@ -262,6 +262,7 @@ class Live extends PluginAbstract {
             "htmlExtraVideoListItem" => $newContentVideoListItem,
             "type" => $type,
             "photo" => $UserPhoto,
+            "UserPhoto" => $UserPhoto,
             "title" => $title,
             "users_id" => $users_id,
             "name" => $name,
@@ -539,6 +540,7 @@ class Live extends PluginAbstract {
             }            
         }
         $domain = self::getControl($live_servers_id);
+        return $domain;
     }
     
     static function getAPPName(){
@@ -547,9 +549,13 @@ class Live extends PluginAbstract {
             return 'live';
         }else{
             $server = self::getPlayerServer();
-            $server = rtrim($server, "/");
-            $parts = explode("/", $server);
-            $app = array_pop($parts);
+            if(preg_match('/.cdn.ypt.me/', $server)){
+                return 'live';
+            }else{
+                $server = rtrim($server, "/");
+                $parts = explode("/", $server);
+                $app = array_pop($parts);
+            }
         }
         return $app;
     }
@@ -613,7 +619,7 @@ class Live extends PluginAbstract {
             if (!empty($json)) {
                 if ($start && empty($json->error) && empty($json->response) && $try < 4) {
                     _error_log("Live:controlRecording start record is not ready trying again in 5 seconds " . (isCommandLineInterface() ? 'From Command Line' : 'Not Command Line'));
-                    _error_log("Live:controlRecording " . json_encode(debug_backtrace()));
+                    _error_log("Live:controlRecording " . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
 
                     sleep(5);
                     return self::controlRecording($key, $live_servers_id, $start, $try + 1);
@@ -1104,7 +1110,6 @@ class Live extends PluginAbstract {
             url_get_contents($url);
             $dir = $obj->hls_path . "/$key";
             if (is_dir($dir)) {
-                exec("rm -fR $dir");
                 rrmdir($dir);
             }
         }
@@ -2189,19 +2194,12 @@ class Live extends PluginAbstract {
             $pattern = "/.getStats.{$live_servers_id}.*/i";
             ObjectYPT::deleteCachePattern($pattern);
         }
-//_error_log("Live::deleteStatsCache [{$cacheDir}]");
+        _error_log("deleteStatsCache: {$cacheDir} ".json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
         rrmdir($cacheDir);
-        exec('rm -R ' . $cacheDir);
-        if (is_dir($cacheDir)) {
-//_error_log("Live::deleteStatsCache [{$cacheDir}] looks like the cache was not deleted", AVideoLog::$ERROR);
-            exec('rm -R ' . $cacheDir);
-        } else {
-//_error_log("Live::deleteStatsCache [{$cacheDir}] Success");
-        }
         if ($clearFirstPage) {
             clearCache(true);
         }
-        isURL200Clear();
+        //isURL200Clear();
         unset($__getAVideoCache);
         unset($getStatsLive);
         unset($getStatsObject);
@@ -2429,7 +2427,7 @@ class Live extends PluginAbstract {
                 if (!empty($_REQUEST['rowCount'])) {
                     $sql .= " LIMIT {$_REQUEST['rowCount']}";
                 } else {
-                    _error_log("getAllVideos without limit " . json_encode(debug_backtrace()));
+                    _error_log("getAllVideos without limit " . json_encode(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS)));
                     if (empty($global['limitForUnlimitedVideos'])) {
                         $global['limitForUnlimitedVideos'] = 100;
                     }
@@ -2629,14 +2627,14 @@ class Live extends PluginAbstract {
         $encrypt = encryptString($obj);
         
         $url = Live::getServer();
-        $url = addQueryStringParameter($url, 'e', $encrypt);
-        $url = addQueryStringParameter($url, 'webSiteRootURL', $global['webSiteRootURL']);
+        $url = addQueryStringParameter($url, 'e', base64_encode($encrypt));
+        $url = addQueryStringParameter($url, 'webSiteRootURL', base64_encode($global['webSiteRootURL']));
         
         $o = AVideoPlugin::getObjectDataIfEnabled("Live");
         if(empty($o->server_type->value)){
-            $url = addQueryStringParameter($url, 'webSiteRootURL', $global['webSiteRootURL']);
+            $url = addQueryStringParameter($url, 'webSiteRootURL', base64_encode($global['webSiteRootURL']));
         }
-        
+        $url = str_replace('%3D', '', $url);
         return $url;
     }
 

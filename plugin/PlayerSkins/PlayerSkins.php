@@ -48,6 +48,7 @@ class PlayerSkins extends PluginAbstract {
         $obj->showLogo = false;
         $obj->showShareSocial = true;
         $obj->showShareAutoplay = true;
+        $obj->forceAlwaysAutoplay = false;
         $obj->showLogoOnEmbed = false;
         $obj->showLogoAdjustScale = "0.4";
         $obj->showLogoAdjustLeft = "-74px";
@@ -212,7 +213,7 @@ class PlayerSkins extends PluginAbstract {
             $js .= "<script>var isLive = true;</script>";
         }
         if (isVideo() || !empty($_GET['videoName']) || !empty($_GET['u']) || !empty($_GET['evideo']) || !empty($_GET['playlists_id'])) {
-            if (!empty($_REQUEST['autoplay'])) {
+            if (!empty($_REQUEST['autoplay']) || !empty($obj->forceAlwaysAutoplay)) {
                 $js .= "<script>var autoplay = true;var forceautoplay = true;</script>";
             } else if (self::isAutoplayEnabled()) {
                 $js .= "<script>var autoplay = true;</script>";
@@ -257,7 +258,7 @@ class PlayerSkins extends PluginAbstract {
             if ($obj->showShareSocial && CustomizeUser::canShareVideosFromVideo(@$video['id'])) {
                 $css .= "<link href=\"" . getURL('plugin/PlayerSkins/shareButton.css') . "\" rel=\"stylesheet\" type=\"text/css\"/>";
             }
-            if ($obj->showShareAutoplay && isVideoPlayerHasProgressBar()) {
+            if ($obj->showShareAutoplay && isVideoPlayerHasProgressBar() && empty($obj->forceAlwaysAutoplay)) {
                 $css .= "<link href=\"" . getURL('plugin/PlayerSkins/autoplayButton.css') . "\" rel=\"stylesheet\" type=\"text/css\"/>";
             }
         }
@@ -297,7 +298,7 @@ class PlayerSkins extends PluginAbstract {
                 $js .= "<script>function tooglePlayersocial(){showSharing{$social['id']}();}</script>";
             }
 
-            if ($obj->showShareAutoplay && isVideoPlayerHasProgressBar()) {
+            if ($obj->showShareAutoplay && isVideoPlayerHasProgressBar() && empty($obj->forceAlwaysAutoplay)) {
                 PlayerSkins::getStartPlayerJS(file_get_contents("{$global['systemRootPath']}plugin/PlayerSkins/autoplayButton.js"));
             }
         }

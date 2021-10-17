@@ -96,7 +96,7 @@ I would humbly like to thank God for giving me the necessary knowledge, motivati
 
 ## Important Information
 
-> Streamer can be installed on any Server, including Windows, but the encoder and Livestream should work fine on any Linux distribution. However we recommend Ubuntu 16+ without any kind of control panel.
+> Streamer can be installed on any Server, including Windows, but the encoder and Livestream should work fine on any Linux distribution. However we recommend Ubuntu 20.04 without any kind of control panel.
 > The problem with cPanel, Plesk, Webmin, VestaCP, etc. It's because we need full root access to install some libs, and maybe compile them. Another important point is that to make Livestream work, we need to compile Nginx and the control panels often prevent us from running the commands forcing the installation available only on your panel.
 
 I don´t want to read I just want you to show me how to install!!
@@ -146,9 +146,9 @@ Surely you need to install an encoder
 
 # Server Requirements
 
-In order for you to be able to run AVideo Platform, there are certain tools that need to be installed on your server. Don't worry, they are all FREE. To have a look at complete list of required tools, click the link below.
+In order for you to be able to run AVideo Platform, there are certain tools that need to be installed on your server. Don't worry, they are all FREE. To have a look at complete list of required tools, click the link below. https://github.com/WWBN/AVideo/wiki/AVideo-Platform-Hardware-Requirements
 
-- PHP 5.6+
+- PHP 7.3+
 - MySQL 5.0+
 - Apache web server 2.x (with mod_rewrite enabled)
 
@@ -165,3 +165,9 @@ docker-compose up --build -d
 ## Version 8.10
 
 ## Version 8.11
+
+## git clone
+
+After a git clone command run this 
+
+composer update --prefer-dist --ignore-platform-reqs
