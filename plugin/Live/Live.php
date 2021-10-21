@@ -62,7 +62,7 @@ class Live extends PluginAbstract {
     }
 
     public function getPluginVersion() {
-        return "10.0";
+        return "10.1";
     }
 
     public function updateScript() {
@@ -162,6 +162,14 @@ class Live extends PluginAbstract {
             }
             LiveTransmitionHistory::finishALL();
         }
+        if (AVideoPlugin::compareVersion($this->getName(), "10.1") < 0) {
+            $sqls = file_get_contents($global['systemRootPath'] . 'plugin/Live/install/updateV10.1.sql');
+            $sqlParts = explode(";", $sqls);
+            foreach ($sqlParts as $value) {
+                sqlDal::writeSql(trim($value));
+            }
+            LiveTransmitionHistory::finishALL();
+        }
         return true;
     }
 
@@ -185,11 +193,18 @@ class Live extends PluginAbstract {
             if($isLive){
                 continue;
             }
+            
+            $timestamp = getTimestampFromTimezone($value['scheduled_time'], $value['timezone']);
+            // live is already expired
+            if($timestamp<time()){
+                continue;
+            }
+                    
             $callback = '';
             $link = Live::getLinkToLiveFromUsers_idAndLiveServer($value['users_id'],$value['live_servers_id']);
             $link = addQueryStringParameter($link, 'live_schedule', $value['id']);
             $LiveUsersLabelLive = ($liveUsersEnabled ? getLiveUsersLabelLive($value['key'], $value['live_servers_id']) : '');
-            $array[] = self::getLiveApplicationModelArray($value['users_id'], $value['title'], $link, Live_schedule::getPosterURL($value['id']), '' , 'scheduleLive', $LiveUsersLabelLive, 'LiveSchedule_'.$value['id'], $callback, $value['scheduled_time'], 'live_'.$value['key']);
+            $array[] = self::getLiveApplicationModelArray($value['users_id'], $value['title'], $link, Live_schedule::getPosterURL($value['id']), '' , 'scheduleLive', $LiveUsersLabelLive, 'LiveSchedule_'.$value['id'], $callback, date('Y-m-d H:i:s', $timestamp), 'live_'.$value['key']);
         }
 
         return $array;
@@ -229,7 +244,7 @@ class Live extends PluginAbstract {
             if(strtotime($startsOnDate) > time()){
                 $callback .= ';'. '$(\'.'.$uid . ' .liveNow\').attr(\'class\', \'liveNow label label-primary\');'
                     . '$(\'.'.$uid . ' .liveNow\').text(\'' . $startsOnDate . '\');'
-                    . 'startTimerToDate(\'' . $startsOnDate . '\', \'.'.$uid . ' .liveNow\', true);';
+                    . 'startTimerToDate(\'' . $startsOnDate . '\', \'.'.$uid . ' .liveNow\', false);';
                 $comingsoon = true;
             }
         }
@@ -739,6 +754,19 @@ class Live extends PluginAbstract {
                 }
                 return '<!-- SendRecordedToEncoder::getSaveDVRButton -->' . SendRecordedToEncoder::getSaveDVRButton($key, $live_servers_id, $class);
                 break;
+            case "save_the_momment":
+                $obj2 = AVideoPlugin::getDataObjectIfEnabled('SendRecordedToEncoder');
+                if (empty($obj2) || empty($obj2->saveTheMommentEnable)) {
+                    return '<!-- SendRecordedToEncoder saveDVREnable is not present -->';
+                }
+                if ($obj->controllButtonsShowOnlyToAdmin_save_dvr && !User::isAdmin()) {
+                    return '<!-- User Cannot save DVR controllButtonsShowOnlyToAdmin_save_dvr -->';
+                }
+                if (!self::userCanRecordLive(User::getId())) {
+                    return '<!-- User Cannot record -->';
+                }
+                return '<!-- SendRecordedToEncoder::getSaveTheMommentButton -->' . SendRecordedToEncoder::getSaveTheMommentButton($key, $live_servers_id, $class);
+                break;
             default:
                 return '';
         }
@@ -792,6 +820,7 @@ class Live extends PluginAbstract {
         $btn = "<div class=\"btn-group justified recordLiveControlsDiv\" style=\"display: none;\" id=\"liveControls\">";
         //$btn .= self::getButton("drop_publisher", $live_transmition_id, $live_servers_id);
         $btn .= self::getButton("save_dvr", $key, $live_servers_id, $iconsOnly, '', $btnClass);
+        $btn .= self::getButton("save_the_momment", $key, $live_servers_id, $iconsOnly, '', $btnClass);
         $btn .= self::getButton("drop_publisher_reset_key", $key, $live_servers_id, $iconsOnly, '', $btnClass);
         $btn .= self::getButton("record_start", $key, $live_servers_id, $iconsOnly, '', $btnClass);
         $btn .= self::getButton("record_stop", $key, $live_servers_id, $iconsOnly, '', $btnClass);

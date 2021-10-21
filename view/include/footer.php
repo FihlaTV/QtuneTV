@@ -70,7 +70,7 @@ $jsFiles[] = "view/bootstrap/jquery-bootstrap-scrolling-tabs/jquery.scrolling-ta
 $jsFiles[] = "view/js/BootstrapMenu.min.js";
 
 $jsFiles = array_merge($jsFiles, AVideoPlugin::getJSFiles());
-echo combineFilesHTML($jsFiles, "js");
+echo combineFilesHTML($jsFiles, "js", true);
 ?>
 <div id="pluginFooterCode" >
     <?php

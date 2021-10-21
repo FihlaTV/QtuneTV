@@ -1908,6 +1908,7 @@ if (!class_exists('Video')) {
             if (empty($advancedCustom->disableHTMLDescription)) {
                 $articleObj = AVideoPlugin::getObjectData('Articles');
                 $configPuri = HTMLPurifier_Config::createDefault();
+                $configPuri->set('Cache.SerializerPath', getCacheDir());
                 $purifier = new HTMLPurifier($configPuri);
                 if (empty($articleObj->allowAttributes)) {
                     $configPuri->set('HTML.AllowedAttributes', array('a.href', 'a.target', 'a.title', 'a.title', 'img.src', 'img.width', 'img.height')); // remove all attributes except a.href
@@ -2744,7 +2745,7 @@ if (!class_exists('Video')) {
             );
 
             if (empty($types) && AVideoPlugin::isEnabledByName("VideoHLS")) {
-                $postFields['inputHLS'] = 1;
+                $postFields['inputAutoHLS'] = 1;
             } elseif (!empty($types)) {
                 foreach ($types as $key => $value) {
                     $postFields[$key] = $value;
@@ -3073,7 +3074,7 @@ if (!class_exists('Video')) {
                 $prefix = 'v';
             }
             $date = date('ymdHis', $time);
-            $videoFilename = strtolower("{$prefix}_{$date}_{$uid}");
+            $videoFilename = strtolower("{$prefix}_{$date}_v{$uid}");
             return self::getPaths($videoFilename);
         }
 
@@ -4171,7 +4172,7 @@ if (!class_exists('Video')) {
 
             $obj = new stdClass();
             $paths = self::getVideosPaths($filename);
-
+            //var_dump($paths);exit;
             $obj->mp4 = !empty($paths['mp4']) ? true : false;
             $obj->webm = !empty($paths['webm']) ? true : false;
             $obj->m3u8 = !empty($paths['m3u8']) ? true : false;

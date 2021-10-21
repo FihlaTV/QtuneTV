@@ -9,7 +9,7 @@ $resp->error = true;
 $resp->msg = '';
 $obj = AVideoPlugin::getDataObjectIfEnabled('CDN');
 if (empty($obj)) {
-    $resp->msg = 'CDN Plugin disabled';
+    $resp->msg = 'Status: CDN Plugin disabled, please enable it and clear the cache';
     die(json_encode($resp));
 }
 
@@ -50,22 +50,6 @@ if (AVideoPlugin::isEnabledByName('FTP_Storage')) {
     $resp->CDN_FTP = CDN::getCDN_FTPURL();
 }else{
     $resp->CDN_FTP = '';
-}
-
-// Update YPT Storage CDN
-$resp->CDN_YPTStorage = array();
-$plugin = AVideoPlugin::getDataObjectIfEnabled('YPTStorage');
-if (!empty($plugin)) {
-    $rows = Sites::getAllActive();
-    foreach ($rows as $value) {
-        if (empty($value['url'])) {
-            continue;
-        }
-        $resp->CDN_YPTStorage[] = array(
-            'id' => $value['id'],
-            'url' => addLastSlash($value['url'])
-        );
-    }
 }
 
 // Update Live CDN

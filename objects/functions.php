@@ -486,7 +486,7 @@ function setSiteSendMessage(&$mail) {
         _error_log("Sending SMTP Email");
         $mail->CharSet = 'UTF-8';
         $mail->IsSMTP(); // enable SMTP
-        if (!empty($_POST) && $_POST["comment"] == "Teste of comment" && User::isAdmin()) {
+        if (!empty($_POST) && $_POST["comment"] == "Test of comment" && User::isAdmin()) {
             $mail->SMTPDebug = 3;
             $mail->Debugoutput = function ($str, $level) {
                 _error_log("SMTP ERROR $level; message: $str", AVideoLog::$ERROR);
@@ -2261,8 +2261,10 @@ function combineFiles($filesArray, $extension = "js") {
     return getURL($relativeDir . $md5FileName);
 }
 
-function combineFilesHTML($filesArray, $extension = "js") {
-    $jsURL = combineFiles($filesArray, $extension);
+function combineFilesHTML($filesArray, $extension = "js", $doNotCombine = false) {
+    if (empty($doNotCombine)) {
+        $jsURL = combineFiles($filesArray, $extension);
+    }
     if ($extension == "js") {
         if (empty($jsURL)) {
             $str = '';
@@ -3156,13 +3158,7 @@ function rrmdir($dir) {
         _error_log('rrmdir: A script ties to delete the videos Directory [' . $dir . '] ' . json_encode(array($dir == getVideosDir(), $dir == "{$global['systemRootPath']}videos" . DIRECTORY_SEPARATOR, preg_match($pattern, $dir))));
         return false;
     }
-    if (is_dir($dir)) {
-        if (isWindows()) {
-            exec('DEL /S ' . $dir);
-        } else {
-            exec('rm -R ' . $dir);
-        }
-    }
+    rrmdirCommandLine($dir);
     if (is_dir($dir)) {
         //_error_log('rrmdir: The Directory was not deleted, trying again ' . $dir);
         $objects = scandir($dir);
@@ -3181,15 +3177,31 @@ function rrmdir($dir) {
             // do not delete videos or cache folder
             return false;
         }
-        if(rmdir($dir)){
+        if (rmdir($dir)) {
             return true;
-        }else{
+        } else {
             _error_log('rrmdir: could not delete folder ' . $dir);
             return false;
         }
     } else {
         //_error_log('rrmdir: The Directory does not exists '.$dir);
         return true;
+    }
+}
+
+function rrmdirCommandLine($dir, $async = false) {
+    if (is_dir($dir)) {
+        if (isWindows()) {
+            $command = ('rd /s /q ' . $dir);
+        } else {
+            $command = ('rm -fR ' . $dir);
+        }
+
+        if ($async) {
+            return execAsync($command);
+        } else {
+            return exec($command);
+        }
     }
 }
 
@@ -3988,7 +4000,7 @@ function getUsageFromFilename($filename, $dir = "") {
                 $isEnabled = AVideoPlugin::isEnabledByName('YPTStorage');
                 $isEnabledCDN = AVideoPlugin::getObjectDataIfEnabled('CDN');
                 $isEnabledS3 = AVideoPlugin::loadPluginIfEnabled('AWS_S3');
-                if ($isEnabledCDN->enable_storage) {
+                if (!empty($isEnabledCDN) && $isEnabledCDN->enable_storage) {
                     $v = Video::getVideoFromFileName($filename);
                     if (!empty($v)) {
                         $size = CDNStorage::getRemoteDirectorySize($v['id']);
@@ -4336,9 +4348,9 @@ function verifyToken($token, $salt = "") {
         return false;
     }
     $old_timezone = date_default_timezone_get();
-    date_default_timezone_set($obj->timezone);    
+    date_default_timezone_set($obj->timezone);
     $time = time();
-    date_default_timezone_set($old_timezone);  
+    date_default_timezone_set($old_timezone);
     if (!($time >= $obj->time && $time <= $obj->timeout)) {
         _error_log("verifyToken token timout time = $time; obj->time = $obj->time;  obj->timeout = $obj->timeout");
         return false;
@@ -6172,7 +6184,7 @@ function m3u8ToMP4($input) {
         if ($ism3u8 && !preg_match('/.m3u8$/i', $filepath)) {
             $filepath = addLastSlash($filepath) . 'index.m3u8';
         }
-        
+
         $token = getToken(60);
         $filepath = addQueryStringParameter($filepath, 'globalToken', $token);
     } else {
@@ -6514,7 +6526,7 @@ function sendSocketMessageToNone($msg, $callbackJSFunction = "") {
 function execAsync($command) {
     //$command = escapeshellarg($command);
     // If windows, else
-    if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+    if (isWindows()) {
         //echo $command;
         //$pid = system("start /min  ".$command. " > NUL");
         //$commandString = "start /B " . $command;
@@ -6860,7 +6872,7 @@ function getTitle() {
     return $global['pageTitle'];
 }
 
-function outputAndContinueInBackground() {
+function outputAndContinueInBackground($msg = '') {
     global $outputAndContinueInBackground;
 
     if (!empty($outputAndContinueInBackground)) {
@@ -6875,6 +6887,7 @@ function outputAndContinueInBackground() {
         fastcgi_finish_request();
     }
     ob_start();
+    echo $msg;
     @header("Connection: close");
     @header("Content-Length: " . ob_get_length());
     @header("HTTP/1.1 200 OK");
@@ -6983,9 +6996,9 @@ function secondsInterval($time1, $time2) {
 function secondsIntervalHuman($time, $useDatabaseTime = true) {
     $dif = secondsIntervalFromNow($time, $useDatabaseTime);
     if ($dif < 0) {
-        return humanTimingAfterwards($time);
+        return humanTimingAfterwards($time, 0, $useDatabaseTime);
     } else {
-        return humanTimingAgo($time);
+        return humanTimingAgo($time, 0, $useDatabaseTime);
     }
 }
 
@@ -6999,11 +7012,14 @@ function isTimeForFuture($time, $useDatabaseTime = true) {
 }
 
 function secondsIntervalFromNow($time, $useDatabaseTimeOrTimezoneString = true) {
-    $timeNow = time();
+    $timeNow = time();    
+    //var_dump($time, $useDatabaseTimeOrTimezoneString);
     if (!empty($useDatabaseTimeOrTimezoneString)) {
         if (is_numeric($useDatabaseTimeOrTimezoneString) || is_bool($useDatabaseTimeOrTimezoneString)) {
+            //echo $time.'-'.__LINE__.'=>';
             $timeNow = getDatabaseTime();
         } else if (is_string($useDatabaseTimeOrTimezoneString)) {
+            //echo '-'.__LINE__.PHP_EOL.PHP_EOL;
             $timeNow = getTimeInTimezone($timeNow, $useDatabaseTimeOrTimezoneString);
         }
     }
@@ -7445,4 +7461,14 @@ function listFolderFiles($dir) {
         }
     }
     return $files;
+}
+
+function convertToMyTimezone($date, $fromTimezone) {
+    $time = getTimestampFromTimezone($date, $fromTimezone);
+    return date('Y-m-d H:i:s', $time);
+}
+
+function getTimestampFromTimezone($date, $fromTimezone) {
+    $date = new DateTime($date, new DateTimeZone($fromTimezone));
+    return $date->getTimestamp();
 }
