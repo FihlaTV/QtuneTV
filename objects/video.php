@@ -403,7 +403,9 @@ if (!class_exists('Video')) {
                 }
                 ObjectYPT::deleteCache("getItemprop{$this->id}");
                 ObjectYPT::deleteCache("getLdJson{$this->id}");
-                ObjectYPT::deleteCache("getVideoTags{$this->id}");
+                if(class_exists('Cache')){
+                    Cache::deleteCache("getVideoTags{$this->id}");
+                }
                 self::deleteTagsAsync($this->id);
                 if ($updateVideoGroups) {
                     require_once $global['systemRootPath'] . 'objects/userGroups.php';
@@ -833,8 +835,8 @@ if (!class_exists('Video')) {
         public static function getVideoLight($id) {
             global $global, $config;
             $id = intval($id);
-            $sql = "SELECT * FROM videos WHERE id = '$id' LIMIT 1";
-            $res = sqlDAL::readSql($sql, "", array(), true);
+            $sql = "SELECT * FROM videos WHERE id = ? LIMIT 1";
+            $res = sqlDAL::readSql($sql, 'i', array($id), true);
             $video = sqlDAL::fetchAssoc($res);
             sqlDAL::close($res);
             return $video;
@@ -1214,7 +1216,7 @@ if (!class_exists('Video')) {
 
         private static function getInfo($row, $getStatistcs = false) {
             $name = "_getVideoInfo_{$row['id']}";
-            $cache = ObjectYPT::getSessionCache($name, 3600);
+            $cache = ObjectYPT::getCache($name, 3600);
             if (!empty($cache)) {
                 $externalOptions = $cache->externalOptions;
                 $obj = object_to_array($cache);
@@ -2427,7 +2429,7 @@ if (!class_exists('Video')) {
             }
 
             $name = "getVideoTags{$video_id}";
-            ObjectYPT::deleteCache($name);
+            Cache::deleteCache($name);
 
             _session_start();
             unset($_SESSION['getVideoTags'][$video_id]);
@@ -2772,6 +2774,7 @@ if (!class_exists('Video')) {
             }
             _error_log("QUEUE CURL: ($target) " . json_encode($obj));
             curl_close($curl);
+            Configuration::deleteEncoderURLCache();
             return $obj;
         }
 
@@ -2900,8 +2903,12 @@ if (!class_exists('Video')) {
                 $canUseCDN = canUseCDN($video['id']);
                 $fsize = @filesize($source['path']);
                 $isValidType = (preg_match("/.*\\.mp3$/", $type) || preg_match("/.*\\.mp4$/", $type) || preg_match("/.*\\.webm$/", $type) || $type == ".m3u8" || $type == ".pdf" || $type == ".zip");
-
-                if (!empty($cdn_obj->enable_storage) && $isValidType && $fsize < 20) {
+                
+                if(!empty($video['sites_id'])){
+                    $site = new Sites($video['sites_id']);
+                }
+                
+                if (!empty($cdn_obj->enable_storage) && $isValidType && $fsize < 20 && !empty($site) && $site->getStatus()=='t') {
                     if ($type == ".m3u8") {
                         $f = "{$filename}/index{$type}";
                     } else {
@@ -2909,8 +2916,7 @@ if (!class_exists('Video')) {
                     }
                     $source['url'] = CDNStorage::getURL($f) . "{$token}";
                     $source['url_noCDN'] = $source['url'];
-                } else if (!empty($yptStorage) && !empty($video['sites_id']) && $isValidType && $fsize < 20) {
-                    $site = new Sites($video['sites_id']);
+                } else if (!empty($yptStorage) && !empty($site) && $isValidType && $fsize < 20) {
                     $siteURL = getCDNOrURL($site->getUrl(), 'CDN_YPTStorage', $video['sites_id']);
                     $source['url'] = "{$siteURL}{$paths['relative']}{$filename}{$type}{$token}";
                     $source['url_noCDN'] = $site->getUrl() . "{$paths['relative']}{$filename}{$type}{$token}";
@@ -3271,8 +3277,9 @@ if (!class_exists('Video')) {
             $filename = self::getCleanFilenameFromFile($filename);
 
             $return = array();
+            
             $cacheName = "getHigestResolution($filename)";
-            $return = ObjectYPT::getCache($cacheName, 0);
+            $return = ObjectYPT::getSessionCache($cacheName, 0);
             if (!empty($return)) {
                 return object_to_array($return);
             }
@@ -3346,7 +3353,7 @@ if (!class_exists('Video')) {
             //if($filename=='video_210916143432_c426'){var_dump(1, $filename, $return);exit;}
             $video->setVideoHigestResolution($return['resolution']);
             TimeLogEnd($name0, __LINE__);
-            ObjectYPT::setCache($cacheName, $return);
+            ObjectYPT::setSessionCache($cacheName, $return);
             return $return;
         }
 
@@ -4077,8 +4084,8 @@ if (!class_exists('Video')) {
             ObjectYPT::deleteCache(md5($filename . ".mp4"));
             ObjectYPT::deleteCache(md5($filename . ".m3u81"));
             ObjectYPT::deleteCache(md5($filename . ".mp41"));
-            ObjectYPT::deleteCache("getSourceFile($filename)1");
-            ObjectYPT::deleteCache("getSourceFile($filename)0");
+            Cache::deleteCache("getSourceFile($filename)1");
+            Cache::deleteCache("getSourceFile($filename)0");
             Video::clearImageCache($filename);
             Video::clearImageCache($filename, "article");
             Video::clearImageCache($filename, "pdf");

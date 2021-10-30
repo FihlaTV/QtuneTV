@@ -188,6 +188,12 @@ function setPlayerListners() {
         player.on('play', function () {
             isTryingToPlay = false;
             clearTimeout(promisePlayTimeout);
+            if(startCurrentTime){
+                setTimeout(function(){
+                    setCurrentTime(startCurrentTime);
+                    startCurrentTime = 0;
+                }, 100);
+            }
             console.log("setPlayerListners: play");
             //userIsControling = true;
             pauseIfIsPlayinAdsInterval = setInterval(function () {
@@ -441,7 +447,7 @@ function addView(videos_id, currentTime) {
     if (last_videos_id == videos_id && last_currentTime == currentTime) {
         return false;
     }
-    if (currentTime > 5 && currentTime % 5 !== 0) { // only update each 30 seconds
+    if (currentTime > 5 && currentTime % 5 !== 0) { // only update each 5 seconds
         return false;
     }
 
@@ -460,6 +466,7 @@ function _addView(videos_id, currentTime) {
     }
     var url = webSiteRootURL + 'objects/videoAddViewCount.json.php';
     url = addGetParam(url, 'PHPSESSID', PHPSESSID);
+    console.log('_addView', videos_id, currentTime);
     $.ajax({
         url: url,
         method: 'POST',
@@ -481,6 +488,7 @@ function _addViewAsync() {
     if (typeof PHPSESSID == 'undefined') {
         PHPSESSID = '';
     }
+    console.log('_addViewAsync', mediaId, playerCurrentTime);
     var url = webSiteRootURL + 'objects/videoAddViewCount.json.php';
     url = addGetParam(url, 'PHPSESSID', PHPSESSID);
     _addViewAsyncSent = true;
@@ -517,9 +525,16 @@ function addViewFromCookie() {
             !addView_seconds_watching_video || addView_seconds_watching_video === 'false') {
         return false;
     }
+    console.log('addViewFromCookie', addView_videos_id, addView_playerCurrentTime);
     addViewSetCookie(false, false, false, false);
     var url = webSiteRootURL + 'objects/videoAddViewCount.json.php';
     url = addGetParam(url, 'PHPSESSID', addView_PHPSESSID);
+    
+    if(mediaId == addView_videos_id){
+        // it is the same video, play at the last momment
+        forceCurrentTime = addView_playerCurrentTime;
+    }
+    
     $.ajax({
         url: url,
         method: 'POST',
@@ -536,6 +551,7 @@ function addViewFromCookie() {
 }
 
 function addViewSetCookie(PHPSESSID, videos_id, playerCurrentTime, seconds_watching_video) {
+    //console.log('addViewSetCookie', videos_id, playerCurrentTime, seconds_watching_video);
     Cookies.set('addView_PHPSESSID', PHPSESSID, {
         path: '/',
         expires: 1
@@ -818,6 +834,15 @@ function playerPlayIfAutoPlay(currentTime) {
     if (isWebRTC()) {
         return false;
     }
+    if(forceCurrentTime !== null){
+        currentTime = forceCurrentTime;
+        forceCurrentTime = null;
+        console.log("playerPlayIfAutoPlay: forceCurrentTime:", currentTime);
+    }
+    
+    if (currentTime) {
+        setCurrentTime(currentTime);
+    }
     if (isAutoplayEnabled()) {
         playerPlayTimeout = setTimeout(function () {
             console.log('playerPlayIfAutoPlay true', currentTime);
@@ -826,9 +851,6 @@ function playerPlayIfAutoPlay(currentTime) {
         return true;
     }
     console.log('playerPlayIfAutoPlay false', currentTime);
-    if (currentTime) {
-        setCurrentTime(currentTime);
-    }
     //$.toast("Autoplay disabled");
     return false;
 }
@@ -986,7 +1008,19 @@ function reloadVideoJS() {
 }
 
 var initdone = false;
+var startCurrentTime = 0;
+var forceCurrentTime = null;
 function setCurrentTime(currentTime) {
+    console.log("setCurrentTime:", currentTime, forceCurrentTime);
+    if(forceCurrentTime !== null){
+        startCurrentTime = forceCurrentTime;
+        currentTime = forceCurrentTime;
+        forceCurrentTime = null;
+        console.log("forceCurrentTime:", currentTime);
+    }else if(startCurrentTime!=currentTime){
+        startCurrentTime=currentTime;
+        console.log("setCurrentTime changed:", currentTime);
+    }
     console.log('setCurrentTime', currentTime);
     if (typeof player !== 'undefined') {
         if (isTryingToPlay) {
@@ -1481,33 +1515,11 @@ $(document).ready(function () {
     });
     $('#clearCache, .clearCacheButton').on('click', function (ev) {
         ev.preventDefault();
-        modal.showPleaseWait();
-        $.ajax({
-            url: webSiteRootURL + 'objects/configurationClearCache.json.php',
-            success: function (response) {
-                if (!response.error) {
-                    avideoToastSuccess("Your cache has been cleared!");
-                } else {
-                    avideoAlert("Sorry!", "Your cache has NOT been cleared!", "error");
-                }
-                modal.hidePleaseWait();
-            }
-        });
+        clearCache(true, 0, 0);
     });
     $('.clearCacheFirstPageButton').on('click', function (ev) {
         ev.preventDefault();
-        modal.showPleaseWait();
-        $.ajax({
-            url: webSiteRootURL + 'objects/configurationClearCache.json.php?FirstPage=1',
-            success: function (response) {
-                if (!response.error) {
-                    avideoToastSuccess("Your First Page cache has been cleared!");
-                } else {
-                    avideoAlert("Sorry!", "Your First Page cache has NOT been cleared!", "error");
-                }
-                modal.hidePleaseWait();
-            }
-        });
+        clearCache(true, 1, 0);
     });
     $('#generateSiteMap, .generateSiteMapButton').on('click', function (ev) {
         ev.preventDefault();
@@ -1583,6 +1595,25 @@ $(document).ready(function () {
         });
     });
 });
+
+function clearCache(showPleaseWait, FirstPage, sessionOnly){
+    if(showPleaseWait){
+        modal.showPleaseWait();
+    }
+    $.ajax({
+        url: webSiteRootURL + 'objects/configurationClearCache.json.php?FirstPage='+FirstPage+'&sessionOnly='+sessionOnly,
+        success: function (response) {
+            if(showPleaseWait){
+                if (!response.error) {
+                    avideoToastSuccess("Your First Page cache has been cleared!");
+                } else {
+                    avideoAlert("Sorry!", "Your First Page cache has NOT been cleared!", "error");
+                }
+                modal.hidePleaseWait();
+            }
+        }
+    });
+}
 
 function validURL(str) {
     var pattern = new RegExp('^(https?:\\/\\/)?' + // protocol
@@ -1916,3 +1947,8 @@ document.addEventListener('visibilitychange', function () {
         _addViewAsync();
     }
 });
+
+function socketClearSessionCache(json){
+    console.log('socketClearSessionCache', json);
+    clearCache(false, 0, 1);
+}

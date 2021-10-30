@@ -440,7 +440,7 @@ class VideoStatistic extends ObjectYPT {
         $cacheName = "getChannelsTotalViews($users_id, $daysLimit)";
         $cache = ObjectYPT::getCache($cacheName, 3600); // 1 hour cache
         if (!empty($cache)) {
-            return object_to_array($cache);
+            return intval($cache);
         }
         $users_id = intval($users_id);
         // count how many views each one has
@@ -455,7 +455,7 @@ class VideoStatistic extends ObjectYPT {
             $result = intval($result2['total']);
         }
         ObjectYPT::setCache($cacheName, $result);
-        return 0;
+        return $result;
     }
 
     public static function getTotalStatisticsRecords() {

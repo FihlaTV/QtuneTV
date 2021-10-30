@@ -253,6 +253,11 @@ function isExifToo() {
     return trim(shell_exec('which exiftool'));
 }
 
+function isAPPInstalled($appName) {
+    $appName = preg_replace('/[^a-z0-9_-]/i', '', $appName);
+    return trim(shell_exec("which {$appName}"));
+}
+
 function getPathToApplication() {
     return str_replace("install/index.php", "", $_SERVER["SCRIPT_FILENAME"]);
 }
@@ -1657,6 +1662,9 @@ function im_resizeV2($file_src, $file_dest, $wd, $hd, $q = 80) {
         return false;
     }
     $src = imagecreatefromjpeg($file_dest);
+    if(empty($src)){
+        return false;
+    }
     $ws = imagesx($src);
     $hs = imagesy($src);
 
@@ -1706,6 +1714,9 @@ function im_resizePNG($file_src, $file_dest, $wd, $hd) {
 }
 
 function im_resizeV3($file_src, $file_dest, $wd, $hd) {
+    
+    return im_resizeV2($file_src, $file_dest, $wd, $hd); // ffmpeg disabled 
+    
     _error_log("im_resizeV3: $file_src, $file_dest, $wd, $hd");
     // This tries to preserve the aspect ratio of the thumb while letterboxing it in
     // The same way that the encoder now does.
@@ -1981,6 +1992,7 @@ function make_path($path) {
         $path = pathinfo($path, PATHINFO_DIRNAME);
     }
     if (!is_dir($path)) {
+        //if(preg_match('/getvideoinfo/i', $path)){var_dump(debug_backtrace());}
         $created = mkdir($path, 0755, true);
         /*
           if (!$created) {
@@ -2251,7 +2263,7 @@ function combineFiles($filesArray, $extension = "js") {
         if (!is_dir($cacheDir)) {
             make_path($cacheDir);
         }
-        $bytes = file_put_contents($cacheDir . $md5FileName, $str);
+        $bytes = _file_put_contents($cacheDir . $md5FileName, $str);
         if (empty($bytes)) {
             _error_log('combineFiles: error on save strlen=' . strlen($str) . ' ' . $cacheDir . $md5FileName . ' cacheDir=' . $cacheDir);
             return false;
@@ -3939,18 +3951,29 @@ function clearCache($firstPageOnly = false) {
     file_put_contents($lockFile, time());
 
     $dir = getVideosDir() . "cache" . DIRECTORY_SEPARATOR;
+    $tmpDir = ObjectYPT::getCacheDir('firstPage');
+    $parts = explode('firstpage', $tmpDir);
+
     if ($firstPageOnly || !empty($_GET['FirstPage'])) {
+        $tmpDir = $parts[0] . 'firstpage' . DIRECTORY_SEPARATOR;
+        //var_dump($tmpDir);exit;
         $dir .= "firstPage" . DIRECTORY_SEPARATOR;
+    } else {
+        $tmpDir = $parts[0];
     }
 
     //_error_log('clearCache 1: '.$dir);
     rrmdir($dir);
-
+    rrmdir($tmpDir);
     ObjectYPT::deleteCache("getEncoderURL");
     unlink($lockFile);
     $end = microtime(true) - $start;
     _error_log("clearCache end in {$end} seconds");
     return true;
+}
+
+function clearAllUsersSessionCache() {
+    sendSocketMessageToAll(time(), 'socketClearSessionCache');
 }
 
 function clearFirstPageCache() {
@@ -6306,7 +6329,7 @@ function saveCroppieImage($destination, $postIndex = "imgBase64") {
         return false;
     }
     $fileData = base64DataToImage($_POST[$postIndex]);
-    return file_put_contents($destination, $fileData);
+    return _file_put_contents($destination, $fileData);
 }
 
 function get_ffmpeg($ignoreGPU = false) {
@@ -6648,6 +6671,7 @@ function deleteStatsNotifications() {
 
 function getStatsNotifications($force_recreate = false) {
     $cacheName = "getStats" . DIRECTORY_SEPARATOR . "getStatsNotifications";
+    unset($_POST['sort']);
     if ($force_recreate) {
         Live::deleteStatsCache();
     } else {
@@ -7012,7 +7036,7 @@ function isTimeForFuture($time, $useDatabaseTime = true) {
 }
 
 function secondsIntervalFromNow($time, $useDatabaseTimeOrTimezoneString = true) {
-    $timeNow = time();    
+    $timeNow = time();
     //var_dump($time, $useDatabaseTimeOrTimezoneString);
     if (!empty($useDatabaseTimeOrTimezoneString)) {
         if (is_numeric($useDatabaseTimeOrTimezoneString) || is_bool($useDatabaseTimeOrTimezoneString)) {
@@ -7154,7 +7178,24 @@ function getCDN($type = 'CDN', $id = 0) {
 
 function getURL($relativePath) {
     global $global;
-    return getCDN() . $relativePath . '?cache=' . (@filemtime("{$global['systemRootPath']}{$relativePath}") . (@filectime("{$global['systemRootPath']}{$relativePath}")));
+    if (!isset($_SESSION['user']['sessionCache']['getURL'])) {
+        $_SESSION['user']['sessionCache']['getURL'] = array();
+    }
+    if (!empty($_SESSION['user']['sessionCache']['getURL'][$relativePath])) {
+        return $_SESSION['user']['sessionCache']['getURL'][$relativePath];
+    }
+
+    $file = "{$global['systemRootPath']}{$relativePath}";
+    $url = getCDN() . $relativePath;
+    if (file_exists($file)) {
+        $cache = @filemtime($file) . '_' . @filectime($file);
+        $url = addQueryStringParameter($url, 'cache', $cache);
+        $_SESSION['user']['sessionCache']['getURL'][$relativePath] = $url;
+    }else{
+        $url = addQueryStringParameter($url, 'cache', 'not_found');
+    }
+
+    return $url;
 }
 
 function getCDNOrURL($url, $type = 'CDN', $id = 0) {
@@ -7424,6 +7465,12 @@ function seconds2human($ss) {
     return implode(', ', $times);
 }
 
+/**
+ * convert a time in a timezone into my time
+ * @param type $time
+ * @param type $timezone
+ * @return type
+ */
 function getTimeInTimezone($time, $timezone) {
     if (!is_numeric($time)) {
         $time = strtotime($time);

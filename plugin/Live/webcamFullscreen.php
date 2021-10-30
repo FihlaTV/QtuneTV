@@ -25,9 +25,12 @@ $users_id = User::getId();
 $trasnmition = LiveTransmition::createTransmitionIfNeed($users_id);
 $live_servers_id = Live::getCurrentLiveServersId();
 $forceIndex = '';
+/*
 if (!empty($lObj->server_type->value)) {
     $forceIndex = "Live" . date('YmdHis');
 }
+ * 
+ */
 
 $liveStreamObject = new LiveStreamObject($trasnmition['key'], $live_servers_id, $forceIndex, 0);
 $streamName = $liveStreamObject->getKeyWithIndex($forceIndex, true);
@@ -42,10 +45,12 @@ $controls = Live::getAllControlls($streamName);
         <link rel="icon" href="<?php echo getCDN(); ?>view/img/favicon.ico">
         <title><?php echo $config->getWebSiteTitle(); ?></title>
         <link href="<?php echo getCDN(); ?>view/bootstrap/css/bootstrap.css" rel="stylesheet" type="text/css"/>
-        <link href="<?php echo getCDN(); ?>view/css/fontawesome-free-5.5.0-web/css/all.min.css" rel="stylesheet" type="text/css"/>
+        <link href="<?php echo getCDN(); ?>node_modules/@fortawesome/fontawesome-free/css/all.min.css" rel="stylesheet" type="text/css"/>
         <link href="<?php echo getURL('plugin/Live/webRTC.css'); ?>" rel="stylesheet" type="text/css"/>
-        <script src="<?php echo getCDN(); ?>view/js/jquery-3.5.1.min.js" type="text/javascript"></script>
-        <script src="<?php echo getCDN(); ?>view/bootstrap/js/bootstrap.min.js" type="text/javascript"></script>
+        <script src="<?php echo getURL('node_modules/jquery/dist/jquery.min.js'); ?>" type="text/javascript"></script>
+        <?php
+        include $global['systemRootPath'] . 'view/include/bootstrap.js.php';
+        ?>
         <style>
             body {
                 padding: 0 !important;
@@ -120,7 +125,7 @@ $controls = Live::getAllControlls($streamName);
         <script src="<?php echo getURL('view/js/script.js'); ?>" type="text/javascript"></script>
         <script src="<?php echo getCDN(); ?>view/js/js-cookie/js.cookie.js" type="text/javascript"></script>
         <script src="<?php echo getCDN(); ?>view/js/jquery-toast/jquery.toast.min.js" type="text/javascript"></script>
-        <script src="<?php echo getCDN(); ?>view/js/seetalert/sweetalert.min.js" type="text/javascript"></script>
+        <script src="<?php echo getCDN(); ?>node_modules/sweetalert/dist/sweetalert.min.js" type="text/javascript"></script>
         <!-- getFooterCode start -->
         <?php
         echo AVideoPlugin::getFooterCode();
