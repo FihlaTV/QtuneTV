@@ -426,13 +426,13 @@ if (typeof gtag !== \"function\") {
         }
         if (!empty($photo) && preg_match("/videos\/userPhoto\/.*/", $photo)) {
             if (file_exists($global['systemRootPath'] . $photo)) {
-                $photo = getCDN() . $photo . "?" . filemtime($global['systemRootPath'] . $photo);
+                $photo = getURL($photo);
             } else {
                 $photo = "";
             }
         }
         if (empty($photo)) {
-            $photo = getCDN() . "view/img/userSilhouette.jpg";
+            $photo = getURL("view/img/userSilhouette.jpg");
         }
         return $photo;
     }
@@ -1079,6 +1079,12 @@ if (typeof gtag !== \"function\") {
 
         $formats .= "s";
         $values[] = $user;
+
+        if (trim($user) !== $user) {
+            $formats .= "s";
+            $values[] = trim($user);
+            $sql .= " OR user = ? ";
+        }
 
         if ($mustBeactive) {
             $sql .= " AND status = 'a' ";
@@ -1833,7 +1839,7 @@ if (typeof gtag !== \"function\") {
         foreach ($groups as $value) {
             $obj = new stdClass();
             $obj->type = "warning";
-            $obj->text = (!empty($value['isDynamic'])?'<i class="fas fa-link"></i>':'<i class="fas fa-lock"></i>').' '.$value['group_name'];
+            $obj->text = (!empty($value['isDynamic']) ? '<i class="fas fa-link"></i>' : '<i class="fas fa-lock"></i>') . ' ' . $value['group_name'];
             $tags[] = $obj;
         }
 
@@ -2182,11 +2188,43 @@ if (typeof gtag !== \"function\") {
         if (empty($_REQUEST['pass']) && !empty($_REQUEST['password'])) {
             $_REQUEST['pass'] = $_REQUEST['password'];
         }
+
+        $response = false;
         if (!empty($_REQUEST['user']) && !empty($_REQUEST['pass'])) {
             $user = new User(0, $_REQUEST['user'], $_REQUEST['pass']);
-            $user->login(false, !empty($_REQUEST['encodedPass']));
+            $response = $user->login(false, !empty($_REQUEST['encodedPass']));
+            if ($response !== self::USER_LOGGED) {
+                _error_log("loginFromRequest trying again");
+                $response = $user->login(false, empty($_REQUEST['encodedPass']));
+            }
+            if ($response) {
+
+                switch ($response) {
+                    case self::USER_LOGGED:
+                        _error_log("loginFromRequest SUCCESS {$_REQUEST['user']}, {$_REQUEST['pass']}");
+                        break;
+                    case self::USER_NOT_FOUND:
+                        _error_log("loginFromRequest NOT FOUND {$_REQUEST['user']}, {$_REQUEST['pass']}");
+                        break;
+                    case self::USER_NOT_VERIFIED:
+                        _error_log("loginFromRequest NOT VERIFIED {$_REQUEST['user']}, {$_REQUEST['pass']}");
+                        break;
+                    case self::CAPTCHA_ERROR:
+                        _error_log("loginFromRequest CAPTCHA_ERROR {$_REQUEST['user']}, {$_REQUEST['pass']}");
+                        break;
+                    case self::REQUIRE2FA:
+                        _error_log("loginFromRequest REQUIRE2FA {$_REQUEST['user']}, {$_REQUEST['pass']}");
+                        break;
+                    default:
+                        _error_log("loginFromRequest UNDEFINED {$_REQUEST['user']}, {$_REQUEST['pass']}");
+                        break;
+                }
+            } else {
+                _error_log("loginFromRequest ERROR {$_REQUEST['user']}, {$_REQUEST['pass']}");
+            }
             $_REQUEST['do_not_login'] = 1;
         }
+        return $response;
     }
 
     public static function loginFromRequestToGet() {

@@ -353,7 +353,7 @@ class CDNStorage {
         $totalFilesToTransfer = count($list);
         foreach ($list as $value) {
             $itemsProcessed++;
-            if ($value['local_filesize'] < 20) {
+            if (filesize($value['local_path']) < 20) {
                 self::addToLog($value['videos_id'], $value['local_path'] . ' is a dummy file local_filesize=' . $value['local_filesize'] . ' Bytes');
                 continue;
             }
@@ -535,6 +535,15 @@ class CDNStorage {
 
     static function getURL($filename) {
         global $global;
+        
+        // this is because sometimes I send filenames like this "videos/video_200721131007_6b3e/video_200721131007_6b3e_Low.mp4"
+        if(preg_match('/^videos\\//', $filename)){
+            $parts = explode('/', $filename);
+            if(count($parts)==3){
+                $filename = $parts[2];
+            }
+        }
+        
         $paths = Video::getPaths($filename);
         $file = $paths['path'] . $filename;
         if (!file_exists($file)) {
@@ -582,6 +591,12 @@ class CDNStorage {
     static function deleteLog($videos_id) {
         $file = self::getLogFile($videos_id);
         return unlink($file);
+    }
+    
+    static function file_get_contents($remote_filename){
+        $obj = AVideoPlugin::getDataObject('CDN');
+        $filename = "ftp://{$obj->storage_username}:{$obj->storage_password}@{$obj->storage_hostname}/{$remote_filename}";
+        return file_get_contents($filename);
     }
 
 }

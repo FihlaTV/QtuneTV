@@ -24,7 +24,7 @@ if(!isset($_REQUEST['encodedPass'])){
 }
 useVideoHashOrLogin();
 if (!User::canUpload()) {
-    _error_log("aVideoEncoder.json: Permission denied to receive a file: " . json_encode($_POST));
+    _error_log("aVideoEncoder.json: Permission denied to receive a file: " . json_encode($_REQUEST));
     $obj->msg = __("Permission denied to receive a file: ") . json_encode($_POST);
     _error_log($obj->msg);
     die(json_encode($obj));
@@ -181,7 +181,6 @@ $v = new Video('', '', $video_id);
 $obj->video_id_hash = $v->getVideoIdHash();
 
 _error_log("aVideoEncoder.json: Files Received for video {$video_id}: " . $video->getTitle());
-Video::clearCache($video_id);
 if(!empty($destinationFile)){
     if(file_exists($destinationFile)){
         _error_log("aVideoEncoder.json: Success $destinationFile ");

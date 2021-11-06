@@ -1,7 +1,7 @@
 <?php
 
-//streamer config
-require_once '../videos/configuration.php';
+$config = dirname(__FILE__) . '/../../../videos/configuration.php';
+require_once $config;
 
 if (!isCommandLineInterface()) {
     return die('Command Line only');
@@ -42,7 +42,7 @@ foreach ($videos as $value) {
         continue;
     }
     $countMoved++;
-    //CDNStorage::moveLocalToRemote($value['id']);
+    CDNStorage::moveLocalToRemote($value['id']);
     echo "{$count}/{$total} Moved done {$global['webSiteRootURL']}v/{$value['id']} {$value['title']}".PHP_EOL;
     ob_flush();
 }

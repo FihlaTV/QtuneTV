@@ -56,24 +56,31 @@ if (isset($_SERVER["HTTPS"])) {
 } else {
     $messages['Apache'][] = array("HTTPS is not enabled", 'https://github.com/WWBN/AVideo/wiki/Why-use-HTTPS');
 }
-$mods = array_map('strtolower', apache_get_modules());
-//var_dump($mods);
-foreach ($apacheModules as $value) {
-    if (in_array($value[0], $mods)) {
-        $messages['Apache'][] = $value[0];
-    } else {
-        $found = false;
-        foreach ($mods as $value2) {
-            if (preg_match("/{$value[0]}/", $value2)) {
-                $found = $value2;
-                break;
+
+if(function_exists('apache_get_modules')){
+    $mods = array_map('strtolower', apache_get_modules());
+    //var_dump($mods);
+    foreach ($apacheModules as $value) {
+        if (in_array($value[0], $mods)) {
+            $messages['Apache'][] = $value[0];
+        } else {
+            $found = false;
+            foreach ($mods as $value2) {
+                if (preg_match("/{$value[0]}/", $value2)) {
+                    $found = $value2;
+                    break;
+                }
+            }
+            if ($found) {
+                $messages['Apache'][] = $found;
+            } else {
+                $messages['Apache'][] = array($value[0], @$value[1]);
             }
         }
-        if ($found) {
-            $messages['Apache'][] = $found;
-        } else {
-            $messages['Apache'][] = array($value[0], @$value[1]);
-        }
+    }
+}else{
+    foreach ($apacheModules as $value) {
+        $messages['Apache'][] = array($value[0], 'We could not check your installed modules. We recommend you to use apache as a module NOT as a FPM');
     }
 }
 
@@ -170,7 +177,7 @@ if (empty($result)) {
                                 $count++;
                                 if (is_array($value)) {
                                     ?>
-                                    <div class="col-lg-4 col-md-6">
+                                    <div class="col-lg-4 col-md-6 <?php echo getCSSAnimationClassAndStyle('animate__flipInX'); ?>">
                                         <div class="alert alert-danger">
                                             <i class="fas fa-times"></i> <?php
                                             echo $value[0];
@@ -191,7 +198,7 @@ if (empty($result)) {
                                     <?php
                                 } else {
                                     ?>
-                                    <div class="col-lg-4 col-md-6">
+                                    <div class="col-lg-4 col-md-6 <?php echo getCSSAnimationClassAndStyle('animate__flipInX'); ?>">
                                         <div class="alert alert-success">
                                             <i class="fas fa-check"></i> <?php
                                             echo $value;
@@ -224,7 +231,7 @@ if (empty($result)) {
                             foreach ($messages['PHP'] as $value) {
                                 if (is_array($value)) {
                                     ?>
-                                    <div class="col-sm-12">
+                                    <div class="col-sm-12 <?php echo getCSSAnimationClassAndStyle('animate__flipInX'); ?>">
                                         <div class="alert alert-danger">
                                             <i class="fas fa-times"></i> <?php
                                             echo $value[0];
@@ -245,7 +252,7 @@ if (empty($result)) {
                                     <?php
                                 } else {
                                     ?>
-                                    <div class="col-sm-12">
+                                    <div class="col-sm-12 <?php echo getCSSAnimationClassAndStyle('animate__flipInX'); ?>">
                                         <div class="alert alert-success">
                                             <i class="fas fa-check"></i> <?php
                                             echo $value;
@@ -272,7 +279,7 @@ if (empty($result)) {
                             foreach ($messages['Apache'] as $value) {
                                 if (is_array($value)) {
                                     ?>
-                                    <div class="col-sm-12">
+                                    <div class="col-sm-12 <?php echo getCSSAnimationClassAndStyle('animate__flipInX'); ?>">
                                         <div class="alert alert-danger">
                                             <i class="fas fa-times"></i> <?php
                                             echo $value[0];
@@ -293,7 +300,7 @@ if (empty($result)) {
                                     <?php
                                 } else {
                                     ?>
-                                    <div class="col-sm-12">
+                                    <div class="col-sm-12 <?php echo getCSSAnimationClassAndStyle('animate__flipInX'); ?>">
                                         <div class="alert alert-success">
                                             <i class="fas fa-check"></i> <?php
                                             echo $value;

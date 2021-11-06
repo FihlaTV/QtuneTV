@@ -2644,6 +2644,32 @@ function encryptPasswordVerify($password, $hash, $encodedPass = false) {
     return $passwordSalted === $hash || $passwordUnSalted === $hash || $password === $hash;
 }
 
+function encryptPasswordV2($uniqueSalt, $password, $noSalt = false) {
+    global $advancedCustom, $global, $advancedCustomUser;
+    if (!empty($advancedCustomUser->encryptPasswordsWithSalt) && !empty($global['salt']) && empty($noSalt)) {
+        $password .= $global['salt'];
+    }
+    $password .= md5($uniqueSalt);
+    return md5(hash("whirlpool", sha1($password)));
+}
+
+function encryptPasswordVerifyV2($uniqueSalt, $password, $hash, $encodedPass = false) {
+    global $advancedCustom, $global;
+    if (!$encodedPass || $encodedPass === 'false') {
+        //_error_log("encryptPasswordVerify: encrypt");
+        $passwordSalted = encryptPasswordV2($uniqueSalt, $password);
+        // in case you enable the salt later
+        $passwordUnSalted = encryptPasswordV2($uniqueSalt, $password, true);
+    } else {
+        //_error_log("encryptPasswordVerify: do not encrypt");
+        $passwordSalted = $password;
+        // in case you enable the salt later
+        $passwordUnSalted = $password;
+    }
+    //_error_log("passwordSalted = $passwordSalted,  hash=$hash, passwordUnSalted=$passwordUnSalted");
+    return $passwordSalted === $hash || $passwordUnSalted === $hash || $password === $hash;
+}
+
 function isMobile($userAgent = null, $httpHeaders = null) {
     if (empty($userAgent) && empty($_SERVER["HTTP_USER_AGENT"])) {
         return false;
@@ -5935,18 +5961,33 @@ function getResolutionLabel($res) {
 }
 
 function getResolutionText($res) {
-    if ($res == 720) {
+    $res = intval($res);
+    if ($res >= 720 && $res < 1080) {
         return "HD";
-    } elseif ($res == 1080) {
+    } elseif ($res >= 1080 && $res < 1440) {
         return "FHD";
-    } elseif ($res == 1440) {
+    } elseif ($res >= 1440 && $res < 2160) {
         return "FHD+";
-    } elseif ($res == 2160) {
+    } elseif ($res >= 2160 && $res < 4320) {
         return "4K";
-    } elseif ($res == 4320) {
+    } elseif ($res >= 4320) {
         return "8K";
     } else {
         return '';
+    }
+}
+
+
+function getResolutionTextRoku($res) {
+    $res = intval($res);
+    if ($res >= 720 && $res < 1080) {
+        return "HD";
+    } elseif ($res >= 1080 && $res < 2160) {
+        return "FHD";
+    } elseif ($res >= 2160 ) {
+        return "UHD";
+    } else {
+        return 'SD';
     }
 }
 
@@ -6924,6 +6965,9 @@ function listAllWordsToTranslate() {
 
     function listAll($dir) {
         $vars = array();
+        if(preg_match('/vendor.*$/', $dir)){
+            return $vars;
+        }
         if ($handle = opendir($dir)) {
             while (false !== ($entry = readdir($handle))) {
                 if ($entry != "." && $entry != "..") {
@@ -7123,7 +7167,6 @@ function getCDN($type = 'CDN', $id = 0) {
             $_getCDNURL[$index] = $global['webSiteRootURL'];
         }
     }
-
     //var_dump($type, $id, $_getCDNURL[$index]);
     return empty($_getCDNURL[$index]) ? false : $_getCDNURL[$index];
 }
@@ -7470,4 +7513,27 @@ function convertToMyTimezone($date, $fromTimezone) {
 function getTimestampFromTimezone($date, $fromTimezone) {
     $date = new DateTime($date, new DateTimeZone($fromTimezone));
     return $date->getTimestamp();
+}
+
+
+function getCSSAnimation($type='animate__fadeInUp', $loaderSequenceName='default', $delay = 0.1){
+    global $_getCSSAnimationClassDelay;
+    getCSSAnimationClassAndStyleAddWait($delay, $loaderSequenceName);
+    return array('css'=>'animate__animated '.$type, 'style'=>"-webkit-animation-delay: {$_getCSSAnimationClassDelay[$loaderSequenceName]}s; animation-delay: {$_getCSSAnimationClassDelay[$loaderSequenceName]}s;");
+}
+
+function getCSSAnimationClassAndStyleAddWait($delay, $loaderSequenceName='default'){
+    global $_getCSSAnimationClassDelay;
+    if(!isset($_getCSSAnimationClassDelay)){
+        $_getCSSAnimationClassDelay = array();
+    }
+    if(empty($_getCSSAnimationClassDelay[$loaderSequenceName])){
+        $_getCSSAnimationClassDelay[$loaderSequenceName] = 0;
+    }
+    $_getCSSAnimationClassDelay[$loaderSequenceName] += $delay;
+}
+
+function getCSSAnimationClassAndStyle($type='animate__flipInX', $loaderSequenceName='default', $delay = 0.1){
+    $array = getCSSAnimation($type, $loaderSequenceName, $delay);
+    return "{$array['css']}\" style=\"{$array['style']}";
 }
